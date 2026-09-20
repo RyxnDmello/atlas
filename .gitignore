@@ -1,0 +1,27 @@
+# ENVIRONMENT
+
+.env
+venv/
+.venv/
+
+# SYSTEM
+
+.idea/
+.vscode/
+.DS_Store
+*.py[cod]
+.coverage
+__pycache__/
+node_modules/
+.pytest_cache/
+qdrant_storage/
+
+# TESTS
+
+server/tests/fixtures/short.md
+server/tests/fixtures/empty.md
+server/tests/fixtures/valid-long.md
+server/tests/fixtures/unsupported.txt
+server/tests/fixtures/valid-multipage.pdf
+server/tests/fixtures/image-only-page.pdf
+server/tests/fixtures/no-sentence-boundaries.md
