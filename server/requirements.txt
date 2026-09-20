@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+tiktoken
+pydantic
+pdfplumber
+python-multipart
