@@ -58,3 +58,21 @@ The touched application files use single-word local names where context is clear
 This structured-error section supersedes the earlier structural-refactor paragraph’s description of the old named exception subclasses: the final implementation uses the single `ApiError` class and the six codes above. The final source sweep also confirms the router imports `ApiError`, `main.py` registers its handler, and no old `APIError`, `UnsupportedFileTypeError`, `EmptyFileError`, `DocumentExtractionError`, or `NoExtractableTextError` class remains in active server code.
 
 `ApiError` retains `HTTPException` compatibility so the existing direct-router tests continue to assert HTTP 400 failures without changing their logic; FastAPI’s more-specific `ApiError` handler overrides the default body for real requests with the new `{error, code}` payload.
+
+## External exception-handler refactor
+
+At the start of this pass, the checked-out branch was `phase-01/plan-01`. Local branches were `master` and `phase-01/plan-01`; the plan branch pointed to `e3f09ff` and `master` pointed to `be52d92`, with matching remote-tracking branches. No branch was changed and no commit was created.
+
+`errors/api.py` now exposes `is_api_error`, while `errors/handlers.py` owns both the structured `ApiError` handler and the generic unexpected-exception handler. FastAPI resolves exception handlers by walking the raised exception's method-resolution order, so an `ApiError` instance matches the exact `ApiError` registration before the generic `Exception` registration. The generic handler also defensively delegates an `ApiError` to `handle_api_error`; this was verified by inspecting FastAPI/Starlette's handler lookup implementation and directly exercising both handler functions, where the known error retained its `INVALID_FILE_TYPE` response instead of becoming a 500.
+
+Unexpected failures are logged with `logger.error("Unhandled exception: %s", error, exc_info=(type(error), error, error.__traceback__))`, which records the exception type/message and full traceback server-side. The client receives only `{"error": "Internal server error", "code": "INTERNAL_SERVER_ERROR"}` with status 500, using `STATUS_BY_CODE` for the status rather than exposing internal details.
+
+## Environment settings amendment
+
+The environment loader now uses one flat `pydantic-settings` `BaseSettings` model, because the existing variables are flat names (`APP_NAME`, `LOG_LEVEL`, and `QDRANT_URL`) and this keeps their source mapping direct and explicit. `Constants` remains the public wrapper: it instantiates that model once, then passes the validated values into the existing `_App`, `_Logger`, and `_Qdrant` group instances. Therefore callers still use the unchanged `constants.app.APP_NAME`, `constants.logger.LOG_LEVEL`, and `constants.qdrant.QDRANT_URL` shape.
+
+All three settings are explicitly typed as strings. `APP_NAME` and `QDRANT_URL` reject empty values; `LOG_LEVEL` rejects unsupported logging names while retaining the previous case-insensitive behavior; and `QDRANT_URL` must contain a valid HTTP(S) scheme and network location. The model reads `.env` plus process environment values, with process environment taking precedence, and missing values have no defaults so startup fails during `constants` construction.
+
+Fail-fast behavior was verified in isolated startup processes: removing `APP_NAME` produced a Pydantic validation error naming `APP_NAME`; setting `LOG_LEVEL=INVALID` produced one naming `LOG_LEVEL`; and setting `QDRANT_URL=not-a-url` produced one naming `QDRANT_URL`. A valid root `.env` loaded successfully, lowercase `LOG_LEVEL=info` remained compatible, the public nested shape was checked, and the full six-test upload suite plus application compilation passed. A rebuilt Docker Compose stack also started successfully; Qdrant became healthy, the server started behind its health gate, and both health endpoints returned HTTP 200.
+
+The `_load_settings` helper constructs the environment-backed settings model through a typed zero-argument factory cast. This preserves Pydantic's required fields and fail-fast validation while preventing Pylance from interpreting environment-backed fields as required Python call arguments at the construction site.

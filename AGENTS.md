@@ -26,15 +26,15 @@ prompt explicitly says so.
 
 ## Component maturity (update as work lands)
 
-| Component               | Status        |
-| ----------------------- | ------------- |
-| Upload endpoint         | Not Yet Built |
-| Chunking                | Not Yet Built |
-| Embedding               | Not Yet Built |
-| Vector storage (Qdrant) | Not Yet Built |
-| Retrieval               | Not Yet Built |
-| Generation/streaming    | Not Yet Built |
-| Citation display        | Not Yet Built |
+| Component               | Status         |
+|--------------------------|---------------|
+| Upload endpoint          | Not Yet Built |
+| Chunking                 | Not Yet Built |
+| Embedding                | Not Yet Built |
+| Vector storage (Qdrant)  | Not Yet Built |
+| Retrieval                | Not Yet Built |
+| Generation/streaming     | Not Yet Built |
+| Citation display         | Not Yet Built |
 
 Statuses: `Not Yet Built` / `Implemented, Unverified` (code exists but
 untested/unexplained) / `Implemented & Verified`. Never treat
@@ -55,7 +55,6 @@ scaffolding exists.)
 
 FastAPI backend - PostgreSQL (from Phase 3) - Qdrant (self-hosted,
 Docker) - Redis (introduced when caching becomes relevant, not Phase 1)
-
 - React/Next.js frontend - Docker Compose deployment.
 
 ## Locked Phase 1 decisions
@@ -196,10 +195,43 @@ not the framework-specific code):
 - Routers raise the base class (or a specific subclass/instance) rather
   than constructing `HTTPException` inline.
 
+## Git & branch discipline
+
+At the start of every session, review the current git state for context
+— current branch, other local/remote branches, and recent commit
+history on each — before writing any code. This is read-only
+reconnaissance, not an action to report back verbosely; use it to avoid
+duplicating or conflicting with work that already exists elsewhere.
+
+**Never, under any circumstance, unless explicitly instructed in that
+session's prompt:**
+- Commit anything.
+- Edit, delete, rename, merge, or rebase any branch.
+- Switch, checkout, or create a branch.
+
+Work only inside whatever branch is already checked out when the
+session starts. If the current branch doesn't match what a prompt's
+scope implies, stop and flag it rather than switching branches to "fix"
+the mismatch yourself.
+
+**Branch naming convention:** `phase-<NN>/plan-<NN>`, e.g.
+`phase-01/plan-01`. Each `PLAN_<NN>` has exactly one branch, listed in
+that plan's entry in `PHASE_<NN>.md`.
+
+**What stays on the existing plan's branch vs. gets a new plan/branch:**
+a genuinely new pipeline stage (e.g. moving from chunking to embedding,
+or from retrieval to generation) gets a new `PLAN_<NN>` and a new
+branch. Cleanup, convention fixes, refactors, and bug fixes to a plan
+that's already built stay on that plan's existing branch and existing
+`PLAN_<NN>` number — they do not get their own plan/branch. A plan's
+status in `PHASE_<NN>.md` must be set back to `Built, Unverified` when
+its code changes after being marked `Verified`, and only re-marked
+`Verified` once manually re-checked. The plan's `_SUMMARY.md` file is
+the running changelog for these amendments — no separate file needed.
+
 ## Boundaries
 
 **Always do, without asking:**
-
 - Implement within an already-decided architecture (this file + the
   `rag` skill).
 - Log enough at each pipeline stage (chunk count, embedding dimension,
@@ -212,7 +244,6 @@ not the framework-specific code):
   an earlier prompt's output rather than introducing a new one.
 
 **Ask first — do not assume a default:**
-
 - Any new third-party library, service, or API not listed in the fixed
   stack.
 - Chunk size/overlap, embedding model, similarity metric, or LLM
@@ -220,7 +251,6 @@ not the framework-specific code):
 - Anything not already resolved in this file or the skill.
 
 **Never do:**
-
 - Start Phase 2+ work (multi-document, auth, teams, portfolios) unless a
   prompt explicitly requests it.
 - Add auth, session, or user-scoping logic before Phase 3 is explicitly

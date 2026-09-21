@@ -1,6 +1,7 @@
 from typing import Literal
 
 from fastapi import HTTPException
+from fastapi.responses import JSONResponse
 
 CommonErrorCode = Literal[
     "BAD_REQUEST",
@@ -44,3 +45,19 @@ class ApiError(HTTPException):
     def to_dict(self) -> dict[str, str]:
         """Return the structured JSON representation of this API error."""
         return {"error": self.message, "code": self.code}
+
+    def response(self) -> JSONResponse:
+        """Return the API Response with proper error status and content."""
+        return JSONResponse(status_code=self.status, content=self.to_dict())
+
+
+def is_api_error(error: object) -> bool:
+    """Return whether an object is an instance of ApiError.
+
+    Args:
+        error: The object to inspect.
+
+    Returns:
+        True when the object is an ApiError, otherwise False.
+    """
+    return isinstance(error, ApiError)

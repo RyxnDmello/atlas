@@ -25,19 +25,24 @@ project's running source of truth across chat sessions.
 
 ## Plan status
 
-| Plan             | Status      | One-line scope                                 |
-| ---------------- | ----------- | ---------------------------------------------- |
-| PHASE_01_PLAN_01 | Verified    | Scaffolding, upload, text extraction, chunking |
-| PHASE_01_PLAN_02 | Not Started | Qdrant setup, embedding, storage               |
-| PHASE_01_PLAN_03 | Not Started | Retrieval (query embed + top-k search)         |
-| PHASE_01_PLAN_04 | Not Started | Generation, streaming, citation                |
-| PHASE_01_PLAN_05 | Not Started | Minimal client UI                              |
+| Plan             | Status            | One-line Scope                                 |
+| ---------------- | ----------------- | ---------------------------------------------- |
+| PHASE_01_PLAN_01 | Built, Unverified | Scaffolding, upload, text extraction, chunking |
+| PHASE_01_PLAN_02 | Not Started       | Qdrant setup, embedding storage                |
+| PHASE_01_PLAN_03 | Not Started       | Retrieval (query embed + top-k search)         |
+| PHASE_01_PLAN_04 | Not Started       | Generation, streaming, citation                |
+| PHASE_01_PLAN_05 | Not Started       | Minimal client UI                              |
 
 ---
 
 ## PHASE_01_PLAN_01 — Scaffolding, Upload, Extraction, Chunking
 
+**Branch:** `phase-01/plan-01`
+
 **Status: built and verified before the Atlas rename. Not retrofitted.**
+Amendments after the original build (env loading, exception handling
+redesign) stay on this same branch/plan — see
+`PLAN_01/PHASE_01_PLAN_01_SUMMARY.md` for the running changelog.
 
 **Depends on:** nothing (first plan in the project).
 
@@ -74,6 +79,8 @@ fixed.
 
 ## PHASE_01_PLAN_02 — Qdrant, Embedding, Storage
 
+**Branch:** `phase-01/plan-02`
+
 **Depends on:** PLAN_01 verified.
 
 **Builds:**
@@ -108,6 +115,8 @@ mistaken for a bug.
 
 ## PHASE_01_PLAN_03 — Retrieval
 
+**Branch:** `phase-01/plan-03`
+
 **Depends on:** PLAN_02 verified.
 
 **Builds:**
@@ -131,6 +140,8 @@ document if it shows up, not a bug to silently work around.
 ---
 
 ## PHASE_01_PLAN_04 — Generation, Streaming, Citation
+
+**Branch:** `phase-01/plan-04`
 
 **Depends on:** PLAN_03 verified.
 
@@ -156,6 +167,8 @@ name in AI Studio immediately before writing this plan.
 ---
 
 ## PHASE_01_PLAN_05 — Minimal Client UI
+
+**Branch:** `phase-01/plan-05`
 
 **Depends on:** PLAN_04 verified.
 

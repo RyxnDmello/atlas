@@ -37,6 +37,7 @@ async def upload(file: UploadFile = File(...)) -> UploadResponse:
 
     if extension not in SUPPORTED_EXTENSIONS:
         received = extension or "<none>"
+
         raise ApiError(
             f"Unsupported file extension '{received}'. Only .pdf and .md are accepted.",
             "INVALID_FILE_TYPE",
