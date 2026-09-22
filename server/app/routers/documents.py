@@ -4,7 +4,7 @@ from fastapi import APIRouter, File, UploadFile
 
 from app.core.logging import logger
 
-from app.models.documents import ResponseChunk, UploadResponse
+from app.schemas.documents import ResponseChunk, UploadResponse
 
 from app.pipeline.chunking import chunk
 from app.pipeline.extraction import TextExtractionError, extract

@@ -7,7 +7,7 @@ This guide verifies the acceptance criteria for upload, extraction, and chunking
 1. Start from a clean checkout with Docker Desktop (or Docker Engine plus Compose v2) running:
 
    ```bash
-   docker compose up --build
+   cd server && docker compose up --build
    ```
 
    Leave this command running. A correct startup ends with Qdrant listening on port `6333` and Uvicorn listening on `0.0.0.0:8000`. A pull timeout, build error, container exit, or repeated health-check failure means startup did not pass.
@@ -15,7 +15,7 @@ This guide verifies the acceptance criteria for upload, extraction, and chunking
 2. In a second terminal, confirm both containers:
 
    ```bash
-   docker compose ps
+   cd server && docker compose ps
    ```
 
    Correct: both `server` and `qdrant` have an `Up` status, and Qdrant includes `(healthy)`. Port mappings include `8000->8000` for the server and `6333->6333` for Qdrant. Incorrect: either service is absent, `Exited`, `Restarting`, or Qdrant is `unhealthy`/still `starting` after roughly two minutes.
@@ -43,7 +43,7 @@ This guide verifies the acceptance criteria for upload, extraction, and chunking
 Run:
 
 ```bash
-docker compose ps
+cd server && docker compose ps
 curl -i http://localhost:6333/healthz
 curl -i http://localhost:8000/system/health
 ```
@@ -119,7 +119,7 @@ First note the current end of the server logs, then run:
 
 ```bash
 curl -i -X POST http://localhost:8000/documents/upload -F "file=@server/tests/fixtures/image-only-page.pdf"
-docker compose logs --no-color --tail 50 server
+cd server && docker compose logs --no-color --tail 50 server
 ```
 
 Correct: the upload returns HTTP `200`; its chunk text contains both `First page contains...` and `Third page remains...`. The logs contain a warning with `zero extractable characters`, the filename, and `page_number=2`. Incorrect: the entire upload fails because page 2 has no text, page 3 is lost, or no page-numbered warning appears.
@@ -151,17 +151,17 @@ Inspect the top-level structure:
 
 ```bash
 git status --short
-docker compose config --services
+cd server && docker compose config --services
 ```
 
-Correct: source paths use `server/` and `client/`; `.env.example`, `.gitignore`, `README.md`, and `docker-compose.yml` exist; Compose lists only `server` and `qdrant`; and there are no embedding, Qdrant-client, retrieval, generation, auth, or real Next.js application modules. The repository may be uncommitted during review—that is expected for this plan. Incorrect: `backend/` or `frontend/` replaces the required paths, later-plan application code exists, or required root files are absent.
+Correct: source paths use `server/` and `client/`; `server/.env.example`, `.gitignore`, `README.md`, and `server/docker-compose.yml` exist; Compose lists only `server` and `qdrant`; and there are no embedding, Qdrant-client, retrieval, generation, auth, or real Next.js application modules. The repository may be uncommitted during review—that is expected for this plan. Incorrect: `backend/` or `frontend/` replaces the required paths, later-plan application code exists, or required server files are absent.
 
 ## Log verification
 
 View recent server logs at any time with:
 
 ```bash
-docker compose logs --no-color --tail 100 server
+cd server && docker compose logs --no-color --tail 100 server
 ```
 
 For a normal successful upload, look for the filename/file type, extracted character count, and produced chunk count. For `image-only-page.pdf`, look for a warning naming `page_number=2` as described in check 6.
@@ -170,27 +170,25 @@ To deliberately exercise the no-sentence-boundary fallback, run:
 
 ```bash
 curl -i -X POST http://localhost:8000/documents/upload -F "file=@server/tests/fixtures/no-sentence-boundaries.md"
-docker compose logs --no-color --tail 50 server
+cd server && docker compose logs --no-color --tail 50 server
 ```
 
 Correct: the request still returns HTTP `200`, and logs contain `No usable sentence boundary found; applying hard token cut chunk_index=0`. Later fallback chunks may also be logged. Incorrect: the request fails, produces a zero-length chunk, or applies a hard cut without a warning.
 
 ## Verify `.env` is truly ignored
 
-The following reproduces the implementation-time check without putting a secret in the file. Do not stage or commit `.env`.
+The following checks the relocated file without putting a secret in the file. Do not stage or commit `server/.env`.
 
 PowerShell:
 
 ```powershell
-Set-Content -LiteralPath .env -Value 'APP_NAME=DocuMind-ignore-verification'
 git status --short
-git status --ignored --short -- .env
-git check-ignore -v .env
-git rev-list --all -- .env
-Remove-Item -LiteralPath .env
+git status --ignored --short -- server/.env
+git check-ignore -v server/.env
+git rev-list --all -- server/.env
 ```
 
-Correct: ordinary `git status --short` does not list `.env`; ignored status prints `!! .env`; `git check-ignore` points to `.gitignore:1:.env`; and `git rev-list` prints no commit IDs. Incorrect: `.env` appears as `??`/staged, `check-ignore` returns nothing, or history lists a commit. The final command removes only the placeholder verification file.
+Correct: ordinary `git status --short` does not list `server/.env`; ignored status prints `!! server/.env`; `git check-ignore` points to the `server/.env` ignore rule; and `git rev-list` prints no commit IDs. Incorrect: `server/.env` appears as `??`/staged, `check-ignore` returns nothing, or history lists a commit.
 
 ## Known limitations and out-of-scope behavior
 

@@ -1,80 +1,63 @@
-from typing import Callable, cast
-from urllib.parse import urlparse
+import os
+from pathlib import Path
 
-from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from dotenv import load_dotenv
 
+from app.schemas.constants import AppConstants, LoggerConstants, QdrantConstants
 
-class _Settings(BaseSettings):
-    """Load and validate the environment-backed application settings."""
+ENV_PATH = Path(__file__).resolve().parents[2] / ".env"
 
-    APP_NAME: str = Field(min_length=1)
-    LOG_LEVEL: str = Field(min_length=1)
-    QDRANT_URL: str = Field(min_length=1)
-
-    model_config = SettingsConfigDict(
-        extra="ignore",
-        env_file=".env",
-        case_sensitive=True,
-        env_file_encoding="utf-8",
-    )
-
-    @classmethod
-    @field_validator("LOG_LEVEL")
-    def validate_log_level(cls, value: str) -> str:
-        """Validate that the configured logging level is supported."""
-
-        levels = {
-            "INFO",
-            "WARN",
-            "FATAL",
-            "DEBUG",
-            "ERROR",
-            "NOTSET",
-            "WARNING",
-            "CRITICAL",
-        }
-
-        if value.upper() not in levels:
-            raise ValueError("LOG_LEVEL must be a supported logging level")
-
-        return value
-
-    @classmethod
-    @field_validator("QDRANT_URL")
-    def validate_qdrant_url(cls, value: str) -> str:
-        """Validate that the Qdrant endpoint is an HTTP(S) URL."""
-
-        parsed = urlparse(value)
-
-        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-            raise ValueError("QDRANT_URL must be a valid HTTP(S) URL")
-
-        return value
+load_dotenv(dotenv_path=ENV_PATH)
 
 
-def _load_settings() -> _Settings:
-    """Create validated settings from the process environment and `.env`."""
-    factory = cast(Callable[[], _Settings], _Settings)
-    return factory()
+def _value(name: str) -> str | None:
+    """Return one environment-backed setting."""
+
+    return os.getenv(name)
 
 
 class Constants:
     """Expose validated settings through the established nested API."""
 
     def __init__(self) -> None:
-        settings = _load_settings()
+        app = AppConstants.model_validate(
+            {
+                "PORT": _value("PORT"),
+            }
+        )
+        logger = LoggerConstants.model_validate(
+            {
+                "LOG_LEVEL": _value("LOG_LEVEL"),
+            }
+        )
+        qdrant = QdrantConstants.model_validate(
+            {
+                "QDRANT_URL": _value("QDRANT_URL"),
+                "QDRANT_HEALTHCHECK_RETRIES": _value("QDRANT_HEALTHCHECK_RETRIES"),
+                "QDRANT_HEALTHCHECK_TIMEOUT": _value("QDRANT_HEALTHCHECK_TIMEOUT"),
+                "QDRANT_HEALTHCHECK_INTERVAL": _value("QDRANT_HEALTHCHECK_INTERVAL"),
+                "QDRANT_HEALTHCHECK_START_PERIOD": _value(
+                    "QDRANT_HEALTHCHECK_START_PERIOD"
+                ),
+            }
+        )
 
-        self.app = _App(settings.APP_NAME)
-        self.logger = _Logger(settings.LOG_LEVEL)
-        self.qdrant = _Qdrant(settings.QDRANT_URL)
+        self.app = _App(app.PORT)
+        self.logger = _Logger(logger.LOG_LEVEL)
+        self.qdrant = _Qdrant(
+            qdrant.QDRANT_URL,
+            qdrant.QDRANT_HEALTHCHECK_RETRIES,
+            qdrant.QDRANT_HEALTHCHECK_TIMEOUT,
+            qdrant.QDRANT_HEALTHCHECK_INTERVAL,
+            qdrant.QDRANT_HEALTHCHECK_START_PERIOD,
+        )
 
 
 class _App:
     """Expose application settings under the app group."""
 
-    def __init__(self, name: str) -> None:
-        self.APP_NAME = name
+    def __init__(self, port: int) -> None:
+        self.PORT = port
 
 
 class _Logger:
@@ -87,8 +70,19 @@ class _Logger:
 class _Qdrant:
     """Expose Qdrant settings under the qdrant group."""
 
-    def __init__(self, url: str) -> None:
+    def __init__(
+        self,
+        url: str,
+        retries: int,
+        timeout: int,
+        interval: int,
+        start_period: int,
+    ) -> None:
         self.QDRANT_URL = url
+        self.QDRANT_HEALTHCHECK_RETRIES = retries
+        self.QDRANT_HEALTHCHECK_TIMEOUT = timeout
+        self.QDRANT_HEALTHCHECK_INTERVAL = interval
+        self.QDRANT_HEALTHCHECK_START_PERIOD = start_period
 
 
 constants = Constants()

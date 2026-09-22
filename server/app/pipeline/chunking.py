@@ -2,7 +2,7 @@ import re
 import tiktoken
 
 from app.core.logging import get_logger
-from app.models.documents import Chunk
+from app.schemas.pipeline import Chunk
 
 logger = get_logger(__name__)
 

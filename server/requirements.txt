@@ -3,5 +3,5 @@ uvicorn
 tiktoken
 pydantic
 pdfplumber
+python-dotenv
 python-multipart
-pydantic-settings

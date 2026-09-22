@@ -1,6 +1,7 @@
 # ENVIRONMENT
 
 .env
+server/.env
 venv/
 .venv/
 

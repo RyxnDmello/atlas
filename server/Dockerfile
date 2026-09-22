@@ -8,12 +8,12 @@ FROM python:3.12-slim
 # ===================[ ENVIRONMENT ]====================
 # ======================================================
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    TIKTOKEN_CACHE_DIR=/opt/tiktoken_cache
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV TIKTOKEN_CACHE_DIR=/opt/tiktoken_cache
 
 # ======================================================
-# ======================[ BUILD ]=======================
+# =====================[ INSTALL ]======================
 # ======================================================
 
 WORKDIR /server
@@ -22,15 +22,24 @@ COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-RUN mkdir -p /opt/tiktoken_cache \
-    && python -c "import tiktoken; tiktoken.get_encoding('cl100k_base')"
+# ======================================================
+# ======================[ CACHE ]=======================
+# ======================================================
 
-COPY app ./app
+RUN mkdir -p /opt/tiktoken_cache
+
+RUN python -c "import tiktoken; tiktoken.get_encoding('cl100k_base')"
 
 # ======================================================
 # ======================[ SERVE ]=======================
 # ======================================================
 
-EXPOSE 8000
+COPY app ./app
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+ARG PORT
+
+ENV PORT=$PORT
+
+EXPOSE ${PORT}
+
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port \"$PORT\""]

@@ -8,7 +8,7 @@ from app.routers.documents import router as documents
 from app.errors.api import ApiError
 from app.errors.handlers import cast_handle_api_error, cast_handle_unexpected_error
 
-app = FastAPI(title=constants.app.APP_NAME)
+app = FastAPI()
 
 app.include_router(system)
 app.include_router(documents)

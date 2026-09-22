@@ -28,7 +28,7 @@ project's running source of truth across chat sessions.
 | Plan             | Status            | One-line Scope                                 |
 | ---------------- | ----------------- | ---------------------------------------------- |
 | PHASE_01_PLAN_01 | Built, Unverified | Scaffolding, upload, text extraction, chunking |
-| PHASE_01_PLAN_02 | Not Started       | Qdrant setup, embedding storage                |
+| PHASE_01_PLAN_02 | Not Started       | Qdrant setup, embedding, storage               |
 | PHASE_01_PLAN_03 | Not Started       | Retrieval (query embed + top-k search)         |
 | PHASE_01_PLAN_04 | Not Started       | Generation, streaming, citation                |
 | PHASE_01_PLAN_05 | Not Started       | Minimal client UI                              |
@@ -48,8 +48,8 @@ redesign) stay on this same branch/plan — see
 
 **Builds (as actually implemented):**
 
-- `server/` FastAPI skeleton, `client/` placeholder, `docker-compose.yml`
-  (backend + Qdrant, Qdrant unwired), `.gitignore`, `.env.example`.
+- `server/` FastAPI skeleton, `client/` placeholder, `server/docker-compose.yml`
+  (backend + Qdrant, Qdrant unwired), `.gitignore`, `server/.env.example`.
 - `POST /documents/upload` — accepts `.pdf`/`.md`, rejects anything else.
   **Route name is legacy vocabulary** (predates the file/folder Atlas
   framing) and was not renamed as part of the pivot, per the "no
@@ -63,6 +63,14 @@ redesign) stay on this same branch/plan — see
   `api/`), `errors/api.py` (structured `ApiError` pattern), nested
   `constants` object (not `config.py`), single-word naming,
   function-only docstrings.
+- Env loading moved from `pydantic-settings` to `python-dotenv` +
+  `schemas/constants.py` (Pydantic validation, separate from loading).
+- `schemas/`/`models/` split introduced; `models/documents.py` retired
+  into `schemas/pipeline.py` + `schemas/documents.py`.
+- `.env`, `.env.example`, `docker-compose.yml` relocated into `server/`
+  (permanent — `client/` is a static NGINX build, never a Docker
+  service); Dockerfile/compose `PORT`, volume-name, and build-context
+  bugs fixed in the same pass.
 
 **Explicitly excluded:** embedding, Qdrant storage, retrieval,
 generation, auth, file metadata (name/description/tags), any client

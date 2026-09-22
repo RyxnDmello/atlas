@@ -26,15 +26,15 @@ prompt explicitly says so.
 
 ## Component maturity (update as work lands)
 
-| Component               | Status         |
-|--------------------------|---------------|
-| Upload endpoint          | Not Yet Built |
-| Chunking                 | Not Yet Built |
-| Embedding                | Not Yet Built |
-| Vector storage (Qdrant)  | Not Yet Built |
-| Retrieval                | Not Yet Built |
-| Generation/streaming     | Not Yet Built |
-| Citation display         | Not Yet Built |
+| Component               | Status        |
+| ----------------------- | ------------- |
+| Upload endpoint         | Not Yet Built |
+| Chunking                | Not Yet Built |
+| Embedding               | Not Yet Built |
+| Vector storage (Qdrant) | Not Yet Built |
+| Retrieval               | Not Yet Built |
+| Generation/streaming    | Not Yet Built |
+| Citation display        | Not Yet Built |
 
 Statuses: `Not Yet Built` / `Implemented, Unverified` (code exists but
 untested/unexplained) / `Implemented & Verified`. Never treat
@@ -43,8 +43,8 @@ untested/unexplained) / `Implemented & Verified`. Never treat
 ## Common commands
 
 ```bash
-docker compose up -d qdrant          # start Qdrant only, for local dev
-docker compose up --build            # full stack
+cd server && docker compose up -d qdrant   # start Qdrant only, for local dev
+cd server && docker compose up --build     # full stack
 pytest backend/tests                 # run backend tests once they exist
 ```
 
@@ -55,6 +55,7 @@ scaffolding exists.)
 
 FastAPI backend - PostgreSQL (from Phase 3) - Qdrant (self-hosted,
 Docker) - Redis (introduced when caching becomes relevant, not Phase 1)
+
 - React/Next.js frontend - Docker Compose deployment.
 
 ## Locked Phase 1 decisions
@@ -71,6 +72,10 @@ Docker) - Redis (introduced when caching becomes relevant, not Phase 1)
 - PDF text extraction: `pdfplumber`. Chosen over `pypdf` for better
   layout/table fidelity, and over `PyMuPDF` to avoid its AGPL license.
   `.md` uploads are read directly as text, no library needed.
+- Environment/config loading: `python-dotenv` loads `.env`, while Pydantic
+  schemas validate typed values before the app starts. Used internally by
+  `core/constants.py`; the nested-class, ALL-CAPS access pattern
+  (`constants.qdrant.QDRANT_URL`) is unchanged externally.
 
 ## Folder structure
 
@@ -78,30 +83,48 @@ Docker) - Redis (introduced when caching becomes relevant, not Phase 1)
 atlas/
   AGENTS.md
   .agents/skills/rag/SKILL.md
-  .gitignore
-  .env                # never committed — see Environment & secrets below
   server/
+    .gitignore
+    .env                # never committed — see Environment & secrets below
+    .env.example
+    docker-compose.yml   # colocated with .env so compose auto-loads it;
+                          # revisit moving to repo root once client/
+                          # becomes a real service (PLAN_05)
+    Dockerfile
     app/
       routers/        # FastAPI route handlers, one module per resource
                        # every endpoint lives here, incl. system/ (e.g.
                        # /system/health), imported into main.py
       errors/          # exception classes by type, e.g. api.py, qdrant.py
-                       # (only api.py exists so far — common exceptions
-                       # routers can raise directly, avoids rewriting)
       core/
-        constants.py    # Constants class: nested sub-classes by type,
-                         # instantiated as lowercase attributes, values
-                         # ALL CAPS (e.g. constants.qdrant.QDRANT_URL)
+        constants.py    # loads .env via python-dotenv, validates raw
+                         # values through schemas/constants.py, exposes
+                         # the nested Constants object
+      schemas/          # Pydantic validation only — request/response
+                         # shapes, config validation, pipeline DTOs.
+                         # One class per file unless tightly coupled
+                         # (one composes another, no independent use).
+        constants.py     # validation models matching core/constants.py
+                          # groups 1:1
+        pipeline.py       # Chunk (pipeline-internal DTO)
+        documents.py       # ResponseChunk, UploadResponse (API response
+                            # shapes)
+      models/           # storage-mapped entities ONLY (not created yet
+                         # — no Postgres/Qdrant client code exists).
+                         # Split by data store when it lands:
+                         # models/postgres/<entity>/  (one class per
+                         # file; a complex entity with subclasses gets
+                         # its own folder, e.g. models/postgres/user/
+                         # user.py, preferences.py, billing.py)
+                         # models/qdrant/<schema>.py
       pipeline/
         chunking.py
         embeddings/     # EmbeddingProvider interface + adapters
         retrieval.py
         generation/     # LLMProvider interface + adapters
-      models/          # Pydantic schemas
       db/              # Qdrant/Postgres client setup (Postgres from Phase 3)
     tests/
   client/              # Next.js frontend, added from Phase 1 PLAN covering UI
-  docker-compose.yml
   prompts/
     PHASE_01/
       PHASE_01.md                        # phase-level plan overview
@@ -112,12 +135,13 @@ atlas/
       PLAN_02/ ...                          # same three-file pattern per plan
 ```
 
-`server/` = backend (was `backend/`), `client/` = frontend (was
-`frontend/`) — renamed per project convention, confirm before reverting.
-Route handlers live in `routers/` (not `api/`) per convention.
-`prompts/` is nested per-phase, per-plan; every file inside a `PLAN_XX/`
-folder is prefixed `PHASE_XX_PLAN_XX_...` — the prompt itself, plus a
-Codex-written summary and a human manual, per convention.
+`server/` = backend, `client/` = frontend. Route handlers live in
+`routers/` (not `api/`). `models/` and `schemas/` are never
+interchangeable: `models/` only holds things mapped to actual stored
+data (Postgres ORM entities, Qdrant point schemas), split by data store;
+`schemas/` holds every other Pydantic class — validation, API
+request/response shapes, pipeline-internal DTOs — grouped by cohesive
+concern.
 
 ## Vocabulary
 
@@ -205,6 +229,7 @@ duplicating or conflicting with work that already exists elsewhere.
 
 **Never, under any circumstance, unless explicitly instructed in that
 session's prompt:**
+
 - Commit anything.
 - Edit, delete, rename, merge, or rebase any branch.
 - Switch, checkout, or create a branch.
@@ -232,6 +257,7 @@ the running changelog for these amendments — no separate file needed.
 ## Boundaries
 
 **Always do, without asking:**
+
 - Implement within an already-decided architecture (this file + the
   `rag` skill).
 - Log enough at each pipeline stage (chunk count, embedding dimension,
@@ -244,6 +270,7 @@ the running changelog for these amendments — no separate file needed.
   an earlier prompt's output rather than introducing a new one.
 
 **Ask first — do not assume a default:**
+
 - Any new third-party library, service, or API not listed in the fixed
   stack.
 - Chunk size/overlap, embedding model, similarity metric, or LLM
@@ -251,6 +278,7 @@ the running changelog for these amendments — no separate file needed.
 - Anything not already resolved in this file or the skill.
 
 **Never do:**
+
 - Start Phase 2+ work (multi-document, auth, teams, portfolios) unless a
   prompt explicitly requests it.
 - Add auth, session, or user-scoping logic before Phase 3 is explicitly
@@ -269,3 +297,8 @@ within the already-decided architecture; what would break it (empty
 document, oversized file, API timeout), if relevant. Required even for
 small tasks — this is how the human verifies they can defend the code in
 an interview.
+
+**Format for SUMMARY, MANUAL, and PLAN files:** short bullet points with
+key details only. No heavy prose paragraphs. A bullet should read as a
+fact or a step, not a narrated explanation. If something genuinely needs
+more than one sentence, use a nested bullet rather than a paragraph.
