@@ -2,91 +2,134 @@ import io
 import logging
 import sys
 import unittest
+import zipfile
 from pathlib import Path
 
 from fastapi import HTTPException, UploadFile
+from PIL import Image, ImageDraw, ImageFont
+from pptx import Presentation
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 
 
 SERVER_ROOT = Path(__file__).resolve().parents[1]
 if str(SERVER_ROOT) not in sys.path:
     sys.path.insert(0, str(SERVER_ROOT))
 
+from app.pipeline.chunking import MAX_CHUNK_TOKENS
 from app.routers.documents import upload
-from app.pipeline.chunking import ENCODING, chunk
 
 
 def make_pdf(page_texts: list[str | None]) -> bytes:
-    """Generate a minimal PDF; None creates a blank/image-only-style page."""
-    object_bodies: list[bytes] = []
-    page_object_numbers: list[int] = []
-    next_object = 4
-
+    """Generate a real PDF; None creates a blank page."""
+    output = io.BytesIO()
+    document = canvas.Canvas(output, pagesize=letter)
     for page_text in page_texts:
-        page_number = next_object
-        content_number = next_object + 1
-        page_object_numbers.append(page_number)
-        next_object += 2
+        if page_text:
+            document.setFont("Helvetica", 14)
+            document.drawString(72, 720, page_text)
+        document.showPage()
+    document.save()
+    return output.getvalue()
 
-        page_body = (
-            f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
-            f"/Resources << /Font << /F1 3 0 R >> >> /Contents {content_number} 0 R >>"
-        ).encode()
-        safe_text = (page_text or "").replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
-        stream = f"BT /F1 12 Tf 72 720 Td ({safe_text}) Tj ET".encode() if page_text else b""
-        content_body = (
-            b"<< /Length "
-            + str(len(stream)).encode()
-            + b" >>\nstream\n"
-            + stream
-            + b"\nendstream"
-        )
-        object_bodies.extend([page_body, content_body])
 
-    kids = " ".join(f"{number} 0 R" for number in page_object_numbers)
-    fixed_objects = [
-        b"<< /Type /Catalog /Pages 2 0 R >>",
-        f"<< /Type /Pages /Kids [{kids}] /Count {len(page_object_numbers)} >>".encode(),
-        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-    ]
-    all_objects = fixed_objects + object_bodies
-
-    output = bytearray(b"%PDF-1.4\n")
-    offsets = [0]
-    for number, body in enumerate(all_objects, start=1):
-        offsets.append(len(output))
-        output.extend(f"{number} 0 obj\n".encode() + body + b"\nendobj\n")
-
-    xref_offset = len(output)
-    output.extend(f"xref\n0 {len(all_objects) + 1}\n".encode())
-    output.extend(b"0000000000 65535 f \n")
-    for offset in offsets[1:]:
-        output.extend(f"{offset:010d} 00000 n \n".encode())
-    output.extend(
-        f"trailer\n<< /Size {len(all_objects) + 1} /Root 1 0 R >>\n"
-        f"startxref\n{xref_offset}\n%%EOF\n".encode()
+def make_docx() -> bytes:
+    """Create a minimal DOCX file with one heading and paragraph."""
+    return make_zip(
+        {
+            "[Content_Types].xml": """<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/><Override PartName=\"/word/document.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/></Types>""",
+            "_rels/.rels": """<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"word/document.xml\"/></Relationships>""",
+            "word/document.xml": """<w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:body><w:p><w:pPr><w:pStyle w:val=\"Title\"/></w:pPr><w:r><w:t>DOCX Heading</w:t></w:r></w:p><w:p><w:r><w:t>DOCX policy content.</w:t></w:r></w:p></w:body></w:document>""",
+        }
     )
-    return bytes(output)
+
+
+def make_zip(files: dict[str, str]) -> bytes:
+    """Create a ZIP package containing UTF-8 XML files."""
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:
+        for name, content in files.items():
+            archive.writestr(name, content)
+    return output.getvalue()
+
+
+def make_xlsx() -> bytes:
+    """Create a minimal XLSX file with a header and one data row."""
+    return make_zip(
+        {
+            "[Content_Types].xml": """<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/><Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/><Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/></Types>""",
+            "_rels/.rels": """<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/></Relationships>""",
+            "xl/workbook.xml": """<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheets><sheet name=\"Policy\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>""",
+            "xl/_rels/workbook.xml.rels": """<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet1.xml\"/></Relationships>""",
+            "xl/worksheets/sheet1.xml": """<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetData><row r=\"1\"><c r=\"A1\" t=\"inlineStr\"><is><t>Policy</t></is></c><c r=\"B1\" t=\"inlineStr\"><is><t>Status</t></is></c></row><row r=\"2\"><c r=\"A2\" t=\"inlineStr\"><is><t>Retention</t></is></c><c r=\"B2\" t=\"inlineStr\"><is><t>Active</t></is></c></row></sheetData></worksheet>""",
+        }
+    )
+
+
+def make_pptx() -> bytes:
+    """Create a PPTX file with one real slide and text frame."""
+    presentation = Presentation()
+    slide = presentation.slides.add_slide(presentation.slide_layouts[1])
+    slide.shapes.title.text = "PPTX Policy"
+    slide.placeholders[1].text = "PPTX policy slide content."
+    output = io.BytesIO()
+    presentation.save(output)
+    return output.getvalue()
+
+
+def make_png(font_size: int = 64, format: str = "PNG") -> bytes:
+    """Create a high-contrast Pillow image containing a readable OCR phrase."""
+    image = Image.new("RGB", (1400, 240), "white")
+    draw = ImageDraw.Draw(image)
+    font_paths = (
+        Path("C:/Windows/Fonts/arial.ttf"),
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+    )
+    font_path = next((path for path in font_paths if path.exists()), None)
+    font = (
+        ImageFont.truetype(str(font_path), font_size)
+        if font_path
+        else ImageFont.load_default()
+    )
+    draw.text((50, 70), "ATLAS OCR POLICY", fill="black", font=font)
+    output = io.BytesIO()
+    image.save(output, format=format, quality=95)
+    return output.getvalue()
 
 
 def make_upload(filename: str, content: bytes) -> UploadFile:
+    """Create an UploadFile backed by in-memory bytes."""
     return UploadFile(filename=filename, file=io.BytesIO(content))
 
 
 class DocumentUploadTests(unittest.IsolatedAsyncioTestCase):
-    async def test_markdown_upload_and_chunking(self) -> None:
-        body = " ".join(
-            f"Sentence {index} has enough words to test chunking."
-            for index in range(150)
-        )
-        response = await upload(make_upload("handbook.md", body.encode()))
+    async def test_supported_formats_upload_successfully(self) -> None:
+        files = {
+            "handbook.md": b"# Markdown Policy\n\nMarkdown policy content.",
+            "notes.txt": b"Plain text policy content.",
+            "page.html": b"<html><body><h1>HTML Policy</h1><p>HTML policy content.</p></body></html>",
+            "table.csv": b"Policy,Status\nRetention,Active\n",
+            "policy.pdf": make_pdf(["PDF policy content."]),
+            "policy.docx": make_docx(),
+            "policy.pptx": make_pptx(),
+            "policy.xlsx": make_xlsx(),
+            "policy.png": make_png(),
+            "policy.jpg": make_png(format="JPEG"),
+        }
 
-        self.assertEqual(response.name, "handbook.md")
-        self.assertEqual(response.type, ".md")
-        self.assertGreater(response.total, 1)
-        self.assertTrue(all(chunk.count <= 500 for chunk in response.chunks))
-        first_tokens = ENCODING.encode(response.chunks[0].text)
-        second_tokens = ENCODING.encode(response.chunks[1].text)
-        self.assertEqual(first_tokens[-50:], second_tokens[:50])
+        for filename, content in files.items():
+            with self.subTest(filename=filename):
+                response = await upload(make_upload(filename, content))
+                self.assertGreater(response.total, 0)
+                self.assertTrue(response.chunks)
+                self.assertTrue(all(chunk.text for chunk in response.chunks))
+                self.assertTrue(
+                    all(chunk.count <= MAX_CHUNK_TOKENS for chunk in response.chunks)
+                )
+
+                if filename in {"policy.png", "policy.jpg"}:
+                    text = " ".join(chunk.text for chunk in response.chunks).upper()
+                    self.assertIn("ATLAS", text)
 
     async def test_pdf_upload_and_blank_page_warning(self) -> None:
         content = make_pdf(
@@ -96,20 +139,22 @@ class DocumentUploadTests(unittest.IsolatedAsyncioTestCase):
                 "Third page also has useful text.",
             ]
         )
+
         with self.assertLogs("app.pipeline.text_extraction", level=logging.WARNING) as logs:
             response = await upload(make_upload("policy.pdf", content))
 
-        self.assertEqual(response.total, 1)
-        self.assertIn("First page", response.chunks[0].text)
-        self.assertIn("Third page", response.chunks[0].text)
+        self.assertGreater(response.total, 0)
+        text = " ".join(chunk.text for chunk in response.chunks)
+        self.assertIn("First page", text)
+        self.assertIn("Third page", text)
         self.assertTrue(any("page_number=2" in message for message in logs.output))
 
     async def test_unsupported_extension_is_rejected(self) -> None:
         with self.assertRaises(HTTPException) as caught:
-            await upload(make_upload("notes.txt", b"not processed"))
+            await upload(make_upload("archive.zip", b"not processed"))
 
         self.assertEqual(caught.exception.status_code, 400)
-        self.assertIn(".txt", caught.exception.detail)
+        self.assertIn(".zip", caught.exception.detail)
 
     async def test_empty_upload_is_rejected(self) -> None:
         with self.assertRaises(HTTPException) as caught:
@@ -119,27 +164,11 @@ class DocumentUploadTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("0 bytes", caught.exception.detail)
 
     async def test_short_document_is_one_chunk(self) -> None:
-        response = await upload(
-            make_upload("short.md", b"A short policy sentence.")
-        )
+        response = await upload(make_upload("short.md", b"A short policy sentence."))
 
         self.assertEqual(response.total, 1)
         self.assertEqual(response.chunks[0].index, 0)
-        self.assertEqual(response.chunks[0].text, "A short policy sentence.")
-
-
-class ChunkingTests(unittest.TestCase):
-    def test_hard_cut_is_logged_when_sentence_boundary_is_missing(self) -> None:
-        text = "word " * 700
-        with self.assertLogs("app.pipeline.chunking", level=logging.WARNING) as logs:
-            chunks = chunk(text, "document-1")
-
-        self.assertGreater(len(chunks), 1)
-        self.assertTrue(any("chunk_index=0" in message for message in logs.output))
-        self.assertEqual(
-            ENCODING.encode(chunks[0].text)[-50:],
-            ENCODING.encode(chunks[1].text)[:50],
-        )
+        self.assertIn("A short policy sentence.", response.chunks[0].text)
 
 
 if __name__ == "__main__":

@@ -43,8 +43,8 @@ untested/unexplained) / `Implemented & Verified`. Never treat
 ## Common commands
 
 ```bash
-cd server && docker compose up -d qdrant   # start Qdrant only, for local dev
-cd server && docker compose up --build     # full stack
+docker compose up -d qdrant          # start Qdrant only, for local dev
+docker compose up --build            # full stack
 pytest backend/tests                 # run backend tests once they exist
 ```
 
@@ -63,19 +63,30 @@ Docker) - Redis (introduced when caching becomes relevant, not Phase 1)
 - Embeddings: local `all-MiniLM-L6-v2`, 384-dim, behind an
   `EmbeddingProvider` interface. Full contract in the
   `rag` skill.
-- Chunking: fixed-size, `tiktoken`-based, 500 tokens / 50 overlap,
-  sentence-boundary snapped. Full contract in the skill.
+- Document processing, extraction & chunking: `Docling`
+  (`DocumentConverter` + `HybridChunker`), replacing the original
+  manual `pdfplumber`/`tiktoken` pipeline. Standard pipeline + OCR
+  (RapidOCR engine), no VLM tier. Tokenizer for chunking is
+  `BAAI/bge-m3` (aligned with the PLAN_02 embedding model), `max_tokens`
+  500, `merge_peers=True`. Full contract in the `rag` skill.
+- Supported upload formats: `.pdf`, `.docx`, `.pptx`, `.xlsx`, `.md`,
+  `.txt`, `.html`, `.csv`, and images (`.png`/`.jpg`/`.jpeg`/`.tiff`/
+  `.bmp`/`.webp`). Audio/video and exotic formats (EPUB, AsciiDoc,
+  LaTeX, XML schemas) explicitly deferred — do not add without
+  flagging.
+- Embeddings (PLAN_02): `BAAI/bge-m3`, dense-only for MVP (hybrid
+  dense+sparse deferred, model supports it later without re-indexing).
+  Superseded the original local-MiniLM decision — size/latency
+  explicitly not a constraint for this project.
 - Generation: Gemini Flash via `google-genai`, behind an `LLMProvider`
   interface. **Verify the exact current model string in Google AI
   Studio before use** — Gemini Flash names change frequently and
   deprecate within months. Never hardcode an unverified string.
-- PDF text extraction: `pdfplumber`. Chosen over `pypdf` for better
-  layout/table fidelity, and over `PyMuPDF` to avoid its AGPL license.
-  `.md` uploads are read directly as text, no library needed.
-- Environment/config loading: `python-dotenv` loads `.env`, while Pydantic
-  schemas validate typed values before the app starts. Used internally by
-  `core/constants.py`; the nested-class, ALL-CAPS access pattern
-  (`constants.qdrant.QDRANT_URL`) is unchanged externally.
+- Environment/config loading: `python-dotenv` loads `.env` in
+  `core/constants.py`; validation is separate, via Pydantic models in
+  `schemas/constants.py` (1:1 with `core/constants.py`'s groups). Not
+  `pydantic-settings` — reversed from an earlier decision; loading and
+  validation are deliberately different files/concerns.
 
 ## Folder structure
 

@@ -10,7 +10,7 @@ FROM python:3.12-slim
 
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
-ENV TIKTOKEN_CACHE_DIR=/opt/tiktoken_cache
+ENV HF_HOME=/opt/huggingface
 
 # ======================================================
 # =====================[ INSTALL ]======================
@@ -18,7 +18,16 @@ ENV TIKTOKEN_CACHE_DIR=/opt/tiktoken_cache
 
 WORKDIR /server
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libglib2.0-0 libgl1 libxcb1 \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt .
+
+RUN pip install --no-cache-dir \
+    --extra-index-url https://download.pytorch.org/whl/cpu \
+    torch==2.14.1+cpu \
+    torchvision==0.29.1+cpu
 
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -26,9 +35,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 # ======================[ CACHE ]=======================
 # ======================================================
 
-RUN mkdir -p /opt/tiktoken_cache
+RUN docling-tools models download layout tableformer rapidocr \
+    --rapidocr-backend-lang onnxruntime:ch
 
-RUN python -c "import tiktoken; tiktoken.get_encoding('cl100k_base')"
+RUN python -c "from transformers import AutoTokenizer; AutoTokenizer.from_pretrained('BAAI/bge-m3')"
+
+ENV DOCLING_ARTIFACTS_PATH=/root/.cache/docling/models
+ENV HF_HUB_OFFLINE=1
 
 # ======================================================
 # ======================[ SERVE ]=======================

@@ -1,86 +1,70 @@
-import re
-import tiktoken
+from functools import lru_cache
+from typing import cast
 
-from app.core.logging import get_logger
+from transformers import AutoTokenizer
+from docling_core.transforms.chunker.doc_chunk import DocChunk
+from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
+from docling_core.transforms.chunker.tokenizer.huggingface import HuggingFaceTokenizer
+
+from app.core.constants import constants
 from app.schemas.pipeline import Chunk
 
-logger = get_logger(__name__)
-
-ENCODING = tiktoken.get_encoding("cl100k_base")
-
-OVERLAP_TOKENS = 50
-MAX_CHUNK_TOKENS = 500
-
-SENTENCE_END = re.compile(r"[.!?]+[\"')\]]*(?=\s|$)")
+MODEL = "BAAI/bge-m3"
+MAX_CHUNK_TOKENS = constants.docling.DOCLING_MAX_CHUNK_TOKENS
 
 
-def chunk(text: str, id: str) -> list[Chunk]:
-    """Split text into overlapping, token-limited sentence-aware chunks.
+@lru_cache(maxsize=1)
+def _chunker() -> HybridChunker:
+    """Create the configured Docling hybrid chunker."""
+    tokenizer = HuggingFaceTokenizer(
+        tokenizer=AutoTokenizer.from_pretrained(MODEL),
+        max_tokens=MAX_CHUNK_TOKENS,
+    )
+    return HybridChunker(
+        tokenizer=tokenizer,
+        merge_peers=True,
+    )
+
+
+def chunk(document, id: str) -> list[Chunk]:
+    """Chunk a Docling document with contextualized text and metadata.
 
     Args:
-        text: The extracted document text.
-        id: The document identifier attached to every chunk.
+        document: The converted Docling document.
+        id: The file identifier attached to every chunk.
 
     Returns:
-        A list of chunks with their text, index, identifier, and token count.
+        A list of contextualized chunks with token counts and source metadata.
     """
-    token_ids = ENCODING.encode(text)
-
-    if not token_ids:
-        return []
-
-    if len(token_ids) <= MAX_CHUNK_TOKENS:
-        return [
-            Chunk(
-                id=id,
-                index=0,
-                text=text,
-                count=len(token_ids),
-            )
-        ]
-
-    start = 0
-
+    chunker = _chunker()
     chunks: list[Chunk] = []
 
-    while start < len(token_ids):
-        hard_end = min(start + MAX_CHUNK_TOKENS, len(token_ids))
-
-        end = hard_end
-
-        if hard_end < len(token_ids):
-            window_text = ENCODING.decode(token_ids[start:hard_end])
-
-            usable_boundaries: list[int] = []
-
-            for match in SENTENCE_END.finditer(window_text):
-                boundary_length = len(ENCODING.encode(window_text[: match.end()]))
-
-                if boundary_length > OVERLAP_TOKENS:
-                    usable_boundaries.append(start + boundary_length)
-
-            if usable_boundaries:
-                end = usable_boundaries[-1]
-            else:
-                logger.warning(
-                    "No usable sentence boundary found; applying hard token cut chunk_index=%d",
-                    len(chunks),
-                )
-
-        chunk_token_ids = token_ids[start:end]
+    for index, raw_item in enumerate(chunker.chunk(dl_doc=document)):
+        item = cast(DocChunk, raw_item)
+        text = chunker.contextualize(item)
+        headings = list(item.meta.headings or [])
 
         chunks.append(
             Chunk(
                 id=id,
-                index=len(chunks),
-                count=len(chunk_token_ids),
-                text=ENCODING.decode(chunk_token_ids),
+                text=text,
+                index=index,
+                count=chunker.tokenizer.count_tokens(text),
+                page=_page(item),
+                heading=headings[0] if headings else None,
+                section=headings[-1] if headings else None,
             )
         )
 
-        if end == len(token_ids):
-            break
-
-        start = end - OVERLAP_TOKENS
-
     return chunks
+
+
+def _page(item) -> int | None:
+    """Return a page number when all chunk provenance points to one page."""
+    pages = {
+        provenance.page_no
+        for document_item in item.meta.doc_items
+        for provenance in getattr(document_item, "prov", [])
+        if getattr(provenance, "page_no", None) is not None
+    }
+    return next(iter(pages)) if len(pages) == 1 else None

@@ -3,7 +3,12 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from app.schemas.constants import AppConstants, LoggerConstants, QdrantConstants
+from app.schemas.constants import (
+    AppConstants,
+    DoclingConstants,
+    LoggerConstants,
+    QdrantConstants,
+)
 
 ENV_PATH = Path(__file__).resolve().parents[2] / ".env"
 
@@ -30,6 +35,11 @@ class Constants:
                 "LOG_LEVEL": _value("LOG_LEVEL"),
             }
         )
+        docling = DoclingConstants.model_validate(
+            {
+                "DOCLING_MAX_CHUNK_TOKENS": _value("DOCLING_MAX_CHUNK_TOKENS"),
+            }
+        )
         qdrant = QdrantConstants.model_validate(
             {
                 "QDRANT_URL": _value("QDRANT_URL"),
@@ -44,6 +54,7 @@ class Constants:
 
         self.app = _App(app.PORT)
         self.logger = _Logger(logger.LOG_LEVEL)
+        self.docling = _Docling(docling.DOCLING_MAX_CHUNK_TOKENS)
         self.qdrant = _Qdrant(
             qdrant.QDRANT_URL,
             qdrant.QDRANT_HEALTHCHECK_RETRIES,
@@ -65,6 +76,13 @@ class _Logger:
 
     def __init__(self, level: str) -> None:
         self.LOG_LEVEL = level
+
+
+class _Docling:
+    """Expose Docling settings under the docling group."""
+
+    def __init__(self, max_chunk_tokens: int) -> None:
+        self.DOCLING_MAX_CHUNK_TOKENS = max_chunk_tokens
 
 
 class _Qdrant:

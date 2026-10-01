@@ -1,5 +1,15 @@
-import io
-import pdfplumber
+from functools import lru_cache
+from io import BytesIO
+import os
+
+from docling.datamodel.base_models import DocumentStream, InputFormat
+from docling.datamodel.pipeline_options import PdfPipelineOptions, RapidOcrOptions
+
+from docling.document_converter import (
+    PdfFormatOption,
+    DocumentConverter,
+    ImageFormatOption,
+)
 
 from app.core.logging import get_logger
 
@@ -7,68 +17,68 @@ logger = get_logger("app.pipeline.text_extraction")
 
 
 class TextExtractionError(ValueError):
-    pass
+    """Represent a failure while converting an uploaded file with Docling."""
 
 
-def extract(content: bytes, file_type: str, filename: str) -> str:
-    """Extract UTF-8 Markdown or page-ordered PDF text from file bytes.
+@lru_cache(maxsize=1)
+def _converter() -> DocumentConverter:
+    """Create the configured Docling document converter."""
+    options = PdfPipelineOptions(
+        artifacts_path=os.getenv("DOCLING_ARTIFACTS_PATH") or None,
+    )
+    options.do_ocr = True
+    options.ocr_options = RapidOcrOptions(backend="onnxruntime")
+
+    return DocumentConverter(
+        format_options={
+            InputFormat.PDF: PdfFormatOption(pipeline_options=options),
+            InputFormat.IMAGE: ImageFormatOption(pipeline_options=options),
+        }
+    )
+
+
+def extract(content: bytes, file_type: str, filename: str):
+    """Convert one uploaded file into a Docling document.
 
     Args:
         content: The uploaded file bytes.
-        file_type: The validated extension, either `.md` or `.pdf`.
-        filename: The original filename used in error messages and logs.
+        file_type: The validated file extension.
+        filename: The original filename used for format detection and logs.
 
     Returns:
-        The extracted document text in reading order.
+        The converted Docling document.
 
     Raises:
-        TextExtractionError: If decoding or PDF extraction fails.
+        TextExtractionError: If Docling cannot convert the upload.
     """
-    if file_type == ".md":
-        try:
-            return content.decode("utf-8")
-        except UnicodeDecodeError as exc:
-            raise TextExtractionError(
-                f"Markdown File: '{filename}' | Not Valid UTF-8"
-            ) from exc
-
-    if file_type == ".pdf":
-        return _extract_pdf(content, filename)
-
-    raise TextExtractionError(f"No Extractor Available For '{file_type}'")
-
-
-def _extract_pdf(content: bytes, filename: str) -> str:
-    """Extract non-empty PDF pages while warning for image-only pages.
-
-    Args:
-        content: The uploaded PDF bytes.
-        filename: The original filename used in warning logs.
-
-    Returns:
-        The concatenated text from pages that contain extractable characters.
-
-    Raises:
-        TextExtractionError: If pdfplumber cannot open or read the PDF.
-    """
-    pages: list[str] = []
+    del file_type
+    source = DocumentStream(name=filename, stream=BytesIO(content))
 
     try:
-        with pdfplumber.open(io.BytesIO(content)) as pdf:
-            for page_number, page in enumerate(pdf.pages, start=1):
-                page_text = page.extract_text() or ""
-
-                if not page_text.strip():
-                    logger.warning(
-                        "PDF page has zero extractable characters filename=%s page_number=%d",
-                        filename,
-                        page_number,
-                    )
-
-                    continue
-
-                pages.append(page_text)
+        document = _converter().convert(source).document
+        _warn_empty_pages(document, filename)
+        return document
     except Exception as exc:
-        raise TextExtractionError(f"Could not extract PDF '{filename}': {exc}") from exc
+        raise TextExtractionError(
+            f"Could not extract file '{filename}' with Docling: {exc}"
+        ) from exc
 
-    return "\n\n".join(pages)
+
+def _warn_empty_pages(document, filename: str) -> None:
+    """Log pages that remain without extractable text after conversion.
+
+    Args:
+        document: The converted Docling document.
+        filename: The original filename used in warning logs.
+    """
+    pages = getattr(document, "pages", {})
+
+    for page_number in sorted(pages):
+        page_text = document.export_to_markdown(page_no=page_number).strip()
+
+        if not page_text:
+            logger.warning(
+                "Page has zero extractable characters after OCR filename=%s page_number=%d",
+                filename,
+                page_number,
+            )

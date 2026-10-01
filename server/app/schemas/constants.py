@@ -36,6 +36,12 @@ class LoggerConstants(BaseModel):
         return value
 
 
+class DoclingConstants(BaseModel):
+    """Validate Docling extraction and chunking settings."""
+
+    DOCLING_MAX_CHUNK_TOKENS: int = Field(ge=1)
+
+
 class QdrantConstants(BaseModel):
     """Validate Qdrant connection and health-check settings."""
 

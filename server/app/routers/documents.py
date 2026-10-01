@@ -14,14 +14,26 @@ from app.errors.api import ApiError
 router = APIRouter(prefix="/documents", tags=["documents"])
 
 SUPPORTED_EXTENSIONS: set[str] = {
+    ".bmp",
+    ".csv",
+    ".docx",
+    ".html",
+    ".jpg",
+    ".jpeg",
     ".md",
+    ".png",
     ".pdf",
+    ".pptx",
+    ".tiff",
+    ".txt",
+    ".webp",
+    ".xlsx",
 }
 
 
 @router.post("/upload", response_model=UploadResponse)
 async def upload(file: UploadFile = File(...)) -> UploadResponse:
-    """Extract and chunk one uploaded Markdown or PDF document.
+    """Extract and chunk one supported uploaded file.
 
     Args:
         file: The multipart document upload.
@@ -39,7 +51,8 @@ async def upload(file: UploadFile = File(...)) -> UploadResponse:
         received = extension or "<none>"
 
         raise ApiError(
-            f"Unsupported file extension '{received}'. Only .pdf and .md are accepted.",
+            f"Unsupported file extension '{received}'. Supported extensions: "
+            f"{', '.join(sorted(SUPPORTED_EXTENSIONS))}.",
             "INVALID_FILE_TYPE",
         )
 
@@ -51,19 +64,16 @@ async def upload(file: UploadFile = File(...)) -> UploadResponse:
     logger.info("Processing Upload: %s | Extension: %s", filename, extension)
 
     try:
-        text = extract(content, extension, filename)
+        document = extract(content, extension, filename)
+        chunks = chunk(document=document, id=str(uuid4()))
     except TextExtractionError as exc:
         raise ApiError(str(exc), "FILE_UPLOAD_FAILED") from exc
 
-    logger.info("Extracted File: %s | Characters: %d", filename, len(text))
-
-    if not text.strip():
+    if not chunks:
         raise ApiError(
             "The uploaded document contains no extractable text.",
             "FILE_UPLOAD_FAILED",
         )
-
-    chunks = chunk(text=text, id=str(uuid4()))
 
     logger.info("Chunked File: %s | Count: %d", filename, len(chunks))
 
@@ -76,6 +86,9 @@ async def upload(file: UploadFile = File(...)) -> UploadResponse:
                 text=chunk.text,
                 index=chunk.index,
                 count=chunk.count,
+                page=chunk.page,
+                heading=chunk.heading,
+                section=chunk.section,
             )
             for chunk in chunks
         ],

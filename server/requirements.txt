@@ -1,7 +1,8 @@
 fastapi
 uvicorn
-tiktoken
 pydantic
-pdfplumber
 python-dotenv
 python-multipart
+docling
+rapidocr_onnxruntime
+transformers
