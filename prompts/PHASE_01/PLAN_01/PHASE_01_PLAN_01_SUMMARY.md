@@ -237,4 +237,5 @@
 - `HybridChunker` uses Docling's canonical import path.
 - Chunk metadata is narrowed to `DocChunk` so Pylance recognizes `headings`.
 - `DOCLING_MAX_CHUNK_TOKENS=500` is validated through the nested settings object and exists in `.env` and `.env.example`.
+- Docker Compose now injects `DOCLING_MAX_CHUNK_TOKENS` into the server container and falls back to `500` for older local `.env` files.
 - OCR fixture dimensions and font size remain fixed test-data values for reproducibility.
