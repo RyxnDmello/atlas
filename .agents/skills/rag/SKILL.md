@@ -22,12 +22,14 @@ class EmbeddingProvider(Protocol):
     def dimension(self) -> int: ...
 ```
 
-- `LocalMiniLMEmbedder` wraps `sentence-transformers`'s `all-MiniLM-L6-v2`.
-  `dimension` = 384. No task-type concept — MiniLM embeds all text the
-  same way regardless of query vs. file role.
-- A second adapter (e.g. a Gemini embedder) must not change this
-  interface. A provider swap is a reindex operation, not a runtime
-  toggle — see "Reindexing" below.
+- `LocalMiniLMEmbedder` (original decision, superseded) wrapped
+  `all-MiniLM-L6-v2`, 384-dim.
+- `BGEM3Embedder` (confirmed for PLAN_02) wraps `BAAI/bge-m3`,
+  `dimension` = 1024, dense-only mode for MVP (hybrid dense+sparse is
+  supported by the model but deliberately not used yet). Same tokenizer
+  as chunking time, for alignment.
+- Any adapter must not change this interface. A provider swap is a
+  reindex operation, not a runtime toggle — see "Reindexing" below.
 
 ### LLMProvider
 
@@ -67,8 +69,10 @@ merge_peers=True)`. Tokenizer must be `BAAI/bge-m3`'s tokenizer, not
   enriched), not raw `chunk.text` — this is what actually gets embedded
   in PLAN_02.
 - Output: list of `Chunk(text, chunk_index, file_id, token_count,
-page_number, heading, section)` — `page_number`/`heading`/`section`
-  come from Docling's chunk metadata (`chunk.meta`), not invented.
+  page, heading, section)` — single-word `page` (not `page_number`,
+  per project naming convention), `heading`, `section` come from
+  Docling's chunk metadata (`chunk.meta`), not invented. All three are
+  optional/`None` where a format has no such metadata (e.g. `.txt`).
 - Edge cases to handle explicitly: a file shorter than one chunk
   (single chunk, no merge needed — Docling handles this natively); a
   page/image yielding zero extractable text even after Docling's
@@ -77,11 +81,17 @@ page_number, heading, section)` — `page_number`/`heading`/`section`
 
 ## Vector schema (Qdrant)
 
-- Collection vector size = the active `EmbeddingProvider.dimension` (384
-  for MiniLM). Changing providers means creating a new collection, not
-  resizing the existing one.
-- Payload per point: `file_id`, `chunk_index`, `text` (raw chunk, for
-  citation display), `token_count`.
+- Collection vector size = the active `EmbeddingProvider.dimension`
+  (1024 for the confirmed `BAAI/bge-m3`). Changing providers means
+  creating a new collection, not resizing the existing one.
+- Payload per point: `file_id`, `chunk_index`, `text`, `token_count`,
+  `page`, `heading`, `section` — the last three carried through from
+  Docling's chunk metadata, directly useful for citation display
+  (file + heading + page, not just a bare chunk index).
+- **Open decision, do not assume when PLAN_02 is written:** `text` here
+  — store the contextualized (heading-enriched) form used for embedding,
+  the raw chunk form better suited to citation display, or both as
+  separate fields? Flag to the human, don't pick silently.
 - Similarity metric: cosine, set explicitly in the collection config —
   never rely on a default.
 

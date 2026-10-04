@@ -26,15 +26,15 @@ prompt explicitly says so.
 
 ## Component maturity (update as work lands)
 
-| Component               | Status        |
-| ----------------------- | ------------- |
-| Upload endpoint         | Not Yet Built |
-| Chunking                | Not Yet Built |
-| Embedding               | Not Yet Built |
-| Vector storage (Qdrant) | Not Yet Built |
-| Retrieval               | Not Yet Built |
-| Generation/streaming    | Not Yet Built |
-| Citation display        | Not Yet Built |
+| Component                | Status                  |
+| ------------------------- | ------------------------ |
+| Upload endpoint           | Implemented & Verified  |
+| Extraction & chunking     | Implemented & Verified  |
+| Embedding                 | Not Yet Built            |
+| Vector storage (Qdrant)   | Not Yet Built            |
+| Retrieval                 | Not Yet Built            |
+| Generation/streaming      | Not Yet Built            |
+| Citation display          | Not Yet Built            |
 
 Statuses: `Not Yet Built` / `Implemented, Unverified` (code exists but
 untested/unexplained) / `Implemented & Verified`. Never treat
@@ -42,14 +42,18 @@ untested/unexplained) / `Implemented & Verified`. Never treat
 
 ## Common commands
 
+Run from `server/`, inside the project venv:
+
 ```bash
-docker compose up -d qdrant          # start Qdrant only, for local dev
-docker compose up --build            # full stack
-pytest backend/tests                 # run backend tests once they exist
+python -m pip install -r requirements.txt -r tests/requirements.txt
+python -m unittest discover -s tests -v    # local fixture-iteration loop
+docker compose --env-file .env -f docker-compose.yml up --build  # final authority
+docker compose --env-file .env -f docker-compose.yml ps
 ```
 
-(Update this section as real scripts land — placeholders until Phase 1
-scaffolding exists.)
+Local venv is the primary debugging loop; Docker is the final
+verification authority (dependency install, model prewarming, format
+parsing, live endpoints), not the per-iteration loop.
 
 ## Fixed tech stack
 
@@ -73,7 +77,8 @@ Docker) - Redis (introduced when caching becomes relevant, not Phase 1)
   `.txt`, `.html`, `.csv`, and images (`.png`/`.jpg`/`.jpeg`/`.tiff`/
   `.bmp`/`.webp`). Audio/video and exotic formats (EPUB, AsciiDoc,
   LaTeX, XML schemas) explicitly deferred — do not add without
-  flagging.
+  flagging. `max_tokens` is env-configurable via
+  `DOCLING_MAX_CHUNK_TOKENS` (default 500), not hardcoded.
 - Embeddings (PLAN_02): `BAAI/bge-m3`, dense-only for MVP (hybrid
   dense+sparse deferred, model supports it later without re-indexing).
   Superseded the original local-MiniLM decision — size/latency
@@ -141,7 +146,7 @@ atlas/
       PHASE_01.md                        # phase-level plan overview
       PLAN_01/
         PHASE_01_PLAN_01.md                # the Codex prompt itself
-        PHASE_01_PLAN_01_SUMMARY.md         # Codex's explain-back summary
+        PHASE_01_PLAN_01_CONTEXT.md         # Codex's running context/summary
         PHASE_01_PLAN_01_MANUAL.md          # human manual-QA guide
       PLAN_02/ ...                          # same three-file pattern per plan
 ```
@@ -184,15 +189,41 @@ and retrieval.
 - A `.env.example` with placeholder keys (no real secrets) should exist
   and be committed instead, so the required variables are documented.
 
+## PLAN vs. amendments
+
+A `PHASE_<NN>_PLAN_<NN>.md` file is an exhaustive end-state
+specification — architecture, contracts, requirements, acceptance
+criteria for what that plan must deliver. It is not a prediction of the
+exact sequence of prompts that will get there. Real builds involve
+emergent decisions (a library choice that gets reversed, a bug found
+mid-build, a fixture that needs fixing) that cannot be honestly planned
+in advance.
+
+`amendments/` (under each `PLAN_<NN>/` folder) holds the actual
+chronological record of every prompt run against that plan after the
+first one — numbered in the order they really happened, including
+reversed decisions (keep these, don't delete them; a documented
+dead-end is a stronger interview artifact than a record that pretends
+the first attempt never happened). This folder is built from the start
+for every plan from PLAN_02 onward — not reconstructed after the fact.
+
+Keep every individual prompt, whether the plan's first one or an
+amendment, scoped to one focused change — this is what actually keeps
+Codex's performance high, not front-loading more detail into a single
+giant prompt. The PLAN file being exhaustive about the *destination*
+and prompts being narrow about *each step* are not in tension — both
+are true at once.
+
 ## Prompt naming convention
 
 Prompts live under `prompts/PHASE_<NN>/PLAN_<NN>/`. Each phase folder
 has one `PHASE_<NN>.md` overview file. Each plan folder contains exactly
 three files, all prefixed `PHASE_<NN>_PLAN_<NN>`: the Codex prompt
-itself, `_SUMMARY.md` (Codex's own explain-back summary, a separate
-file, not appended to the prompt), and `_MANUAL.md` (a human manual-QA
-guide covering how to verify that plan's acceptance criteria step by
-step). A Phase is one major build-sequence goal. A Plan is one scoped,
+itself, `_CONTEXT.md` (renamed from `_SUMMARY.md` during PLAN_01 —
+Codex's running account of what's built, cross-referenced against prior
+session history and current code state, not appended to the prompt),
+and `_MANUAL.md` (a human manual-QA guide covering how to verify that
+plan's acceptance criteria step by step). A Phase is one major build-sequence goal. A Plan is one scoped,
 single-feature prompt within that phase — per the "never bundle multiple
 pipeline stages into one prompt" rule. Plans within a phase are
 sequential and each depends on the previous one being verified working.
@@ -262,7 +293,7 @@ that's already built stay on that plan's existing branch and existing
 `PLAN_<NN>` number — they do not get their own plan/branch. A plan's
 status in `PHASE_<NN>.md` must be set back to `Built, Unverified` when
 its code changes after being marked `Verified`, and only re-marked
-`Verified` once manually re-checked. The plan's `_SUMMARY.md` file is
+`Verified` once manually re-checked. The plan's `_CONTEXT.md` file is
 the running changelog for these amendments — no separate file needed.
 
 ## Boundaries
@@ -309,7 +340,7 @@ document, oversized file, API timeout), if relevant. Required even for
 small tasks — this is how the human verifies they can defend the code in
 an interview.
 
-**Format for SUMMARY, MANUAL, and PLAN files:** short bullet points with
+**Format for CONTEXT, MANUAL, and PLAN files:** short bullet points with
 key details only. No heavy prose paragraphs. A bullet should read as a
 fact or a step, not a narrated explanation. If something genuinely needs
 more than one sentence, use a nested bullet rather than a paragraph.
