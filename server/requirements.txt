@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+pydantic
+python-dotenv
+python-multipart
+docling
+rapidocr_onnxruntime
+transformers

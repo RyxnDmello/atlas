@@ -26,15 +26,15 @@ prompt explicitly says so.
 
 ## Component maturity (update as work lands)
 
-| Component               | Status        |
-| ----------------------- | ------------- |
-| Upload endpoint         | Not Yet Built |
-| Chunking                | Not Yet Built |
-| Embedding               | Not Yet Built |
-| Vector storage (Qdrant) | Not Yet Built |
-| Retrieval               | Not Yet Built |
-| Generation/streaming    | Not Yet Built |
-| Citation display        | Not Yet Built |
+| Component                | Status                  |
+| ------------------------- | ------------------------ |
+| Upload endpoint           | Implemented & Verified  |
+| Extraction & chunking     | Implemented & Verified  |
+| Embedding                 | Not Yet Built            |
+| Vector storage (Qdrant)   | Not Yet Built            |
+| Retrieval                 | Not Yet Built            |
+| Generation/streaming      | Not Yet Built            |
+| Citation display          | Not Yet Built            |
 
 Statuses: `Not Yet Built` / `Implemented, Unverified` (code exists but
 untested/unexplained) / `Implemented & Verified`. Never treat
@@ -42,14 +42,18 @@ untested/unexplained) / `Implemented & Verified`. Never treat
 
 ## Common commands
 
+Run from `server/`, inside the project venv:
+
 ```bash
-docker compose up -d qdrant          # start Qdrant only, for local dev
-docker compose up --build            # full stack
-pytest backend/tests                 # run backend tests once they exist
+python -m pip install -r requirements.txt -r tests/requirements.txt
+python -m unittest discover -s tests -v    # local fixture-iteration loop
+docker compose --env-file .env -f docker-compose.yml up --build  # final authority
+docker compose --env-file .env -f docker-compose.yml ps
 ```
 
-(Update this section as real scripts land — placeholders until Phase 1
-scaffolding exists.)
+Local venv is the primary debugging loop; Docker is the final
+verification authority (dependency install, model prewarming, format
+parsing, live endpoints), not the per-iteration loop.
 
 ## Fixed tech stack
 
@@ -63,15 +67,31 @@ Docker) - Redis (introduced when caching becomes relevant, not Phase 1)
 - Embeddings: local `all-MiniLM-L6-v2`, 384-dim, behind an
   `EmbeddingProvider` interface. Full contract in the
   `rag` skill.
-- Chunking: fixed-size, `tiktoken`-based, 500 tokens / 50 overlap,
-  sentence-boundary snapped. Full contract in the skill.
+- Document processing, extraction & chunking: `Docling`
+  (`DocumentConverter` + `HybridChunker`), replacing the original
+  manual `pdfplumber`/`tiktoken` pipeline. Standard pipeline + OCR
+  (RapidOCR engine), no VLM tier. Tokenizer for chunking is
+  `BAAI/bge-m3` (aligned with the PLAN_02 embedding model), `max_tokens`
+  500, `merge_peers=True`. Full contract in the `rag` skill.
+- Supported upload formats: `.pdf`, `.docx`, `.pptx`, `.xlsx`, `.md`,
+  `.txt`, `.html`, `.csv`, and images (`.png`/`.jpg`/`.jpeg`/`.tiff`/
+  `.bmp`/`.webp`). Audio/video and exotic formats (EPUB, AsciiDoc,
+  LaTeX, XML schemas) explicitly deferred — do not add without
+  flagging. `max_tokens` is env-configurable via
+  `DOCLING_MAX_CHUNK_TOKENS` (default 500), not hardcoded.
+- Embeddings (PLAN_02): `BAAI/bge-m3`, dense-only for MVP (hybrid
+  dense+sparse deferred, model supports it later without re-indexing).
+  Superseded the original local-MiniLM decision — size/latency
+  explicitly not a constraint for this project.
 - Generation: Gemini Flash via `google-genai`, behind an `LLMProvider`
   interface. **Verify the exact current model string in Google AI
   Studio before use** — Gemini Flash names change frequently and
   deprecate within months. Never hardcode an unverified string.
-- PDF text extraction: `pdfplumber`. Chosen over `pypdf` for better
-  layout/table fidelity, and over `PyMuPDF` to avoid its AGPL license.
-  `.md` uploads are read directly as text, no library needed.
+- Environment/config loading: `python-dotenv` loads `.env` in
+  `core/constants.py`; validation is separate, via Pydantic models in
+  `schemas/constants.py` (1:1 with `core/constants.py`'s groups). Not
+  `pydantic-settings` — reversed from an earlier decision; loading and
+  validation are deliberately different files/concerns.
 
 ## Folder structure
 
@@ -79,46 +99,65 @@ Docker) - Redis (introduced when caching becomes relevant, not Phase 1)
 atlas/
   AGENTS.md
   .agents/skills/rag/SKILL.md
-  .gitignore
-  .env                # never committed — see Environment & secrets below
   server/
+    .gitignore
+    .env                # never committed — see Environment & secrets below
+    .env.example
+    docker-compose.yml   # colocated with .env so compose auto-loads it;
+                          # revisit moving to repo root once client/
+                          # becomes a real service (PLAN_05)
+    Dockerfile
     app/
       routers/        # FastAPI route handlers, one module per resource
                        # every endpoint lives here, incl. system/ (e.g.
                        # /system/health), imported into main.py
       errors/          # exception classes by type, e.g. api.py, qdrant.py
-                       # (only api.py exists so far — common exceptions
-                       # routers can raise directly, avoids rewriting)
       core/
-        constants.py    # Constants class: nested sub-classes by type,
-                         # instantiated as lowercase attributes, values
-                         # ALL CAPS (e.g. constants.qdrant.QDRANT_URL)
+        constants.py    # loads .env via python-dotenv, validates raw
+                         # values through schemas/constants.py, exposes
+                         # the nested Constants object
+      schemas/          # Pydantic validation only — request/response
+                         # shapes, config validation, pipeline DTOs.
+                         # One class per file unless tightly coupled
+                         # (one composes another, no independent use).
+        constants.py     # validation models matching core/constants.py
+                          # groups 1:1
+        pipeline.py       # Chunk (pipeline-internal DTO)
+        documents.py       # ResponseChunk, UploadResponse (API response
+                            # shapes)
+      models/           # storage-mapped entities ONLY (not created yet
+                         # — no Postgres/Qdrant client code exists).
+                         # Split by data store when it lands:
+                         # models/postgres/<entity>/  (one class per
+                         # file; a complex entity with subclasses gets
+                         # its own folder, e.g. models/postgres/user/
+                         # user.py, preferences.py, billing.py)
+                         # models/qdrant/<schema>.py
       pipeline/
         chunking.py
         embeddings/     # EmbeddingProvider interface + adapters
         retrieval.py
         generation/     # LLMProvider interface + adapters
-      models/          # Pydantic schemas
       db/              # Qdrant/Postgres client setup (Postgres from Phase 3)
     tests/
   client/              # Next.js frontend, added from Phase 1 PLAN covering UI
-  docker-compose.yml
   prompts/
     PHASE_01/
       PHASE_01.md                        # phase-level plan overview
       PLAN_01/
         PHASE_01_PLAN_01.md                # the Codex prompt itself
-        PHASE_01_PLAN_01_SUMMARY.md         # Codex's explain-back summary
+        PHASE_01_PLAN_01_CONTEXT.md         # Codex's running context/summary
         PHASE_01_PLAN_01_MANUAL.md          # human manual-QA guide
       PLAN_02/ ...                          # same three-file pattern per plan
 ```
 
-`server/` = backend (was `backend/`), `client/` = frontend (was
-`frontend/`) — renamed per project convention, confirm before reverting.
-Route handlers live in `routers/` (not `api/`) per convention.
-`prompts/` is nested per-phase, per-plan; every file inside a `PLAN_XX/`
-folder is prefixed `PHASE_XX_PLAN_XX_...` — the prompt itself, plus a
-Codex-written summary and a human manual, per convention.
+`server/` = backend, `client/` = frontend. Route handlers live in
+`routers/` (not `api/`). `models/` and `schemas/` are never
+interchangeable: `models/` only holds things mapped to actual stored
+data (Postgres ORM entities, Qdrant point schemas), split by data store;
+`schemas/` holds every other Pydantic class — validation, API
+request/response shapes, pipeline-internal DTOs — grouped by cohesive
+concern.
 
 ## Vocabulary
 
@@ -150,15 +189,41 @@ and retrieval.
 - A `.env.example` with placeholder keys (no real secrets) should exist
   and be committed instead, so the required variables are documented.
 
+## PLAN vs. amendments
+
+A `PHASE_<NN>_PLAN_<NN>.md` file is an exhaustive end-state
+specification — architecture, contracts, requirements, acceptance
+criteria for what that plan must deliver. It is not a prediction of the
+exact sequence of prompts that will get there. Real builds involve
+emergent decisions (a library choice that gets reversed, a bug found
+mid-build, a fixture that needs fixing) that cannot be honestly planned
+in advance.
+
+`amendments/` (under each `PLAN_<NN>/` folder) holds the actual
+chronological record of every prompt run against that plan after the
+first one — numbered in the order they really happened, including
+reversed decisions (keep these, don't delete them; a documented
+dead-end is a stronger interview artifact than a record that pretends
+the first attempt never happened). This folder is built from the start
+for every plan from PLAN_02 onward — not reconstructed after the fact.
+
+Keep every individual prompt, whether the plan's first one or an
+amendment, scoped to one focused change — this is what actually keeps
+Codex's performance high, not front-loading more detail into a single
+giant prompt. The PLAN file being exhaustive about the *destination*
+and prompts being narrow about *each step* are not in tension — both
+are true at once.
+
 ## Prompt naming convention
 
 Prompts live under `prompts/PHASE_<NN>/PLAN_<NN>/`. Each phase folder
 has one `PHASE_<NN>.md` overview file. Each plan folder contains exactly
 three files, all prefixed `PHASE_<NN>_PLAN_<NN>`: the Codex prompt
-itself, `_SUMMARY.md` (Codex's own explain-back summary, a separate
-file, not appended to the prompt), and `_MANUAL.md` (a human manual-QA
-guide covering how to verify that plan's acceptance criteria step by
-step). A Phase is one major build-sequence goal. A Plan is one scoped,
+itself, `_CONTEXT.md` (renamed from `_SUMMARY.md` during PLAN_01 —
+Codex's running account of what's built, cross-referenced against prior
+session history and current code state, not appended to the prompt),
+and `_MANUAL.md` (a human manual-QA guide covering how to verify that
+plan's acceptance criteria step by step). A Phase is one major build-sequence goal. A Plan is one scoped,
 single-feature prompt within that phase — per the "never bundle multiple
 pipeline stages into one prompt" rule. Plans within a phase are
 sequential and each depends on the previous one being verified working.
@@ -195,6 +260,41 @@ not the framework-specific code):
   FastAPI-native equivalent.
 - Routers raise the base class (or a specific subclass/instance) rather
   than constructing `HTTPException` inline.
+
+## Git & branch discipline
+
+At the start of every session, review the current git state for context
+— current branch, other local/remote branches, and recent commit
+history on each — before writing any code. This is read-only
+reconnaissance, not an action to report back verbosely; use it to avoid
+duplicating or conflicting with work that already exists elsewhere.
+
+**Never, under any circumstance, unless explicitly instructed in that
+session's prompt:**
+
+- Commit anything.
+- Edit, delete, rename, merge, or rebase any branch.
+- Switch, checkout, or create a branch.
+
+Work only inside whatever branch is already checked out when the
+session starts. If the current branch doesn't match what a prompt's
+scope implies, stop and flag it rather than switching branches to "fix"
+the mismatch yourself.
+
+**Branch naming convention:** `phase-<NN>/plan-<NN>`, e.g.
+`phase-01/plan-01`. Each `PLAN_<NN>` has exactly one branch, listed in
+that plan's entry in `PHASE_<NN>.md`.
+
+**What stays on the existing plan's branch vs. gets a new plan/branch:**
+a genuinely new pipeline stage (e.g. moving from chunking to embedding,
+or from retrieval to generation) gets a new `PLAN_<NN>` and a new
+branch. Cleanup, convention fixes, refactors, and bug fixes to a plan
+that's already built stay on that plan's existing branch and existing
+`PLAN_<NN>` number — they do not get their own plan/branch. A plan's
+status in `PHASE_<NN>.md` must be set back to `Built, Unverified` when
+its code changes after being marked `Verified`, and only re-marked
+`Verified` once manually re-checked. The plan's `_CONTEXT.md` file is
+the running changelog for these amendments — no separate file needed.
 
 ## Boundaries
 
@@ -239,3 +339,8 @@ within the already-decided architecture; what would break it (empty
 document, oversized file, API timeout), if relevant. Required even for
 small tasks — this is how the human verifies they can defend the code in
 an interview.
+
+**Format for CONTEXT, MANUAL, and PLAN files:** short bullet points with
+key details only. No heavy prose paragraphs. A bullet should read as a
+fact or a step, not a narrated explanation. If something genuinely needs
+more than one sentence, use a nested bullet rather than a paragraph.

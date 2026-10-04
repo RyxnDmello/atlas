@@ -25,61 +25,99 @@ project's running source of truth across chat sessions.
 
 ## Plan status
 
-| Plan             | Status      | One-line scope                                 |
-| ---------------- | ----------- | ---------------------------------------------- |
-| PHASE_01_PLAN_01 | Verified    | Scaffolding, upload, text extraction, chunking |
-| PHASE_01_PLAN_02 | Not Started | Qdrant setup, embedding, storage               |
-| PHASE_01_PLAN_03 | Not Started | Retrieval (query embed + top-k search)         |
-| PHASE_01_PLAN_04 | Not Started | Generation, streaming, citation                |
-| PHASE_01_PLAN_05 | Not Started | Minimal client UI                              |
+| Plan             | Status      | One-line Scope                                        |
+| ---------------- | ----------- | ----------------------------------------------------- |
+| PHASE_01_PLAN_01 | Verified    | Scaffolding, upload, Docling extraction/OCR, chunking |
+| PHASE_01_PLAN_02 | Not Started | Qdrant setup, embedding, storage                      |
+| PHASE_01_PLAN_03 | Not Started | Retrieval (query embed + top-k search)                |
+| PHASE_01_PLAN_04 | Not Started | Generation, streaming, citation                       |
+| PHASE_01_PLAN_05 | Not Started | Minimal client UI                                     |
 
 ---
 
 ## PHASE_01_PLAN_01 — Scaffolding, Upload, Extraction, Chunking
 
-**Status: built and verified before the Atlas rename. Not retrofitted.**
+**Branch:** `phase-01/plan-01`
+
+**Status: Verified.** The _original prompt file_ (`PHASE_01_PLAN_01.md`)
+was never retrofitted — it stays frozen as a historical record. The
+_code_ was substantially retrofitted since the original build, most
+significantly the full Docling migration below. Every amendment is
+tracked in `PLAN_01/PHASE_01_PLAN_01_CONTEXT.md` (renamed from
+`_SUMMARY.md`), cross-referenced against actual Codex session history
+and manually re-verified end to end.
 
 **Depends on:** nothing (first plan in the project).
 
-**Builds (as actually implemented):**
+**Builds (current, actual state — supersedes the original build):**
 
-- `server/` FastAPI skeleton, `client/` placeholder, `docker-compose.yml`
-  (backend + Qdrant, Qdrant unwired), `.gitignore`, `.env.example`.
-- `POST /documents/upload` — accepts `.pdf`/`.md`, rejects anything else.
-  **Route name is legacy vocabulary** (predates the file/folder Atlas
-  framing) and was not renamed as part of the pivot, per the "no
-  retrofit" decision. A cosmetic rename to `/files/upload` can happen
-  later if desired, bundled with a real functional change — not required
-  on its own.
-- Text extraction: `pdfplumber` for PDF, direct UTF-8 read for `.md`.
-- Chunking: `tiktoken`-based, 500 tokens/50 overlap, sentence-boundary
-  snapped.
-- Structural conventions applied after initial build: `routers/` (not
-  `api/`), `errors/api.py` (structured `ApiError` pattern), nested
-  `constants` object (not `config.py`), single-word naming,
-  function-only docstrings.
+- `server/` FastAPI app, `client/` placeholder, `server/docker-compose.yml`
+  (`server` + `qdrant`, Qdrant unwired), `.gitignore`, `server/.env.example`.
+- `POST /documents/upload` — route name kept as legacy vocabulary, per
+  the original "no retrofit of the route itself" decision.
+- **Extraction & chunking: fully migrated to Docling**
+  (`DocumentConverter` + `HybridChunker`), replacing the original
+  `pdfplumber`/`tiktoken` pipeline entirely:
+  - Accepts `.pdf`, `.docx`, `.pptx`, `.xlsx`, `.md`, `.txt`, `.html`,
+    `.csv`, and images (`.png`/`.jpg`/`.jpeg`/`.tiff`/`.bmp`/`.webp`) —
+    expanded from the original `.pdf`/`.md`-only scope.
+  - Standard Docling pipeline + OCR (RapidOCR, ONNX runtime), no VLM
+    tier.
+  - Chunking tokenizer is `BAAI/bge-m3` (aligned with PLAN_02's
+    confirmed embedding model), `max_tokens` env-configurable via
+    `DOCLING_MAX_CHUNK_TOKENS` (default 500), `merge_peers=True`.
+  - No more fixed overlap/sentence-boundary snapping — Docling's
+    structure-aware boundaries + `contextualize()` replace that
+    mechanism entirely.
+  - Chunks carry `page`/`heading`/`section` metadata from Docling, in
+    addition to the original fields.
+- Structural conventions: `routers/` (not `api/`), `errors/api.py`
+  (structured `ApiError` pattern + a separate unexpected-exception
+  handler), nested `constants` object (not `config.py`), single-word
+  naming, function-only docstrings.
+- Env loading: `python-dotenv` + `schemas/constants.py` (Pydantic
+  validation, separate from loading) — reversed from an earlier,
+  since-abandoned `pydantic-settings` attempt.
+- `schemas/`/`models/` split introduced; `models/documents.py` retired
+  into `schemas/pipeline.py` + `schemas/documents.py`.
+- `.env`, `.env.example`, `docker-compose.yml` permanently relocated
+  into `server/`; Dockerfile/compose `PORT`, volume-name, and
+  build-context bugs fixed; CPU-only PyTorch, scoped model prewarming
+  (standard pipeline + OCR only, no VLM weights).
+- Test fixtures rebuilt with real authoring libraries (ReportLab,
+  `python-pptx`, Pillow) after hand-rolled minimal fixtures proved
+  unreliable against Docling's real parsing requirements. Local-venv
+  test loop established as the primary debugging workflow; Docker
+  remains the final verification authority.
 
 **Explicitly excluded:** embedding, Qdrant storage, retrieval,
 generation, auth, file metadata (name/description/tags), any client
 functionality beyond a placeholder.
 
 **Verification approach:** see
-`PLAN_01/PHASE_01_PLAN_01_MANUAL.md`.
+`PLAN_01/PHASE_01_PLAN_01_MANUAL.md`. Manually re-verified end to end
+post-Docling-migration; all checks pass.
 
-**Key risk / what actually matters going forward:** sentence-boundary
-detection assumes plain English text — noted as a scope limitation, not
-fixed.
+**Known gaps, not risks requiring action:** OCR quality validated only
+against current fixtures; `.tiff`/`.bmp`/`.webp` accepted but not
+individually fixture-tested; uploads read fully into memory with no
+size limit; corrupt/encrypted files and non-UTF-8 content are not
+specially handled.
 
 ---
 
 ## PHASE_01_PLAN_02 — Qdrant, Embedding, Storage
 
+**Branch:** `phase-01/plan-02`
+
 **Depends on:** PLAN_01 verified.
 
 **Builds:**
 
-- `EmbeddingProvider` interface + `LocalMiniLMEmbedder` implementation.
-- Qdrant collection creation (384-dim, cosine metric), wired into
+- `EmbeddingProvider` interface + `BGEM3Embedder` implementation
+  (`BAAI/bge-m3`, dense-only for MVP — supersedes the original
+  `LocalMiniLMEmbedder` decision; see `rag` skill for rationale).
+- Qdrant collection creation (1024-dim, cosine metric), wired into
   `docker-compose.yml`'s already-running Qdrant service.
 - Upload endpoint extended: chunks from PLAN_01 are now embedded and
   stored with `file_id`, `chunk_index`, `text`, `token_count` payload.
@@ -108,6 +146,8 @@ mistaken for a bug.
 
 ## PHASE_01_PLAN_03 — Retrieval
 
+**Branch:** `phase-01/plan-03`
+
 **Depends on:** PLAN_02 verified.
 
 **Builds:**
@@ -125,12 +165,15 @@ mistaken for a bug.
 file, confirm correct chunk(s) rank highest; ask an unrelated question,
 confirm low similarity scores are visibly low.
 
-**Key risk:** MiniLM's retrieval quality ceiling — a real finding to
-document if it shows up, not a bug to silently work around.
+**Key risk:** BGE-M3 dense-only retrieval quality ceiling (hybrid
+dense+sparse is available but deliberately unused for MVP) — a real
+finding to document if it shows up, not a bug to silently work around.
 
 ---
 
 ## PHASE_01_PLAN_04 — Generation, Streaming, Citation
+
+**Branch:** `phase-01/plan-04`
 
 **Depends on:** PLAN_03 verified.
 
@@ -156,6 +199,8 @@ name in AI Studio immediately before writing this plan.
 ---
 
 ## PHASE_01_PLAN_05 — Minimal Client UI
+
+**Branch:** `phase-01/plan-05`
 
 **Depends on:** PLAN_04 verified.
 

@@ -22,12 +22,14 @@ class EmbeddingProvider(Protocol):
     def dimension(self) -> int: ...
 ```
 
-- `LocalMiniLMEmbedder` wraps `sentence-transformers`'s `all-MiniLM-L6-v2`.
-  `dimension` = 384. No task-type concept — MiniLM embeds all text the
-  same way regardless of query vs. file role.
-- A second adapter (e.g. a Gemini embedder) must not change this
-  interface. A provider swap is a reindex operation, not a runtime
-  toggle — see "Reindexing" below.
+- `LocalMiniLMEmbedder` (original decision, superseded) wrapped
+  `all-MiniLM-L6-v2`, 384-dim.
+- `BGEM3Embedder` (confirmed for PLAN_02) wraps `BAAI/bge-m3`,
+  `dimension` = 1024, dense-only mode for MVP (hybrid dense+sparse is
+  supported by the model but deliberately not used yet). Same tokenizer
+  as chunking time, for alignment.
+- Any adapter must not change this interface. A provider swap is a
+  reindex operation, not a runtime toggle — see "Reindexing" below.
 
 ### LLMProvider
 
@@ -40,39 +42,56 @@ class LLMProvider(Protocol):
   read from config/env, never hardcoded — Gemini Flash variants deprecate
   on a period of months.
 
-## Text extraction contract
+## Text extraction & chunking contract (Docling)
 
-- `.pdf` uploads: extract text via `pdfplumber`, page by page, concatenated
-  in order before chunking. Do not use `pypdf` or `PyMuPDF` — this is a
-  locked decision (see `AGENTS.md`).
-- `.md` uploads: read directly as UTF-8 text, no extraction library
-  needed.
-- Edge cases to handle explicitly: a PDF page with no extractable text
-  (e.g. a scanned image page) must not silently produce an empty string
-  that flows into chunking unnoticed — log a warning per page with zero
-  extracted characters. OCR fallback is out of scope for Phase 1; a
-  scanned-only PDF is an acceptable failure the human should be told
-  about, not one to accidentally swallow silently.
-
-## Chunking contract
-
-- Input: raw extracted file text + `file_id`.
-- Output: list of `Chunk(text, chunk_index, file_id, token_count)`.
-- Method: `tiktoken`-based token counting, 500 tokens/chunk, 50-token
-  overlap, boundaries snapped to the nearest sentence end (never split
-  mid-sentence).
+- All supported uploads route through Docling's unified pipeline —
+  `DocumentConverter().convert(source).document` — rather than
+  format-specific branching. Supported formats: `.pdf`, `.docx`,
+  `.pptx`, `.xlsx`, `.md`, `.txt`, `.html`, `.csv`, and images
+  (`.png`, `.jpg`/`.jpeg`, `.tiff`, `.bmp`, `.webp`). Do not add
+  audio/video or exotic schema formats (EPUB, AsciiDoc, LaTeX, XML
+  schemas) without flagging first — deliberately deferred.
+- Docling pipeline config: standard pipeline (layout analysis, table
+  structure recognition, reading order) with OCR enabled
+  (`do_ocr=True`), engine = `RapidOcrOptions` (`backend="onnxruntime"`).
+  Do NOT enable the VLM pipeline tier (SmolDocling/GraniteDocling) —
+  explicitly excluded, resource ceiling decision (see defensibility
+  notes).
+- Chunking via `HybridChunker(tokenizer=..., max_tokens=500,
+merge_peers=True)`. Tokenizer must be `BAAI/bge-m3`'s tokenizer, not
+  the library default — this aligns token counts with the embedding
+  model PLAN_02 will actually use, avoiding a silent mismatch.
+- There is no overlap parameter — Docling replaces sliding-window
+  overlap with structure-aware chunk boundaries (headings/sections)
+  plus `contextualize()`, which prepends the heading path to a chunk's
+  text.
+- Canonical chunk text = `chunker.contextualize(chunk)` output (heading-
+  enriched), not raw `chunk.text` — this is what actually gets embedded
+  in PLAN_02.
+- Output: list of `Chunk(text, chunk_index, file_id, token_count,
+  page, heading, section)` — single-word `page` (not `page_number`,
+  per project naming convention), `heading`, `section` come from
+  Docling's chunk metadata (`chunk.meta`), not invented. All three are
+  optional/`None` where a format has no such metadata (e.g. `.txt`).
 - Edge cases to handle explicitly: a file shorter than one chunk
-  (return a single chunk, skip overlap logic); no sentence boundary found
-  within a chunk window (fall back to a hard token cut and log a warning
-  — never emit a silently malformed or zero-length chunk).
+  (single chunk, no merge needed — Docling handles this natively); a
+  page/image yielding zero extractable text even after Docling's
+  OCR — log a warning identifying it, do not silently drop it or crash
+  the whole upload.
 
 ## Vector schema (Qdrant)
 
-- Collection vector size = the active `EmbeddingProvider.dimension` (384
-  for MiniLM). Changing providers means creating a new collection, not
-  resizing the existing one.
-- Payload per point: `file_id`, `chunk_index`, `text` (raw chunk, for
-  citation display), `token_count`.
+- Collection vector size = the active `EmbeddingProvider.dimension`
+  (1024 for the confirmed `BAAI/bge-m3`). Changing providers means
+  creating a new collection, not resizing the existing one.
+- Payload per point: `file_id`, `chunk_index`, `text`, `token_count`,
+  `page`, `heading`, `section` — the last three carried through from
+  Docling's chunk metadata, directly useful for citation display
+  (file + heading + page, not just a bare chunk index).
+- **Open decision, do not assume when PLAN_02 is written:** `text` here
+  — store the contextualized (heading-enriched) form used for embedding,
+  the raw chunk form better suited to citation display, or both as
+  separate fields? Flag to the human, don't pick silently.
 - Similarity metric: cosine, set explicitly in the collection config —
   never rely on a default.
 
@@ -106,19 +125,33 @@ the new collection. There is no live/runtime swap.
 
 ## Interview-defensibility notes
 
-- **500/50 token chunking:** standard starting point balancing context
-  preservation against retrieval noise; ~10% overlap avoids losing
-  meaning at chunk boundaries without excessive duplication.
-- **Local MiniLM over an API embedding model:** zero cost, zero external
-  dependency on the core retrieval path; explicitly revisit if retrieval
-  quality proves insufficient.
+- **Docling over manual extraction (`pdfplumber`) + manual chunking
+  (`tiktoken`):** preserves document structure (headings, tables, page
+  provenance, reading order) that a flat-text extraction discards;
+  structure-aware `HybridChunker` boundaries are a stronger semantic
+  signal than blind sliding-window overlap. Trade-off accepted: larger
+  dependency footprint, longer processing time per upload than the
+  original manual pipeline.
+- **`BAAI/bge-m3` tokenizer at chunk time, before BGE-M3 is actually
+  used for embedding (PLAN_02):** ensures token counts used for chunk
+  sizing are already correct for the model that will embed them —
+  avoids a silent mismatch and a later re-chunk.
+- **Standard Docling pipeline + OCR, no VLM tier:** VLM-based document
+  understanding (SmolDocling/GraniteDocling) is a meaningfully heavier
+  model on top of an already-larger stack (Docling's layout/table
+  models + BGE-M3, CPU-only, no GPU provisioned). Standard pipeline +
+  OCR already delivers tables, headings, and scanned-content extraction
+  — full visual understanding is a deliberate, documented exclusion, not
+  an oversight.
+- **RapidOCR over EasyOCR (Docling's plug-and-play default):**
+  RapidOCR's underlying PP-OCR models benchmark meaningfully more
+  accurate than EasyOCR on real-document OCR tests, with the same
+  zero-system-dependency install (`pip`, no external binary like
+  Tesseract requires).
+- **Local MiniLM over an API embedding model:** superseded — see
+  PLAN_02 for the BGE-M3 decision and its own rationale.
 - **Cosine similarity:** standard for normalized sentence embeddings,
   focuses on direction rather than magnitude.
-- **`pdfplumber` over `pypdf`/`PyMuPDF`:** better layout and table
-  extraction fidelity than `pypdf` (relevant for files with
-  tables/structured sections); avoids `PyMuPDF`'s AGPL license. Trade-off
-  accepted: slower than both alternatives, acceptable at MVP's
-  single-file scale.
 - **Why Qdrant, and how context-window overflow is handled:** not yet
   decided in this project — fill in once actually discussed, don't
   invent a justification here.
