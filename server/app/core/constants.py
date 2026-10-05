@@ -5,9 +5,11 @@ from dotenv import load_dotenv
 
 from app.schemas.constants import (
     AppConstants,
-    DoclingConstants,
     LoggerConstants,
     QdrantConstants,
+    DoclingConstants,
+    EmbeddingDenseKey,
+    EmbeddingConstants,
 )
 
 ENV_PATH = Path(__file__).resolve().parents[2] / ".env"
@@ -40,9 +42,15 @@ class Constants:
                 "DOCLING_MAX_CHUNK_TOKENS": _value("DOCLING_MAX_CHUNK_TOKENS"),
             }
         )
+        embedding = EmbeddingConstants.model_validate({})
         qdrant = QdrantConstants.model_validate(
             {
                 "QDRANT_URL": _value("QDRANT_URL"),
+                **{
+                    name: value
+                    for name in ("QDRANT_COLLECTION", "QDRANT_CLIENT_TIMEOUT")
+                    if (value := _value(name)) is not None
+                },
                 "QDRANT_HEALTHCHECK_RETRIES": _value("QDRANT_HEALTHCHECK_RETRIES"),
                 "QDRANT_HEALTHCHECK_TIMEOUT": _value("QDRANT_HEALTHCHECK_TIMEOUT"),
                 "QDRANT_HEALTHCHECK_INTERVAL": _value("QDRANT_HEALTHCHECK_INTERVAL"),
@@ -54,13 +62,29 @@ class Constants:
 
         self.app = _App(app.PORT)
         self.logger = _Logger(logger.LOG_LEVEL)
-        self.docling = _Docling(docling.DOCLING_MAX_CHUNK_TOKENS)
+        self.docling = _Docling(
+            docling.DOCLING_MAX_CHUNK_TOKENS,
+            docling.DOCLING_MERGE_PEERS,
+        )
+        self.embedding = _Embedding(
+            embedding.EMBEDDING_MODEL,
+            embedding.EMBEDDING_DIMENSION,
+            embedding.EMBEDDING_USE_FP16,
+            embedding.EMBEDDING_RETURN_DENSE,
+            embedding.EMBEDDING_RETURN_SPARSE,
+            embedding.EMBEDDING_RETURN_COLBERT_VECS,
+            embedding.EMBEDDING_DENSE_KEY,
+        )
         self.qdrant = _Qdrant(
             qdrant.QDRANT_URL,
+            qdrant.QDRANT_DISTANCE,
             qdrant.QDRANT_HEALTHCHECK_RETRIES,
             qdrant.QDRANT_HEALTHCHECK_TIMEOUT,
             qdrant.QDRANT_HEALTHCHECK_INTERVAL,
             qdrant.QDRANT_HEALTHCHECK_START_PERIOD,
+            qdrant.QDRANT_COLLECTION,
+            qdrant.QDRANT_CLIENT_TIMEOUT,
+            qdrant.QDRANT_WRITE_WAIT,
         )
 
 
@@ -81,8 +105,31 @@ class _Logger:
 class _Docling:
     """Expose Docling settings under the docling group."""
 
-    def __init__(self, max_chunk_tokens: int) -> None:
+    def __init__(self, max_chunk_tokens: int, merge_peers: bool) -> None:
         self.DOCLING_MAX_CHUNK_TOKENS = max_chunk_tokens
+        self.DOCLING_MERGE_PEERS = merge_peers
+
+
+class _Embedding:
+    """Expose embedding settings under the embedding group."""
+
+    def __init__(
+        self,
+        model: str,
+        dimension: int,
+        use_fp16: bool,
+        return_dense: bool,
+        return_sparse: bool,
+        return_colbert_vecs: bool,
+        dense_key: EmbeddingDenseKey,
+    ) -> None:
+        self.EMBEDDING_MODEL = model
+        self.EMBEDDING_DIMENSION = dimension
+        self.EMBEDDING_USE_FP16 = use_fp16
+        self.EMBEDDING_RETURN_DENSE = return_dense
+        self.EMBEDDING_RETURN_SPARSE = return_sparse
+        self.EMBEDDING_RETURN_COLBERT_VECS = return_colbert_vecs
+        self.EMBEDDING_DENSE_KEY = dense_key
 
 
 class _Qdrant:
@@ -91,16 +138,24 @@ class _Qdrant:
     def __init__(
         self,
         url: str,
+        distance: str,
         retries: int,
         timeout: int,
         interval: int,
         start_period: int,
+        collection: str,
+        client_timeout: int,
+        wait: bool,
     ) -> None:
         self.QDRANT_URL = url
+        self.QDRANT_DISTANCE = distance
         self.QDRANT_HEALTHCHECK_RETRIES = retries
         self.QDRANT_HEALTHCHECK_TIMEOUT = timeout
         self.QDRANT_HEALTHCHECK_INTERVAL = interval
         self.QDRANT_HEALTHCHECK_START_PERIOD = start_period
+        self.QDRANT_COLLECTION = collection
+        self.QDRANT_CLIENT_TIMEOUT = client_timeout
+        self.QDRANT_WRITE_WAIT = wait
 
 
 constants = Constants()

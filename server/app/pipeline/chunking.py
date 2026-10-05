@@ -2,14 +2,15 @@ from functools import lru_cache
 from typing import cast
 
 from transformers import AutoTokenizer
+
 from docling_core.transforms.chunker.doc_chunk import DocChunk
 from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
 from docling_core.transforms.chunker.tokenizer.huggingface import HuggingFaceTokenizer
 
-from app.core.constants import constants
 from app.schemas.pipeline import Chunk
 
-MODEL = "BAAI/bge-m3"
+from app.core.constants import constants
+
 MAX_CHUNK_TOKENS = constants.docling.DOCLING_MAX_CHUNK_TOKENS
 
 
@@ -17,12 +18,13 @@ MAX_CHUNK_TOKENS = constants.docling.DOCLING_MAX_CHUNK_TOKENS
 def _chunker() -> HybridChunker:
     """Create the configured Docling hybrid chunker."""
     tokenizer = HuggingFaceTokenizer(
-        tokenizer=AutoTokenizer.from_pretrained(MODEL),
+        tokenizer=AutoTokenizer.from_pretrained(
+            constants.embedding.EMBEDDING_MODEL),
         max_tokens=MAX_CHUNK_TOKENS,
     )
     return HybridChunker(
         tokenizer=tokenizer,
-        merge_peers=True,
+        merge_peers=constants.docling.DOCLING_MERGE_PEERS,
     )
 
 
@@ -48,6 +50,7 @@ def chunk(document, id: str) -> list[Chunk]:
             Chunk(
                 id=id,
                 text=text,
+                display_text=item.text,
                 index=index,
                 count=chunker.tokenizer.count_tokens(text),
                 page=_page(item),

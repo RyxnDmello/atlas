@@ -1,8 +1,17 @@
+# WEB SERVER & API
 fastapi
 uvicorn
 pydantic
 python-dotenv
 python-multipart
+
+# EXTRACTION & OCR
 docling
 rapidocr_onnxruntime
+
+# TOKENIZATION & EMBEDDINGS
 transformers
+FlagEmbedding
+
+# VECTOR DATABASE
+qdrant-client

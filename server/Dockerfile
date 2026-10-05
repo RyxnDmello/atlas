@@ -38,7 +38,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN docling-tools models download layout tableformer rapidocr \
     --rapidocr-backend-lang onnxruntime:ch
 
-RUN python -c "from transformers import AutoTokenizer; AutoTokenizer.from_pretrained('BAAI/bge-m3')"
+COPY app/schemas/constants.py /tmp/atlas_constants.py
+
+RUN python -c "import sys; sys.path.insert(0, '/tmp'); from atlas_constants import EmbeddingConstants; from transformers import AutoTokenizer; from FlagEmbedding import BGEM3FlagModel; config = EmbeddingConstants(); AutoTokenizer.from_pretrained(config.EMBEDDING_MODEL); BGEM3FlagModel(config.EMBEDDING_MODEL, use_fp16=config.EMBEDDING_USE_FP16)"
 
 ENV DOCLING_ARTIFACTS_PATH=/root/.cache/docling/models
 ENV HF_HUB_OFFLINE=1

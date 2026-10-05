@@ -2,9 +2,11 @@ from typing import cast
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
+
 from starlette.types import HTTPExceptionHandler
 
 from app.core.logging import logger
+
 from app.errors.api import ApiError, STATUS_BY_CODE, is_api_error
 
 

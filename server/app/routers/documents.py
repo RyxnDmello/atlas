@@ -1,8 +1,11 @@
 from uuid import uuid4
 from pathlib import Path
+from time import perf_counter
 from fastapi import APIRouter, File, UploadFile
+from starlette.concurrency import run_in_threadpool
 
 from app.core.logging import logger
+from app.core.runtime import storage
 
 from app.schemas.documents import ResponseChunk, UploadResponse
 
@@ -33,17 +36,18 @@ SUPPORTED_EXTENSIONS: set[str] = {
 
 @router.post("/upload", response_model=UploadResponse)
 async def upload(file: UploadFile = File(...)) -> UploadResponse:
-    """Extract and chunk one supported uploaded file.
+    """Extract, chunk, embed, and store one supported uploaded file.
 
     Args:
         file: The multipart document upload.
 
     Returns:
-        The filename, type, and temporary full-text chunk list.
+        The unchanged filename, type, and full-text chunk response.
 
     Raises:
-        ApiError: If the file type, size, extraction, or text is invalid.
+        ApiError: If validation, extraction, embedding, or storage fails.
     """
+    started = perf_counter()
     filename = file.filename or ""
     extension = Path(filename).suffix.lower()
 
@@ -59,13 +63,15 @@ async def upload(file: UploadFile = File(...)) -> UploadResponse:
     content = await file.read()
 
     if not content:
-        raise ApiError("Uploaded file is empty (0 bytes).", "INVALID_FILE_SIZE")
+        raise ApiError("Uploaded file is empty (0 bytes).",
+                       "INVALID_FILE_SIZE")
 
     logger.info("Processing Upload: %s | Extension: %s", filename, extension)
 
+    file_id = str(uuid4())
     try:
-        document = extract(content, extension, filename)
-        chunks = chunk(document=document, id=str(uuid4()))
+        document = await run_in_threadpool(extract, content, extension, filename)
+        chunks = await run_in_threadpool(chunk, document=document, id=file_id)
     except TextExtractionError as exc:
         raise ApiError(str(exc), "FILE_UPLOAD_FAILED") from exc
 
@@ -76,6 +82,9 @@ async def upload(file: UploadFile = File(...)) -> UploadResponse:
         )
 
     logger.info("Chunked File: %s | Count: %d", filename, len(chunks))
+    await run_in_threadpool(storage().write, chunks)
+    logger.info("Upload complete: file_id=%s seconds=%.3f",
+                file_id, perf_counter() - started)
 
     return UploadResponse(
         name=filename,

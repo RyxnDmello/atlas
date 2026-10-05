@@ -26,19 +26,22 @@ prompt explicitly says so.
 
 ## Component maturity (update as work lands)
 
-| Component                | Status                  |
-| ------------------------- | ------------------------ |
-| Upload endpoint           | Implemented & Verified  |
-| Extraction & chunking     | Implemented & Verified  |
-| Embedding                 | Not Yet Built            |
-| Vector storage (Qdrant)   | Not Yet Built            |
-| Retrieval                 | Not Yet Built            |
-| Generation/streaming      | Not Yet Built            |
-| Citation display          | Not Yet Built            |
+| Component               | Status                 |
+| ----------------------- | ---------------------- |
+| Upload endpoint         | Implemented & Verified |
+| Extraction & chunking   | Implemented & Verified |
+| Embedding               | Implemented & Verified |
+| Vector storage (Qdrant) | Implemented & Verified |
+| Retrieval               | Not Yet Built          |
+| Generation/streaming    | Not Yet Built          |
+| Citation display        | Not Yet Built          |
 
 Statuses: `Not Yet Built` / `Implemented, Unverified` (code exists but
 untested/unexplained) / `Implemented & Verified`. Never treat
 "Unverified" as "Verified."
+
+- 2026-10-05: local regressions and Docker Markdown/full-PDF upload storage checks pass.
+- Extraction remains pending broader container/manual re-verification: a sparse PDF produced different chunks locally and in Docker and omitted an isolated source line. See Plan 02 CONTEXT.
 
 ## Common commands
 
@@ -46,7 +49,7 @@ Run from `server/`, inside the project venv:
 
 ```bash
 python -m pip install -r requirements.txt -r tests/requirements.txt
-python -m unittest discover -s tests -v    # local fixture-iteration loop
+python -m tests.run    # full suite with real-model startup and in-memory Qdrant
 docker compose --env-file .env -f docker-compose.yml up --build  # final authority
 docker compose --env-file .env -f docker-compose.yml ps
 ```
@@ -64,7 +67,8 @@ Docker) - Redis (introduced when caching becomes relevant, not Phase 1)
 
 ## Locked Phase 1 decisions
 
-- Embeddings: local `all-MiniLM-L6-v2`, 384-dim, behind an
+- Original embedding choice (superseded by PLAN_02): local
+  `all-MiniLM-L6-v2`, 384-dim, behind an
   `EmbeddingProvider` interface. Full contract in the
   `rag` skill.
 - Document processing, extraction & chunking: `Docling`
@@ -98,9 +102,9 @@ Docker) - Redis (introduced when caching becomes relevant, not Phase 1)
 ```
 atlas/
   AGENTS.md
+  .gitignore
   .agents/skills/rag/SKILL.md
   server/
-    .gitignore
     .env                # never committed — see Environment & secrets below
     .env.example
     docker-compose.yml   # colocated with .env so compose auto-loads it;
@@ -116,6 +120,8 @@ atlas/
         constants.py    # loads .env via python-dotenv, validates raw
                          # values through schemas/constants.py, exposes
                          # the nested Constants object
+        lifespan.py     # initializes upload services and closes Qdrant
+        runtime.py      # exposes only startup-prepared storage services
       schemas/          # Pydantic validation only — request/response
                          # shapes, config validation, pipeline DTOs.
                          # One class per file unless tightly coupled
@@ -125,9 +131,9 @@ atlas/
         pipeline.py       # Chunk (pipeline-internal DTO)
         documents.py       # ResponseChunk, UploadResponse (API response
                             # shapes)
-      models/           # storage-mapped entities ONLY (not created yet
-                         # — no Postgres/Qdrant client code exists).
-                         # Split by data store when it lands:
+      models/           # storage-mapped entities ONLY; Qdrant chunk
+                         # payloads live in models/qdrant/chunk.py.
+                         # Postgres remains deferred; split by data store:
                          # models/postgres/<entity>/  (one class per
                          # file; a complex entity with subclasses gets
                          # its own folder, e.g. models/postgres/user/
@@ -210,8 +216,8 @@ for every plan from PLAN_02 onward — not reconstructed after the fact.
 Keep every individual prompt, whether the plan's first one or an
 amendment, scoped to one focused change — this is what actually keeps
 Codex's performance high, not front-loading more detail into a single
-giant prompt. The PLAN file being exhaustive about the *destination*
-and prompts being narrow about *each step* are not in tension — both
+giant prompt. The PLAN file being exhaustive about the _destination_
+and prompts being narrow about _each step_ are not in tension — both
 are true at once.
 
 ## Prompt naming convention
@@ -241,6 +247,18 @@ sequential and each depends on the previous one being verified working.
   established in the file you're editing rather than introducing a new
   style. If starting a new file, mirror the most recently written file
   in the same folder.
+- Import grouping: standard library imports first (one blank line
+  after), then third-party imports (one blank line after), then
+  internal `app.*` imports grouped by top-level subpackage (`app.core`,
+  `app.db`, `app.pipeline`, `app.routers`, `app.schemas`, `app.models`,
+  `app.errors`) — each subpackage's imports on consecutive lines, one
+  blank line between each subpackage group. No blank line within a
+  group.
+- Root-level files (`main.py`) wire things together — create the app,
+  include routers, register exception handlers, set lifespan — and do
+  not define implementation logic themselves. Startup/shutdown logic
+  (lifespan context managers, initialization functions) lives in
+  `core/`, imported into `main.py`, not defined inline there.
 
 ## Error handling pattern
 

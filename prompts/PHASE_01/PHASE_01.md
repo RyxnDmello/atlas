@@ -27,8 +27,8 @@ project's running source of truth across chat sessions.
 
 | Plan             | Status      | One-line Scope                                        |
 | ---------------- | ----------- | ----------------------------------------------------- |
-| PHASE_01_PLAN_01 | Verified    | Scaffolding, upload, Docling extraction/OCR, chunking |
-| PHASE_01_PLAN_02 | Not Started | Qdrant setup, embedding, storage                      |
+| PHASE_01_PLAN_01 | Built, Unverified | Scaffolding, upload, Docling extraction/OCR, chunking |
+| PHASE_01_PLAN_02 | In Progress | Qdrant setup, embedding, storage                      |
 | PHASE_01_PLAN_03 | Not Started | Retrieval (query embed + top-k search)                |
 | PHASE_01_PLAN_04 | Not Started | Generation, streaming, citation                       |
 | PHASE_01_PLAN_05 | Not Started | Minimal client UI                                     |
@@ -39,7 +39,7 @@ project's running source of truth across chat sessions.
 
 **Branch:** `phase-01/plan-01`
 
-**Status: Verified.** The _original prompt file_ (`PHASE_01_PLAN_01.md`)
+**Status: Built, Unverified.** Shared upload/chunking code passes local regressions and Docker Markdown/full-PDF checks; broader format/OCR manual re-verification remains pending after a sparse-PDF extraction difference. The _original prompt file_ (`PHASE_01_PLAN_01.md`)
 was never retrofitted — it stays frozen as a historical record. The
 _code_ was substantially retrofitted since the original build, most
 significantly the full Docling migration below. Every amendment is
@@ -52,7 +52,7 @@ and manually re-verified end to end.
 **Builds (current, actual state — supersedes the original build):**
 
 - `server/` FastAPI app, `client/` placeholder, `server/docker-compose.yml`
-  (`server` + `qdrant`, Qdrant unwired), `.gitignore`, `server/.env.example`.
+  (`server` + `qdrant`; Qdrant wiring belongs to Plan 02), `.gitignore`, `server/.env.example`.
 - `POST /documents/upload` — route name kept as legacy vocabulary, per
   the original "no retrofit of the route itself" decision.
 - **Extraction & chunking: fully migrated to Docling**
@@ -95,8 +95,9 @@ generation, auth, file metadata (name/description/tags), any client
 functionality beyond a placeholder.
 
 **Verification approach:** see
-`PLAN_01/PHASE_01_PLAN_01_MANUAL.md`. Manually re-verified end to end
-post-Docling-migration; all checks pass.
+`PLAN_01/PHASE_01_PLAN_01_MANUAL.md`. The original post-Docling-migration
+manual pass is historical; current shared-code checks and the sparse-PDF
+gap are recorded in Plan 02 CONTEXT.
 
 **Known gaps, not risks requiring action:** OCR quality validated only
 against current fixtures; `.tiff`/`.bmp`/`.webp` accepted but not
@@ -110,6 +111,14 @@ specially handled.
 
 **Branch:** `phase-01/plan-02`
 
+**Status:** In Progress.
+
+- Amendments 01–03 implement embedding, startup initialization, upload storage, and lifecycle cleanup.
+- Local verification and Docker/live Qdrant upload-storage checks pass.
+- Markdown uploads and a headed two-page PDF were checked through Qdrant count/scroll APIs; a stopped Qdrant returns a structured 503.
+- Broader Plan 01 format/OCR manual re-verification and the sparse-PDF extraction gap remain tracked separately.
+- Database health reporting is deferred to a later amendment.
+
 **Depends on:** PLAN_01 verified.
 
 **Builds:**
@@ -120,7 +129,8 @@ specially handled.
 - Qdrant collection creation (1024-dim, cosine metric), wired into
   `docker-compose.yml`'s already-running Qdrant service.
 - Upload endpoint extended: chunks from PLAN_01 are now embedded and
-  stored with `file_id`, `chunk_index`, `text`, `token_count` payload.
+  stored with `file_id`, `chunk_index`, `token_count`, `page`, `heading`,
+  `section`, contextualized `text`, and raw `display_text` payload.
 - `file_id` is an internal identifier only (e.g. a generated UUID) — no
   user-facing name, description, or tags. That entire layer is deferred
   until Postgres is introduced (confirmed decision, do not re-ask).
@@ -138,9 +148,9 @@ metadata fields, Redis, folders.
 matches chunk count via Qdrant's own API/dashboard; confirm payload
 fields are correct.
 
-**Key risk:** embedding model cold-start latency (first request loads
-model weights) — note expected latency in explain-back so it isn't
-mistaken for a bug.
+**Key risk:** startup model-load latency and memory use; Amendment 02 moves
+weight loading before requests. First-use tokenizer/Docling initialization
+can still affect upload latency.
 
 ---
 
