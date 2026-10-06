@@ -15,14 +15,14 @@ from app.core.runtime import storage
 
 from app.db.qdrant import ensure_collection
 
-from app.errors.api import ApiError
-
-from app.main import app
-
 from app.pipeline.chunking import chunk
 from app.pipeline.extraction import extract
 
 from app.schemas.constants import QdrantConstants
+
+from app.errors.api import ApiError
+
+from app.main import app
 
 
 class Provider:
@@ -50,6 +50,7 @@ class UploadStorageTests(TestCase):
     """Exercise real multipart parsing/chunking with initialized local storage."""
 
     def setUp(self) -> None:
+        """Prepare an injected provider, in-memory Qdrant, and a real upload client."""
         self.scope = ExitStack()
         self.addCleanup(self.scope.close)
         self.provider = Provider()
@@ -73,6 +74,7 @@ class UploadStorageTests(TestCase):
         )
 
     def test_payloads_match_chunks_and_preserve_both_texts(self) -> None:
+        """Compare upload responses and stored payloads with freshly generated chunks."""
         expected = chunk(extract(self.content, ".md", "policy.md"), str(uuid4()))
         response = self.upload()
         self.assertEqual(response.status_code, 200, response.text)
@@ -121,6 +123,7 @@ class UploadStorageTests(TestCase):
         self.assertTrue(any(payload["text"] != payload["display_text"] for payload in payloads))
 
     def test_repeated_uploads_are_independent_and_startup_precedes_embedding(self) -> None:
+        """Require independent uploads to reuse the provider after startup readiness."""
         ready = storage().ready
         self.assertEqual(self.provider.calls, [])
         entered = perf_counter()
@@ -143,6 +146,7 @@ class UploadStorageTests(TestCase):
         self.assertEqual(len(identifiers), 2)
 
     def test_embedding_failure_returns_error_without_writing(self) -> None:
+        """Return an explicit embedding error without attempting a vector write."""
         with (
             patch.object(self.provider, "embed", side_effect=RuntimeError("injected")),
             patch.object(self.client, "upsert") as writer,
@@ -155,6 +159,7 @@ class UploadStorageTests(TestCase):
         self.assertEqual(self.client.count(self.collection, exact=True).count, 0)
 
     def test_transport_failure_returns_qdrant_connection_error(self) -> None:
+        """Map a failed Qdrant transport to the structured connection error."""
         failure = ResponseHandlingException(ConnectionError("injected"))
         with patch.object(self.client, "upsert", side_effect=failure):
             response = self.upload()
@@ -164,12 +169,14 @@ class UploadStorageTests(TestCase):
         self.assertEqual(self.client.count(self.collection, exact=True).count, 0)
 
     def test_write_failure_returns_qdrant_collection_error(self) -> None:
+        """Map a failed vector write to the structured collection error."""
         with patch.object(self.client, "upsert", side_effect=ValueError("injected")):
             response = self.upload()
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.json()["code"], "QDRANT_COLLECTION_ERROR")
 
     def test_unconfirmed_write_is_not_success(self) -> None:
+        """Reject an unconfirmed write and require synchronous completion."""
         result = UpdateResult(operation_id=0, status=UpdateStatus.ACKNOWLEDGED)
         with patch.object(self.client, "upsert", return_value=result) as writer:
             response = self.upload()
@@ -178,6 +185,7 @@ class UploadStorageTests(TestCase):
         self.assertTrue(writer.call_args.kwargs["wait"])
 
     def test_invalid_embeddings_do_not_reach_storage(self) -> None:
+        """Reject missing or incorrectly sized vectors before storage."""
         for vectors in ([], [[1.0]]):
             with (
                 self.subTest(vectors=vectors),
@@ -193,6 +201,7 @@ class StartupTests(TestCase):
     """Verify startup failure, shutdown cleanup, and idempotent restart."""
 
     def test_unreachable_qdrant_aborts_startup_and_closes_client(self) -> None:
+        """Abort startup and close the client when Qdrant cannot be reached."""
         client = QdrantClient(":memory:", force_disable_check_same_thread=True)
         with (
             patch("app.core.lifespan.get_bge_m3_embedder", return_value=Provider()),
@@ -207,6 +216,7 @@ class StartupTests(TestCase):
             closer.assert_called_once()
 
     def test_model_failure_aborts_before_client_creation(self) -> None:
+        """Abort startup before constructing Qdrant when model loading fails."""
         with (
             patch("app.core.lifespan.get_bge_m3_embedder", side_effect=RuntimeError("injected")),
             patch("app.core.lifespan.create_client") as factory,
@@ -217,6 +227,7 @@ class StartupTests(TestCase):
             factory.assert_not_called()
 
     def test_lifespan_restores_readiness_and_closes_client(self) -> None:
+        """Restore the prior runtime state and close the lifespan-owned client."""
         try:
             previous = storage()
         except ApiError:
@@ -238,6 +249,7 @@ class StartupTests(TestCase):
             self.assertIs(storage(), previous)
 
     def test_wrong_collection_dimension_aborts_startup(self) -> None:
+        """Reject an existing collection with an incompatible vector dimension."""
         client = QdrantClient(":memory:", force_disable_check_same_thread=True)
         client.create_collection(
             constants.qdrant.QDRANT_COLLECTION,
@@ -255,9 +267,12 @@ class StartupTests(TestCase):
             self.assertEqual(caught.exception.code, "QDRANT_COLLECTION_ERROR")
 
     def test_optional_configuration_defaults_are_validated(self) -> None:
+        """Verify optional collection defaults and reject invalid overrides."""
         values = {
-            "QDRANT_URL": "http://localhost:6333", "QDRANT_HEALTHCHECK_RETRIES": 1,
-            "QDRANT_HEALTHCHECK_TIMEOUT": 1, "QDRANT_HEALTHCHECK_INTERVAL": 1,
+            "QDRANT_URL": "http://localhost:6333",
+            "QDRANT_HEALTHCHECK_RETRIES": 1,
+            "QDRANT_HEALTHCHECK_TIMEOUT": 1,
+            "QDRANT_HEALTHCHECK_INTERVAL": 1,
             "QDRANT_HEALTHCHECK_START_PERIOD": 0,
         }
         config = QdrantConstants.model_validate(values)

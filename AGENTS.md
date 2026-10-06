@@ -40,8 +40,11 @@ Statuses: `Not Yet Built` / `Implemented, Unverified` (code exists but
 untested/unexplained) / `Implemented & Verified`. Never treat
 "Unverified" as "Verified."
 
-- 2026-10-05: local regressions and Docker Markdown/full-PDF upload storage checks pass.
-- Extraction remains pending broader container/manual re-verification: a sparse PDF produced different chunks locally and in Docker and omitted an isolated source line. See Plan 02 CONTEXT.
+- 2026-10-06 Amendment 04: 21 local tests and 21 live upload/storage checks pass, covering all nine format categories and six image extensions.
+- 2026-10-06 Amendment 05: orphan `section_header` text is preserved, including oversized headings; 33 local tests pass and an independent lexical coverage audit warns about remaining gaps. Requirements remain unchanged.
+- Amendment 05 verification: fresh Docker build, 12 container regressions, all 18 format fixtures, and 23 live source/storage checks passed; the tested image matched all 30 application files and retained 32 points. The subsequent cosmetic cleanup is workspace-only; its 33 local tests and executable-AST checks pass.
+- 2026-10-06: Plan 01 and extraction/chunking are verified with the user's explicit acceptance of the deferred XLSX/CSV `Policy` corner-header omission. Coverage warnings remain active; table serialization is unchanged. See Plan 01 CONTEXT for verification evidence and the accepted limitation.
+- Amendment 04's failed memory-limited build and baseline-image checks remain historical evidence in both CONTEXT files.
 
 ## Common commands
 

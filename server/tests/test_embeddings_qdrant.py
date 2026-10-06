@@ -5,15 +5,18 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from qdrant_client import QdrantClient
+from qdrant_client.http.models import Distance
+
+
 SERVER_ROOT = Path(__file__).resolve().parents[1]
 if str(SERVER_ROOT) not in sys.path:
     sys.path.insert(0, str(SERVER_ROOT))
 
-from qdrant_client import QdrantClient
-from qdrant_client.http.models import Distance
-
 from app.core.constants import constants
+
 from app.db.qdrant import ensure_collection
+
 from app.pipeline.embeddings.bge_m3 import (
     BGEM3Embedder,
     get_bge_m3_embedder,
@@ -34,8 +37,10 @@ class FakeProvider:
 
 
 class EmbeddingTests(unittest.TestCase):
+    """Verify dense dimensions, sequential reuse, and the cached provider accessor."""
     @classmethod
     def setUpClass(cls) -> None:
+        """Load the real embedder and record two sequential encoding latencies."""
         cls.embedder = BGEM3Embedder()
         first_start = time.perf_counter()
         cls.first = cls.embedder.embed(["Atlas stores semantic policy knowledge."])
@@ -50,6 +55,7 @@ class EmbeddingTests(unittest.TestCase):
         )
 
     def test_embed_returns_configured_dimensional_vectors(self) -> None:
+        """Require one floating-point vector with the configured dense dimension."""
         self.assertEqual(
             self.embedder.dimension,
             constants.embedding.EMBEDDING_DIMENSION,
@@ -62,12 +68,16 @@ class EmbeddingTests(unittest.TestCase):
         self.assertTrue(all(isinstance(value, float) for value in self.first[0]))
 
     def test_sequential_embedding_reuses_loaded_model(self) -> None:
+        """Verify that sequential encoding retains the loaded model."""
         self.assertIsNotNone(self.embedder._model)
         self.assertEqual(len(self.second), 1)
 
     def test_cached_accessor_constructs_model_once(self) -> None:
+        """Require the cached accessor to construct and reuse one provider."""
         class FakeModel:
+            """Provide deterministic dense output for the accessor reuse check."""
             def encode(self, texts, **kwargs):
+                """Return one configured dense vector for each input text."""
                 return {
                     constants.embedding.EMBEDDING_DENSE_KEY: [
                         [0.0] * constants.embedding.EMBEDDING_DIMENSION for _ in texts
@@ -95,7 +105,9 @@ class EmbeddingTests(unittest.TestCase):
 
 
 class QdrantCollectionTests(unittest.TestCase):
+    """Verify collection creation and repeated initialization against the vector contract."""
     def test_collection_creation_is_idempotent_and_configured(self) -> None:
+        """Require repeated initialization to retain the configured size and cosine metric."""
         client = QdrantClient(":memory:")
         provider = FakeProvider()
 

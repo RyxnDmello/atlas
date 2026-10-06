@@ -4,8 +4,8 @@
 
 - Plan 02 adds embedding and Qdrant storage to the Phase 1 RAG pipeline.
 - Plan 02 is In Progress: Amendments 01–03 implement embedding, startup preparation, upload-to-Qdrant storage, and lifecycle cleanup.
-- Docker startup and live Markdown/full-PDF upload storage checks pass; the later database health amendment remains required.
-- Broader Plan 01 format/OCR manual re-verification remains pending after the sparse-PDF extraction difference documented below.
+- Amendment 04's all-format Docker upload/storage checks pass; the later database health amendment remains required.
+- All formats/OCR were independently checked; two PDF chunk omissions remain unresolved, and the fresh image build failed with insufficient memory.
 - Amendment 01's isolated foundation remains reused; retrieval and later stages stay out of scope.
 
 ## Amendment 01 — Embedding provider and Qdrant foundation
@@ -218,3 +218,189 @@
 - Plan 01 overview status now matches its detailed `Built, Unverified` status; sparse-PDF extraction and broader format/OCR checks remain pending.
 - Plan 02 remains In Progress until the database health amendment; no application behavior or requirements headers changed in this checkpoint.
 - Commit is local only; no push or branch switch.
+
+## Amendment 04 — Independent cross-plan verification, 2026-10-06
+
+- Scope: upload -> extraction/OCR -> chunking -> dense embedding -> Qdrant storage; all nine format categories and all six image extensions exercised.
+- Commands run from `server/`:
+  - `..\.venv\Scripts\python.exe -m tests.run`: unchanged suite, `21 tests`, `OK`, `16.695 s`, no test failures.
+  - `..\.venv\Scripts\python.exe -m compileall -q app tests`: pass.
+  - `docker compose --env-file .env -f docker-compose.yml up --build -d`: failed during apt installation with `ResourceExhausted: cannot allocate memory`.
+  - `docker compose --env-file .env -f docker-compose.yml up --no-build -d`: pass using the existing baseline image; no fresh-build success claimed.
+  - `docker compose ... config -q`, `ps`, fresh `logs --since`, package metadata/`pip show`, Qdrant count/scroll, and both health URLs: checked.
+- Baseline image: `sha256:2f48fe829b41063901479507a6c96af146c197aeb0ad3fd9eafccb79dc4773c5`; Docker engine `29.8.0`.
+  - SHA-256 checks confirm all 30 container application Python files match the current workspace.
+  - Qdrant image: `sha256:12364fe851b9f17356fc88189fc06d1b521262e04659ec7345975b00c9246a10`.
+- Local real-model/in-memory-Qdrant timing: model `2.227 s`, TestClient startup `2.244 s`, sequential uploads `2.777 s / 0.166 s`.
+  - Readiness precedes first encode by `1.940 s`; one accessor construction across both uploads and provider identity assertions pass.
+  - Starlette's httpx deprecation warning and three Hugging Face network/cache warnings recorded; cached weights load successfully.
+  - Injected embedding/storage failure logs are expected test cases, not suite failures.
+- Live startup: model `1.782 s`, total `1.804 s`; ready at `05:53:50.985 UTC`, first upload at `05:56:19.198 UTC`.
+  - Runner observed health before the first upload at `05:56:19 UTC` (`0.010 s` health wait); this is not cold-start latency.
+  - No server model-loading/startup sequence appears between the 19 initial sequential successful requests.
+  - One server restart: existing collection retained `34 -> 34` points; model `1.757 s`, startup `1.800 s`, measured restart/readiness `13.460 s`.
+- Static checks: main.py AST has only imports, app assignment, and wiring expressions; no functions, classes, or lambdas.
+  - Amendment 03's four files pass import grouping; dense flags `True/False/False`, dimension `1024`, BGE-M3 tokenizer, configured limit `500`, and `merge_peers=True` inspected.
+- Each fixture was generated once, SHA-256 recorded, and identical bytes reused locally, in Docker, in the controlled variant, and for HTTP uploads.
+  - Fuller PDF uses wrapped ReportLab paragraphs; no overflowing lines.
+  - Local parse: all 18 successful-format/edge-case fixtures preserve every expected phrase; indices, recomputed token counts, and configured token limit pass.
+  - Live matrix: `21` HTTP-200 uploads, `26` new points, all storage checks pass; source preservation passes `19/21` including repetitions/recovery.
+- Storage checks: Qdrant's exact count and paginated scroll (`limit=2`) verify independent file/point UUIDs, finite 1024-dimensional cosine vectors, all eight payload fields, and unchanged public response fields.
+  - Stored `text`, `display_text`, token count, and source metadata match a fresh parse of the same bytes inside the baseline container for every successful upload.
+  - Indices are sequential; full-PDF page metadata is `1/2`; headed Markdown contextualization and short-file single-chunk behavior pass.
+  - Correctly storing generated chunks does not prove complete source preservation.
+- Collection initialization called twice against the existing collection: `35 -> 35` points, no collection deletion.
+- Manual validation: all 23 PowerShell blocks across both guides parse; the new same-bytes source/chunk command runs successfully locally and in Docker.
+- Unsupported, empty, and textless uploads: structured `400` errors with `INVALID_FILE_TYPE`, `INVALID_FILE_SIZE`, and `FILE_UPLOAD_FAILED`; each retains `33 -> 33` points.
+  - Blank-middle-page warning identifies `blank-middle.pdf / page_number=2`; textless warning identifies `textless.pdf / page_number=1`.
+  - Upload/chunk, embedding dimension/time, storage count, completion, and outage failure logs checked.
+- Controlled Qdrant outage: `503 / QDRANT_CONNECTION_FAILED`, measured `4.197 s`; restored in `finally`, actual count `33 -> 33`.
+  - Recovery upload succeeds in `0.156 s` without a server restart.
+  - An earlier outage also returned 503; its verification harness misread Qdrant's plain-text health body as JSON after restoration. Corrected only the ignored harness and resumed completed checks.
+  - Filtered counts: `3be28e66-3de4-493f-b2ec-cc92780cec1c` and `abdfc224-de7c-4e80-9fd8-1fd2cd97d66c` each have zero points.
+  - No transactional rollback claim; these are observed counts for the two controlled failures.
+- Final collection `atlas-chunks`: `35` retained points (`9` original + `26` added); every original point UUID remains.
+  - Server running on `8080`, Qdrant running/healthy on `6333`; no existing data, collection, or volume deleted.
+  - Disposable comparison container `atlas-amendment04-docling131` exited successfully and remains available for inspection.
+- Evidence, fixture bytes/hashes, and temporary verification scripts: ignored `.venv/amendment04/`; historical records and user-added amendment remain intact.
+
+### Docling comparison and pin outcome
+
+- `server/requirements.txt` declares unpinned `docling`; no dependency pin applied.
+- Exact package metadata:
+  - Local Python `3.14.7`: Docling/slim `2.131.0/2.131.0`, core `2.99.0`, parser `7.22.1`, IBM models `4.0.3`, RapidOCR ONNX `1.2.3`, torch `2.14.1`.
+  - Docker Python `3.12.15`: Docling/slim `2.133.0/2.133.0`, core `2.99.0`, parser `7.22.2`, IBM models `4.0.3`, RapidOCR ONNX `1.4.4`, torch `2.14.1+cpu`.
+  - Both: FlagEmbedding `1.4.2`, qdrant-client `1.19.1`, Transformers `5.18.0`.
+- Docker cache settings: `HF_HOME=/opt/huggingface`, `HF_HUB_OFFLINE=1`, `DOCLING_ARTIFACTS_PATH=/root/.cache/docling/models`.
+  - Local has none of these three variables set; it uses default user caches.
+- Sparse PDF recreates the original two-page text/layout from the prior session; current bytes shared across all comparisons.
+  - Local: both source lines labelled `text`; one chunk, `35` tokens, cross-page `page=None`.
+  - Docker: both lines exist in the extracted Docling document; page-2 `Keep records for seven years.` is labelled `section_header` and is absent from chunks.
+  - Docker sparse chunk: `29` tokens, `page=1`; Qdrant faithfully stores that incomplete chunk.
+- Blank-middle PDF: third-page source text is likewise labelled `section_header` in Docker and absent from chunks; the blank-page warning still works.
+- Controlled container uses the exact baseline image and `pip install --no-deps docling==2.131.0 docling-slim==2.131.0`.
+  - Before/after `pip check`: no broken requirements; complete package inventory differs only in these two versions.
+  - Python, parser/core/model dependencies, config, cached model assets, and fixture bytes retained.
+  - Sparse, blank-middle, and fuller-PDF extracted source/chunks exactly match baseline Docker output; both omissions persist.
+- Conclusion: version drift confirmed; changing only the Docling pair is ruled out as a sufficient fix under these controlled conditions.
+  - Other environment differences remain; their causal role was not isolated. No extraction rewrite or broader dependency changes attempted.
+
+### Status decisions and explain-back
+
+- PLAN_01 remains `Built, Unverified`: specific sparse-page-2 and blank-middle-page-3 chunk omissions remain; fresh image build failed.
+- PLAN_02 remains `In Progress`: embedding/storage/startup checks pass; database health endpoint is still deferred.
+- AGENTS extraction/chunking changes from `Implemented & Verified` to `Implemented, Unverified`; upload, embedding, and Qdrant storage remain `Implemented & Verified` from this session's evidence.
+- Built verification records/manual checks for ingestion through storage; no application behavior or dependency change.
+- Implementation choice: separate source-preservation assertions from payload fidelity; isolate the Docling package pair before considering a pin.
+- Failure boundary: an isolated source line classified as a heading can disappear from chunks; cached models, OCR quality, memory, and Qdrant availability still constrain the pipeline.
+- Branch `phase-01/plan-02`, HEAD `64abf5d`, index empty, requirements headers unchanged, `.env` ignored/untracked with no committed history; final whitespace checks pass.
+
+### Retained verification uploads
+
+- `sparse.pdf`: `5f151e41-44f3-4f4a-b7a4-4fc72d94696e`, `1` point(s), HTTP `6.488 s`, storage PASS; source preservation FAIL.
+- `full.pdf`: `290ef8b3-2c3e-47b3-80a8-314ce5f776ae`, `2` point(s), HTTP `3.403 s`, storage PASS.
+- `blank-middle.pdf`: `e13ebf48-72ac-486f-a6f5-61bd6adfed89`, `1` point(s), HTTP `2.148 s`, storage PASS; source preservation FAIL.
+- `policy.docx`: `87ed1ed6-5e60-4746-ae93-56ee09adeea0`, `1` point(s), HTTP `0.168 s`, storage PASS.
+- `policy.pptx`: `cfb0cf73-6569-4f45-ac95-34f262ba3f74`, `1` point(s), HTTP `0.169 s`, storage PASS.
+- `policy.xlsx`: `1717aa70-a48d-43ed-b998-5a0925fb8d68`, `1` point(s), HTTP `0.169 s`, storage PASS.
+- `policy.md`: `4cf105fe-a897-4c3f-8404-f0c43a174dd5`, `1` point(s), HTTP `0.167 s`, storage PASS.
+- `long.md`: `e1936ade-ffd9-444d-ad2c-7c68fe601e8a`, `3` point(s), HTTP `4.900 s`, storage PASS.
+- `short.md`: `cb84795b-ef51-4231-92d7-407e13579726`, `1` point(s), HTTP `0.179 s`, storage PASS.
+- `notes.txt`: `1798a2de-91eb-49fe-8bfd-4138fe540525`, `1` point(s), HTTP `0.171 s`, storage PASS.
+- `page.html`: `5d5a249b-e8e6-43e5-8e61-533a81789a83`, `1` point(s), HTTP `0.166 s`, storage PASS.
+- `table.csv`: `dfedd9bc-fcb8-44a5-a0f4-cc047f53d702`, `1` point(s), HTTP `0.160 s`, storage PASS.
+- `ocr.png`: `61748a17-656c-41cd-a498-0821089b2485`, `1` point(s), HTTP `1.882 s`, storage PASS.
+- `ocr.jpg`: `40a296e7-e6ea-4448-abe8-b4f31f6f8d0d`, `1` point(s), HTTP `1.714 s`, storage PASS.
+- `ocr.jpeg`: `569dd7b4-951b-4f98-920a-c54e09e45b43`, `1` point(s), HTTP `1.657 s`, storage PASS.
+- `ocr.tiff`: `54d450cc-1215-4b89-b82a-fc54709996e8`, `1` point(s), HTTP `1.740 s`, storage PASS.
+- `ocr.bmp`: `fdfcc15b-4c95-481b-bb7b-bc0c0d0d6639`, `1` point(s), HTTP `1.778 s`, storage PASS.
+- `ocr.webp`: `87823eb9-025e-4753-b989-782ea4f3b3e2`, `1` point(s), HTTP `1.758 s`, storage PASS.
+- `long.md repeated`: `deaad832-b3e2-4173-9f6e-7302623286ea`, `3` point(s), HTTP `5.178 s`, storage PASS.
+- `recovery short.md`: `02315a9d-7050-4efd-aea4-bb3461ff3155`, `1` point(s), HTTP `0.156 s`, storage PASS.
+- `restart short.md`: `1e8e0287-0bfd-4104-9589-c9fb1d6ecab9`, `1` point(s), HTTP `1.915 s`, storage PASS.
+
+## Amendment 05 — Plan 01 heading fix, 2026-10-06
+
+- Fix targets Plan 01 extraction/chunking code while remaining on `phase-01/plan-02`; exact cause, implementation choices, and regression evidence are in Plan 01 CONTEXT's Amendment 05 section.
+- Orphan `section_header` source items now reach chunks; oversized orphan headings retain content through bounded body segments and original provenance.
+- Independent coverage warnings expose missing source words/numbers, including the separately documented XLSX/CSV corner-header omission; existing table output stays unchanged.
+- Embedding interface, public response fields, Qdrant payload fields, dependencies, OCR configuration, token limit, and merge setting remain unchanged.
+- PLAN_02 remains `In Progress`; database health reporting remains deferred.
+
+- Local final full suite: `..\.venv\Scripts\python.exe -m tests.run`, `33 tests`, `OK`, `47.113 s`; the original 21 tests remain unchanged.
+  - Model initialization `3.989 s`, measured startup `4.025 s`; sequential real-model/in-memory uploads `4.299 s / 0.322 s`; readiness precedes first encode by `3.716 s`; singleton assertions pass.
+  - Twelve focused regressions also pass (`5.071 s`); compilation, wiring-only main AST, docstrings/no-inline-comment checks, and all 25 PowerShell manual blocks pass.
+  - Starlette's httpx deprecation and injected embedding/storage failure logs are expected; the oversized-header library warning is explicitly captured in its regression.
+- Docker environment at session start: context `desktop-linux` had no images, containers, volumes, or prior collection; Amendment 04's baseline image and 35 points were unavailable before this agent started services.
+  - No data or Docker resources were deleted by this session; Compose created `server_qdrant_storage`; Qdrant starts healthy with no collections.
+- First fresh Compose build passed apt installation and CPU Torch installation, then failed during requirements download with `Temporary failure in name resolution` for `files.pythonhosted.org`.
+  - Host/container DNS subsequently resolved; retry uses completed layers and the unchanged requirements. No dependency version change is being used as the fix.
+
+- Fresh Docker build retry succeeded with the unchanged `server/Dockerfile` and Compose command; no cache-mount fallback was used.
+  - Initial verified image: `sha256:9806162e73128b55106b867f3995358e5542f2c5fe125ff9ecaf7aeb0ae01db2`.
+  - Fresh Python `3.12.15`; Docling/slim `2.134.0/2.134.0`, core `2.99.0`, parser `7.22.2`, IBM models `4.0.3`, RapidOCR `3.9.2`, RapidOCR ONNX `1.4.4`, CPU Torch `2.14.1+cpu`.
+  - FlagEmbedding `1.4.2`, Transformers `5.18.0`, qdrant-client `1.19.1`; `pip check` reports no broken requirements.
+  - The unpinned requirements naturally installed the current Docling pair; this is environment drift, not a version-based fix. Requirements remain unchanged.
+  - Cache settings: `HF_HOME=/opt/huggingface`, `HF_HUB_OFFLINE=1`, `DOCLING_ARTIFACTS_PATH=/root/.cache/docling/models`.
+- Fresh Docker parsing: all 18 positive fixtures pass source-phrase, index, and token-limit checks; all nine categories and six image extensions are covered.
+  - Both missing sentences still have `section_header` labels; same-container legacy configuration produces one incomplete chunk, fixed configuration produces two complete chunks.
+  - Sparse recovered text `Keep records for seven years.\n`, display text `Keep records for seven years.`, page `2`, count `6`.
+  - Blank-middle recovered text `Third page also has useful text.\n`, display text `Third page also has useful text.`, page `3`, count `7`.
+  - All 16 previously passing format/edge-case outputs are identical to both their same-version legacy output and Amendment 04 Docker baseline.
+  - Coverage warnings occur only for the known XLSX/CSV corner-header gap; blank-middle/textless warnings retain their expected page numbers.
+- Focused regressions in the fresh Docker environment: `12 tests`, `OK`, `3.084 s`; deliberate coverage gaps warn and preserved documents do not.
+- Live complete matrix: `21` HTTP-200 uploads; source preservation and storage both pass `21/21`; collection grows `0 -> 28` points.
+  - Exact filtered count and paginated scroll verify independent UUIDs, sequential indices, all eight payload fields, 1024 finite cosine-vector dimensions, unchanged public responses, and both stored text fields matching the fresh container parse.
+  - Sparse live file `6034603c-e009-42f0-a831-4b1f311e585d`, two points, `5.378 s`; blank-middle `ac499f8e-004e-4aa0-9c4b-7fafc9a8338b`, two points, `2.323 s`; both restored sentences inspected directly.
+  - Initial live model/startup `1.860 s / 2.072 s`; runner observes readiness at `07:41:43 UTC`, before the first upload, wait `0.015 s`.
+  - Sequential uploads have no intervening API model reload; one verification restart preserves `27 -> 27` points, measured readiness `16.020 s`, model/startup `1.963 s / 1.992 s`.
+- Unsupported, empty, and textless uploads return their structured 400 errors with actual point count `26 -> 26`.
+- Controlled Qdrant outage returns `503 / QDRANT_CONNECTION_FAILED` in `4.194 s`, actual count `26 -> 26`; Qdrant restored in `finally`, recovery upload succeeds in `0.191 s`.
+  - These are observed counts, not a transactional rollback guarantee; no existing points or volumes are removed.
+- Final source comparison found formatting-only differences in `chunking.py`; container/workspace ASTs match. A final cached rebuild aligns the deployed bytes before final acceptance.
+- PLAN_01 remains `Built, Unverified` and extraction/chunking remains `Implemented, Unverified` overall because the separately documented table corner-header omission remains; both PDF heading defects are fixed and verified.
+  - PLAN_02 remains `In Progress` for deferred database health reporting; upload, embedding, and vector storage retain verified status.
+- Fixture bytes, full version inventories, build/parse/suite/live evidence, and temporary runners remain under ignored `.venv/amendment05/`; Amendment 04 history and both user-added prompts are preserved.
+
+- Final deployment rebuild succeeds; final server image `sha256:7a0b5f7e463f12e45960cd55b272e6774800e86abffabca9f01db0513cc34464`; all 30 application file SHA-256 values match the final workspace.
+  - Qdrant image `sha256:b7b0444c4c351c970b98e90a6f89c2ee4287c65b44e52b4cb503fa5b2aa927ad`.
+  - Recreate preserves `28 -> 28` points; final model/startup `2.136 s / 2.162 s`; health observed at `07:51:11 UTC` before both final PDF uploads, wait `0.009 s`.
+- Both problem PDFs rechecked on the final image: source preservation and all storage checks pass.
+  - Sparse final file `2d71bdd7-a8ee-42ec-822b-bc6cd20671ff`, two points, `10.207 s`; exact chunk text includes `Keep records for seven years.\n`, page `2`.
+  - Blank-middle final file `f7fe61c9-83b6-420d-8104-fa16193fb389`, two points, `2.671 s`; exact chunk text includes `Third page also has useful text.\n`, page `3`.
+- Final live total: `23/23` successful source/storage checks; `32` retained points, including every point from this session's first 21 uploads.
+  - Collection initialization twice: `32 -> 32`; no deletes, collection recreation, or rollback claims.
+  - All upload IDs, timings, responses, and point checks are recorded in `.venv/amendment05/live.json`; final identity is in `environment.json`.
+- Final service state: server running on `8080`, Qdrant healthy on `6333`; final health response reports `Server Healthy`.
+- Final Git/whitespace checks: branch `phase-01/plan-02`, HEAD `64abf5d83e0d6c83204ae5e76239e05921edf6c0`, index empty, no new commits/branch operations, `.env` ignored with no committed history; compilation and whitespace checks pass.
+
+## Follow-up — Verification acceptance and cosmetic cleanup, 2026-10-06
+
+- User explicitly accepts and defers the known XLSX/CSV corner-header omission; Plan 01 is now `Verified` and extraction/chunking is `Implemented & Verified`.
+  - Coverage warnings remain active; verification accepts the tested implementation with this documented limitation and does not claim lossless extraction.
+  - Status tables contain plain statuses; the limitation appears only in descriptions and documentation.
+  - Earlier dated `Built, Unverified` records remain historical; this follow-up supersedes their current-status decision.
+- PLAN_02 remains `In Progress`; database health reporting remains deferred.
+- Reviewed all 37 backend/application/test Python files; cosmetic changes affect 14 files.
+  - Standardized imports by standard library, third-party, and internal subpackage groups; preserved test bootstrap guards before application imports.
+  - Cleaned spacing, indentation, multiline calls/expressions, and XML fixture literals; added missing function/class docstrings.
+  - Preserved names, signatures, imported bindings, exports, strings, fixture values, configuration, errors, and pipeline implementation.
+- Verification: executable ASTs match the pre-cleanup snapshot after excluding docstrings and top-level import layout; import definitions are identical.
+  - Every function/class has a docstring; no inline comments; import grouping and CRLF checks pass; main.py remains wiring-only.
+  - Full startup-aware suite: `33 tests`, `OK`, `51.760 s`; compilation and whitespace checks pass. No new tests or dependencies added.
+- Existing Docker verification remains historical behavioral evidence; Docker services, images, points, and volumes are not modified in this follow-up.
+  - The running image contains the prior verified source, not this cosmetic workspace cleanup; no new source-hash/deployment claim.
+- Explain-back: status reflects explicit user acceptance; cosmetic maintenance covers existing backend stages without changing implementation. Model availability, OCR quality, and external service failures retain their existing boundaries.
+- Evidence and baseline snapshot: ignored `.venv/cosmetic/`; existing working changes and amendment prompts preserved.
+- Final branch `phase-01/plan-02`, HEAD `64abf5d83e0d6c83204ae5e76239e05921edf6c0`; no staging, commits, or branch operations; `.env` remains ignored and untracked.
+
+## Follow-up — Local bug-fix commit checkpoint, 2026-10-06
+
+- User explicitly authorizes one local commit for Amendment 04–05 verification records, the heading/content-coverage fix, regressions, cosmetic cleanup, and accepted verification statuses.
+  - Earlier no-commit entries remain historical; this authorization applies to the current checkpoint only. No push or branch switch.
+- Commit title: `fix(ingestion): preserve orphan headings and warn on content gaps`.
+- Validation evidence: all 33 local tests pass; compilation, whitespace, executable-AST equivalence for cosmetics, 12 Docker regressions, 18 positive format fixtures, and 23 live source/storage checks pass.
+  - Docker evidence predates cosmetic workspace edits; no rebuild or deployment is claimed by this commit.
+- Include the reviewed implementation, tests, both amendment prompts, and documentation; exclude `.env`, generated fixtures, caches, and ignored verification artifacts.
+- Plan 01 is Verified with the user-accepted, deferred XLSX/CSV corner-header limitation and active coverage warning; Plan 02 remains In Progress for deferred database health reporting.
+- Explain-back: this local checkpoint records the ingestion correctness fix and its verification; it adds no pipeline behavior beyond the already verified changes.

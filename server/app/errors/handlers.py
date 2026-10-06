@@ -2,7 +2,6 @@ from typing import cast
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
-
 from starlette.types import HTTPExceptionHandler
 
 from app.core.logging import logger
@@ -52,8 +51,10 @@ def handle_unexpected_error(request: Request, error: Exception) -> JSONResponse:
 
 
 def cast_handle_unexpected_error():
+    """Adapt the unexpected-error handler to Starlette's handler type."""
     return cast(HTTPExceptionHandler, handle_unexpected_error)
 
 
 def cast_handle_api_error():
+    """Adapt the structured API-error handler to Starlette's handler type."""
     return cast(HTTPExceptionHandler, handle_api_error)

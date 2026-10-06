@@ -1,16 +1,17 @@
-from uuid import uuid4
 from pathlib import Path
 from time import perf_counter
+from uuid import uuid4
+
 from fastapi import APIRouter, File, UploadFile
 from starlette.concurrency import run_in_threadpool
 
 from app.core.logging import logger
 from app.core.runtime import storage
 
-from app.schemas.documents import ResponseChunk, UploadResponse
-
 from app.pipeline.chunking import chunk
 from app.pipeline.extraction import TextExtractionError, extract
+
+from app.schemas.documents import ResponseChunk, UploadResponse
 
 from app.errors.api import ApiError
 
@@ -63,8 +64,10 @@ async def upload(file: UploadFile = File(...)) -> UploadResponse:
     content = await file.read()
 
     if not content:
-        raise ApiError("Uploaded file is empty (0 bytes).",
-                       "INVALID_FILE_SIZE")
+        raise ApiError(
+            "Uploaded file is empty (0 bytes).",
+            "INVALID_FILE_SIZE",
+        )
 
     logger.info("Processing Upload: %s | Extension: %s", filename, extension)
 
@@ -83,8 +86,11 @@ async def upload(file: UploadFile = File(...)) -> UploadResponse:
 
     logger.info("Chunked File: %s | Count: %d", filename, len(chunks))
     await run_in_threadpool(storage().write, chunks)
-    logger.info("Upload complete: file_id=%s seconds=%.3f",
-                file_id, perf_counter() - started)
+    logger.info(
+        "Upload complete: file_id=%s seconds=%.3f",
+        file_id,
+        perf_counter() - started,
+    )
 
     return UploadResponse(
         name=filename,

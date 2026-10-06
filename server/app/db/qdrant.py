@@ -1,17 +1,17 @@
 from typing import Any
 from uuid import uuid4
-from httpx import TransportError
 
+from httpx import TransportError
 from qdrant_client import QdrantClient
 from qdrant_client.http.exceptions import ResponseHandlingException
 from qdrant_client.http.models import Distance, PointStruct, UpdateStatus, VectorParams
 
-from app.core.logging import logger
 from app.core.constants import constants
-
-from app.models.qdrant.chunk import Chunk
+from app.core.logging import logger
 
 from app.pipeline.embeddings.provider import EmbeddingProvider
+
+from app.models.qdrant.chunk import Chunk
 
 from app.errors.qdrant import QdrantCollectionError, QdrantConnectionError
 
@@ -25,7 +25,8 @@ def create_client() -> QdrantClient:
         )
     except Exception as error:
         raise QdrantConnectionError(
-            "Unable to initialize Qdrant client") from error
+            "Unable to initialize Qdrant client"
+        ) from error
 
 
 def store(
@@ -37,7 +38,8 @@ def store(
     """Write matching payloads/vectors and require completed Qdrant storage."""
     if len(payloads) != len(vectors):
         raise QdrantCollectionError(
-            "Qdrant payload and vector counts do not match")
+            "Qdrant payload and vector counts do not match"
+        )
     try:
         points = [
             PointStruct(
@@ -54,15 +56,20 @@ def store(
         )
     except Exception as error:
         logger.exception(
-            "Qdrant chunk storage failed: collection=%s", collection)
-        source = error.source if isinstance(
-            error, ResponseHandlingException) else error
+            "Qdrant chunk storage failed: collection=%s", collection
+        )
+        source = (
+            error.source
+            if isinstance(error, ResponseHandlingException)
+            else error
+        )
         if isinstance(source, (TransportError, ConnectionError, TimeoutError)):
             raise QdrantConnectionError(
                 "Unable to connect to Qdrant while storing chunks"
             ) from error
         raise QdrantCollectionError(
-            "Unable to store chunks in Qdrant") from error
+            "Unable to store chunks in Qdrant"
+        ) from error
     if result.status != UpdateStatus.COMPLETED:
         logger.error(
             "Qdrant write not completed: collection=%s status=%s",
@@ -70,7 +77,8 @@ def store(
             result.status,
         )
         raise QdrantCollectionError(
-            "Qdrant did not confirm completed chunk storage")
+            "Qdrant did not confirm completed chunk storage"
+        )
     return len(points)
 
 
@@ -151,7 +159,8 @@ def _vector_config(vectors: Any) -> tuple[int, Distance]:
     """Read unnamed vector configuration from a Qdrant collection response."""
     if isinstance(vectors, dict):
         raise ValueError(
-            "Named Qdrant vectors are not supported for this collection")
+            "Named Qdrant vectors are not supported for this collection"
+        )
     return vectors.size, vectors.distance
 
 

@@ -8,9 +8,9 @@ from qdrant_client import QdrantClient
 
 from app.core.runtime import storage
 
-from app.main import app
-
 from app.pipeline.embeddings.bge_m3 import get_bge_m3_embedder
+
+from app.main import app
 
 
 def run() -> bool:
@@ -36,9 +36,16 @@ def run() -> bool:
                 for index in range(2):
                     before = client.count(services.collection, exact=True).count
                     entered = perf_counter()
-                    response = http.post("/documents/upload", files={
-                        "file": ("policy.md", b"# Atlas Policy\n\nKeep records for seven years.", "text/markdown"),
-                    })
+                    response = http.post(
+                        "/documents/upload",
+                        files={
+                            "file": (
+                                "policy.md",
+                                b"# Atlas Policy\n\nKeep records for seven years.",
+                                "text/markdown",
+                            ),
+                        },
+                    )
                     elapsed = perf_counter() - entered
                     assert response.status_code == 200, response.text
                     total = response.json()["total"]

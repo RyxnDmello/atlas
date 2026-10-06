@@ -1,10 +1,9 @@
+import os
 from functools import lru_cache
 from io import BytesIO
-import os
 
 from docling.datamodel.base_models import DocumentStream, InputFormat
 from docling.datamodel.pipeline_options import PdfPipelineOptions, RapidOcrOptions
-
 from docling.document_converter import (
     PdfFormatOption,
     DocumentConverter,

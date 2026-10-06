@@ -6,7 +6,6 @@ from pathlib import Path
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
-
 FIXTURE_DIRECTORY = Path(__file__).resolve().parent
 
 
@@ -24,6 +23,7 @@ def make_pdf(pages: list[str | None]) -> bytes:
 
 
 def main() -> None:
+    """Write the reproducible files used by the manual verification guide."""
     long_sentences = [
         f"Policy sentence {index} explains a distinct workplace rule clearly."
         for index in range(240)

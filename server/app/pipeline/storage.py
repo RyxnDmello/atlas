@@ -4,13 +4,15 @@ from uuid import UUID
 
 from qdrant_client import QdrantClient
 
-from app.db.qdrant import store
 from app.core.logging import logger
 
-from app.schemas.pipeline import Chunk
-from app.models.qdrant.chunk import Chunk as Payload
+from app.db.qdrant import store
 
 from app.pipeline.embeddings.provider import EmbeddingProvider
+
+from app.schemas.pipeline import Chunk
+
+from app.models.qdrant.chunk import Chunk as Payload
 
 from app.errors.api import ApiError
 

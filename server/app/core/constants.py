@@ -27,6 +27,7 @@ class Constants:
     """Expose validated settings through the established nested API."""
 
     def __init__(self) -> None:
+        """Load and validate settings before exposing the nested configuration groups."""
         app = AppConstants.model_validate(
             {
                 "PORT": _value("PORT"),
@@ -65,6 +66,7 @@ class Constants:
         self.docling = _Docling(
             docling.DOCLING_MAX_CHUNK_TOKENS,
             docling.DOCLING_MERGE_PEERS,
+            docling.DOCLING_ALWAYS_EMIT_HEADINGS,
         )
         self.embedding = _Embedding(
             embedding.EMBEDDING_MODEL,
@@ -92,6 +94,7 @@ class _App:
     """Expose application settings under the app group."""
 
     def __init__(self, port: int) -> None:
+        """Expose the validated application port."""
         self.PORT = port
 
 
@@ -99,15 +102,18 @@ class _Logger:
     """Expose logging settings under the logger group."""
 
     def __init__(self, level: str) -> None:
+        """Expose the validated logging level."""
         self.LOG_LEVEL = level
 
 
 class _Docling:
     """Expose Docling settings under the docling group."""
 
-    def __init__(self, max_chunk_tokens: int, merge_peers: bool) -> None:
+    def __init__(self, max_chunk_tokens: int, merge_peers: bool, headings: bool) -> None:
+        """Expose the token limit, peer merging, and heading preservation settings."""
         self.DOCLING_MAX_CHUNK_TOKENS = max_chunk_tokens
         self.DOCLING_MERGE_PEERS = merge_peers
+        self.DOCLING_ALWAYS_EMIT_HEADINGS = headings
 
 
 class _Embedding:
@@ -123,6 +129,7 @@ class _Embedding:
         return_colbert_vecs: bool,
         dense_key: EmbeddingDenseKey,
     ) -> None:
+        """Expose the fixed model, dimension, precision, and output settings."""
         self.EMBEDDING_MODEL = model
         self.EMBEDDING_DIMENSION = dimension
         self.EMBEDDING_USE_FP16 = use_fp16
@@ -147,6 +154,7 @@ class _Qdrant:
         client_timeout: int,
         wait: bool,
     ) -> None:
+        """Expose the validated endpoint, collection, health, and write settings."""
         self.QDRANT_URL = url
         self.QDRANT_DISTANCE = distance
         self.QDRANT_HEALTHCHECK_RETRIES = retries

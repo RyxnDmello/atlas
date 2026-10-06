@@ -42,6 +42,7 @@ class DoclingConstants(BaseModel):
 
     DOCLING_MAX_CHUNK_TOKENS: int = Field(ge=1)
     DOCLING_MERGE_PEERS: bool = True
+    DOCLING_ALWAYS_EMIT_HEADINGS: bool = True
 
 
 EmbeddingDenseKey: TypeAlias = Literal["dense_vecs"]

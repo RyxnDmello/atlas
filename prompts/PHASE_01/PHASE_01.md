@@ -27,7 +27,7 @@ project's running source of truth across chat sessions.
 
 | Plan             | Status      | One-line Scope                                        |
 | ---------------- | ----------- | ----------------------------------------------------- |
-| PHASE_01_PLAN_01 | Built, Unverified | Scaffolding, upload, Docling extraction/OCR, chunking |
+| PHASE_01_PLAN_01 | Verified    | Scaffolding, upload, Docling extraction/OCR, chunking |
 | PHASE_01_PLAN_02 | In Progress | Qdrant setup, embedding, storage                      |
 | PHASE_01_PLAN_03 | Not Started | Retrieval (query embed + top-k search)                |
 | PHASE_01_PLAN_04 | Not Started | Generation, streaming, citation                       |
@@ -39,7 +39,13 @@ project's running source of truth across chat sessions.
 
 **Branch:** `phase-01/plan-01`
 
-**Status: Built, Unverified.** Shared upload/chunking code passes local regressions and Docker Markdown/full-PDF checks; broader format/OCR manual re-verification remains pending after a sparse-PDF extraction difference. The _original prompt file_ (`PHASE_01_PLAN_01.md`)
+**Status: Verified.**
+
+- Amendment 05 fixes both orphan-heading PDF omissions; local tests, Docker regressions, format checks, and live storage verification pass.
+- The user explicitly accepts and defers the XLSX/CSV `Policy` corner-header omission; coverage warnings remain active. Verification does not claim lossless extraction.
+- Current evidence and the accepted limitation are recorded in Plan 01 CONTEXT.
+
+The _original prompt file_ (`PHASE_01_PLAN_01.md`)
 was never retrofitted — it stays frozen as a historical record. The
 _code_ was substantially retrofitted since the original build, most
 significantly the full Docling migration below. Every amendment is
@@ -96,12 +102,12 @@ functionality beyond a placeholder.
 
 **Verification approach:** see
 `PLAN_01/PHASE_01_PLAN_01_MANUAL.md`. The original post-Docling-migration
-manual pass is historical; current shared-code checks and the sparse-PDF
-gap are recorded in Plan 02 CONTEXT.
+manual pass is historical; Amendment 04's current cross-plan checks and
+unresolved PDF omissions are recorded in both plans' CONTEXT files.
 
 **Known gaps, not risks requiring action:** OCR quality validated only
-against current fixtures; `.tiff`/`.bmp`/`.webp` accepted but not
-individually fixture-tested; uploads read fully into memory with no
+against current fixtures; all six image extensions passed Amendment 04
+live checks, but the unchanged suite has no dedicated TIFF/BMP/WebP tests; uploads read fully into memory with no
 size limit; corrupt/encrypted files and non-UTF-8 content are not
 specially handled.
 
@@ -114,9 +120,10 @@ specially handled.
 **Status:** In Progress.
 
 - Amendments 01–03 implement embedding, startup initialization, upload storage, and lifecycle cleanup.
-- Local verification and Docker/live Qdrant upload-storage checks pass.
-- Markdown uploads and a headed two-page PDF were checked through Qdrant count/scroll APIs; a stopped Qdrant returns a structured 503.
-- Broader Plan 01 format/OCR manual re-verification and the sparse-PDF extraction gap remain tracked separately.
+- Amendment 04: 21 unchanged local tests and 21 live upload/storage checks pass across all supported formats.
+- Qdrant count/paginated scroll verify vectors, both text fields, UUIDs, and metadata; outage recovery and restart against the existing collection pass.
+- Plan 01's two PDF source-preservation failures remain unresolved; the Docling-only version experiment does not justify a pin.
+- Fresh image build failed with insufficient memory; live checks used the existing image with identical application source.
 - Database health reporting is deferred to a later amendment.
 
 **Depends on:** PLAN_01 verified.

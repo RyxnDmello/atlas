@@ -10,7 +10,7 @@ amendments.
 
 **Branch:** `phase-01/plan-02`
 **Depends on:** PLAN_01, Verified.
-**Status:** In Progress — Amendments 01–03 pass local and Docker upload-storage checks; database health reporting remains deferred. Broader Plan 01 extraction re-verification is pending separately.
+**Status:** In Progress — Amendment 04 re-verifies Amendments 01–03 locally and through all-format Docker uploads; database health reporting remains deferred. Two Plan 01 PDF chunk omissions remain unresolved, and the fresh build failed with insufficient memory.
 
 ---
 
@@ -62,6 +62,7 @@ citation display, or both as separate fields. Whichever amendment
 implements storage must state the choice and reasoning explicitly.
 
 - Amendment 02 resolves this as two fields: contextualized `text` matching the embedding input, and raw `display_text` for future citation display.
+- Amendment 05 preserves orphan headings: when Docling emits a heading-only record with empty raw text, `display_text` contains its original source heading text; oversized orphan headings use bounded recovered body segments. Payload fields stay unchanged.
 
 ### file_id
 
