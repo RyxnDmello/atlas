@@ -2,13 +2,13 @@
 
 ## Start here
 
-- Follow steps 1–5 for a complete check; step 2 is enough for the local development loop.
+- Follow steps 1–6 for a complete check; step 2 is enough for the local development loop.
 - Commands use Windows PowerShell. Paste commands only, not the surrounding Markdown fences.
 - atlas/ means the repository root; server/ is its backend folder.
 - Local tests use temporary, in-memory Qdrant. Docker is not needed and real stored points are untouched.
 - Docker checks use the real server and database; test uploads remain stored afterward.
-- This guide covers Amendments 01–05: embedding, upload storage, startup cleanup, cross-plan verification, and heading preservation.
-- Retrieval, generation, citation UI, authentication, and /system/health/databases are not built here.
+- This guide covers Amendments 01–06: embedding, upload storage, startup cleanup, cross-plan verification, heading preservation, and database diagnostics.
+- Retrieval, generation, citation UI, and authentication remain deferred.
 
 ## A few useful terms
 
@@ -36,7 +36,7 @@ python -m venv .venv
 - In VS Code, select .venv\Scripts\python.exe through “Python: Select Interpreter”.
 - Ensure server/.env exists; use .env.example as a reference without overwriting an existing .env.
 - Never commit .env or paste its contents into reports.
-- Move into the backend folder; stay here for steps 2–5:
+- Move into the backend folder; stay here for steps 2–6:
 
 ```powershell
 Set-Location server
@@ -51,7 +51,7 @@ Set-Location server
 ..\.venv\Scripts\python.exe -m tests.run
 ```
 
-- Expected: “Ran 21 tests” followed by “OK”.
+- Expected: “Ran 43 tests” followed by “OK”; the original 33 tests remain unchanged and ten database-health/metadata tests are added.
 - First run may download model files; later runs reuse cached files.
 - “Real upload” lines report timings and check that the model is ready before embedding.
 - Some tests deliberately trigger failures; error logs are expected if the final result is OK.
@@ -162,7 +162,64 @@ $config.result.config.params.vectors
 
 - Expected: size 1024, distance Cosine.
 
-## Optional — Test an unavailable database
+## 6. Check database health and outage recovery
+
+- Working directory: server/; requires `$fixture`, `$api`, `$qdrant`, and `$collection` from steps 3–4.
+- Inspect the healthy response and record the exact point count:
+
+```powershell
+curl.exe --silent --show-error -i "$api/system/health/databases"
+$uri = "$qdrant/collections/$collection/points/count"
+$before = Invoke-RestMethod -Method Post -Uri $uri -ContentType 'application/json' -Body '{"exact":true}'
+```
+
+- Expected response: HTTP 200 with exactly `{"qdrant":{"version":"1.19.2","status":"Qdrant Healthy","uptime":"Running For 150.85s","started":"2026-10-07, 09:03:28","collection":{"status":"green","name":"atlas-chunks","points":37}}}`; runtime values vary. This schema is deployed and verified.
+- Healthy requests reuse the startup client for two metadata calls, without point scans or writes; `collection.points` may be null and is not an exact count.
+- Repeat the request to see Qdrant uptime increase; `uptime` has two decimal places, `started` is UTC to the second, and version/startup/collection fields match Qdrant's own APIs. No `collections`, `started_at`, or `uptime_seconds` fields remain.
+- Telemetry failure preserves healthy collection access, reports null supplementary fields, and adds `diagnostics_error` with a safe error/message code; logs include a WARNING.
+- The endpoint reports dependency status; it is not a readiness gate or proof that writes will succeed.
+- Stop only Qdrant, check diagnostics and upload behavior, then restore it even if a request fails:
+
+```powershell
+try {
+    docker compose --env-file .env -f docker-compose.yml stop qdrant
+    if ($LASTEXITCODE -ne 0) { throw 'Qdrant stop failed' }
+    curl.exe --silent --show-error -i "$api/system/health/databases"
+    curl.exe --silent --show-error -i -F "file=@$fixture" "$api/documents/upload"
+    curl.exe --silent --show-error -i "$api/system/health"
+} finally {
+    docker compose --env-file .env -f docker-compose.yml start qdrant
+}
+```
+
+- Expected diagnostics: HTTP 200 with `{"qdrant":{"status":"unhealthy","error":"Unable to inspect Qdrant collection","code":"QDRANT_CONNECTION_FAILED"}}`.
+- Expected upload: HTTP 503 with `QDRANT_CONNECTION_FAILED`; process liveness still returns HTTP 200.
+- Wait for Qdrant to be healthy, then inspect recovery without restarting the API:
+
+```powershell
+$deadline = (Get-Date).AddSeconds(60)
+do {
+    $healthy = $false
+    try {
+        $probe = Invoke-WebRequest "$qdrant/healthz" -TimeoutSec 5
+        $healthy = $probe.StatusCode -eq 200
+    } catch {}
+    if (-not $healthy) { Start-Sleep -Seconds 1 }
+} until ($healthy -or (Get-Date) -ge $deadline)
+if (-not $healthy) { throw 'Qdrant did not recover within 60 seconds' }
+curl.exe --silent --show-error -i "$api/system/health/databases"
+$after = Invoke-RestMethod -Method Post -Uri $uri -ContentType 'application/json' -Body '{"exact":true}'
+if ($before.result.count -ne $after.result.count) { throw 'Stored point count changed during outage check' }
+docker compose --env-file .env -f docker-compose.yml logs --tail 100 server
+```
+
+- Expected: diagnostics return HTTP 200/healthy; point count is unchanged during this controlled outage, without a transactional rollback guarantee.
+- Qdrant `started` changes after its restart and uptime resets; the API's process uptime continues because its container was not restarted.
+- Logs contain INFO `status=healthy` and ERROR `status=unhealthy code=QDRANT_CONNECTION_FAILED` with exception context.
+- A missing collection reports HTTP 200/unhealthy with `QDRANT_COLLECTION_ERROR`; do not delete a real collection to test this case.
+- Unavailable runtime reports HTTP 200/unhealthy with `INTERNAL_SERVER_ERROR`; startup itself still requires Qdrant.
+
+## Optional — Repeat the upload outage check
 
 - Only do this in your development stack after successful startup; it interrupts storage temporarily.
 - Working directory: server/; requires $fixture and $api from steps 3–4.
@@ -266,10 +323,12 @@ try {
   - Function ASTs and startup logs match; compile, whitespace, import-grouping, and Compose configuration checks pass.
 - These are machine-specific cached-model/in-memory-Qdrant timings, not live-network measurements or performance targets.
 - Current Docker results are recorded in the dated verification section of CONTEXT; older engine-unavailable entries are historical.
-- Full Plan 02 still needs the later database health amendment.
+- Plan 02 is complete and Verified; database diagnostics are covered in step 6 and the latest CONTEXT amendment.
 - Update MANUAL and CONTEXT under titled amendment sections after future changes; record only checks performed.
 
 ## Current verification — 2026-10-05
+
+- Historical checkpoint: retain recorded results below; current state is in CONTEXT and the latest formatted-health checkpoint.
 
 - Full runner: 21 tests, OK; compile and whitespace checks pass.
 - All 16 PowerShell command blocks in this guide parse successfully.
@@ -290,6 +349,8 @@ try {
 - Commit work was skipped during that verification pass; see the later checkpoint below.
 
 ## Local commit checkpoint — 2026-10-05
+
+- Historical checkpoint: retain recorded results below; current state is in CONTEXT and the latest formatted-health checkpoint.
 
 - Local commit is now authorized for Amendments 01–03; no push or branch change.
 - Fresh pre-commit runner: 21 tests, OK, 14.682 s; compilation and whitespace checks pass.
@@ -313,6 +374,8 @@ git rev-list --all -- server\.env
 - No commits, branch switches, merges, or branch deletions are part of this amendment.
 
 ## Amendment 04 — Cross-plan checks, 2026-10-06
+
+- Historical checkpoint: retain recorded results below; current state is in CONTEXT and the latest formatted-health checkpoint.
 
 - Working directory for every command below: `server/`; stay on `phase-01/plan-02`.
 - Keep existing data and volumes; each successful upload adds points independently.
@@ -435,6 +498,8 @@ docker compose --env-file .env -f docker-compose.yml exec -T server python -m pi
 
 ## Amendment 05 — Cross-plan heading check, 2026-10-06
 
+- Historical checkpoint: retain recorded results below; current state is in CONTEXT and the latest formatted-health checkpoint.
+
 - Follow Plan 01 MANUAL's Amendment 05 checks for sparse/blank-middle PDF content and coverage diagnostics.
 - Rebuild before checking stored points; previously stored incomplete PDF uploads retain their historical payloads.
 - Upload each fixture again; require a new file ID, exact count matching response total, and both text fields matching a fresh container parse.
@@ -444,12 +509,60 @@ docker compose --env-file .env -f docker-compose.yml exec -T server python -m pi
 
 - Amendment 05 result: 33 local tests, 12 Docker regressions, all 18 positive format fixtures, and all 23 live source/storage checks pass.
   - Fresh final image matches all 30 application files; server/Qdrant remain running with 32 retained points.
-  - Both PDF omissions are fixed; Plan 01 is Verified with the user-accepted, deferred table corner-header limitation and its active warning; Plan 02 remains In Progress for deferred database health reporting.
+- Both PDF omissions are fixed; Plan 01 is Verified with the user-accepted, deferred table corner-header limitation and its active warning; Plan 02 remains In Progress for deferred database health reporting.
+
+## Amendment 06 — Current verification checkpoint, 2026-10-07
+
+- Historical checkpoint: retain recorded results below; current state is in CONTEXT and the latest formatted-health checkpoint.
+
+- Plan 02 is now `Verified`; earlier deferred-health and In Progress entries remain historical.
+- Full local suite: `37 tests`, `OK`; original 33 tests and runner unchanged, four new database-health tests added.
+- Four focused database-health tests also pass inside the final Docker container.
+- Final image matches all 30 application source hashes, including cosmetic cleanup; Compose build/start succeeds.
+- Live healthy, stopped-Qdrant, and recovery checks pass with the exact bodies in step 6; uploads retain 503/QDRANT_CONNECTION_FAILED while Qdrant is down.
+- Recovery needs no API restart; all 32 original point IDs/payloads remain. Four verification uploads across both live passes bring the retained count to 36.
+- Step 6 is a reporting check, not write/readiness validation; startup still requires reachable Qdrant.
+- Current timings, image identity, source-hash alignment, and verification evidence are recorded in Plan 02 CONTEXT and ignored `.venv/amendment06/`.
+
+## Basic metadata follow-up — Current workspace checkpoint, 2026-10-07
+
+- Historical checkpoint: retain recorded results below; current state is in CONTEXT and the latest formatted-health checkpoint.
+
+- Plan 02 is `Built, Unverified`; expanded-endpoint deployment/manual verification remains pending and the earlier Verified checkpoint remains historical.
+- Full local suite: `41 tests`, `OK`; read-only workspace-route checks against existing Qdrant report version `1.19.2`, one collection, native `green`, 36 approximate points, and increasing uptime.
+- Container identities/start timestamps/restart counts remain unchanged; exact verification count stays `36 -> 36`.
+- No Docker builds, restarts, stops, uploads, or data changes; do not claim the expanded body is available at the running API's port yet.
+- Metadata-only reads serve storage diagnostics; RAM/disk reporting remains deferred. Evidence is in CONTEXT and ignored `.venv/health-metadata/`.
+
+## Metadata deployment — Current verification checkpoint, 2026-10-07
+
+- Historical checkpoint: retain recorded results below; current state is in CONTEXT and the latest formatted-health checkpoint.
+
+- Plan 02 is `Verified`; the preceding workspace-only/Built, Unverified checkpoint remains historical.
+- Cached Compose build replaces only the API container; all 31 application source hashes match the deployed image.
+- Retained local evidence: full 41 tests and final eight focused tests pass; eight focused diagnostics tests also pass inside the deployed image.
+- Live metadata matches Qdrant's own APIs; repeated calls increase uptime without changing points.
+- Stopped-Qdrant diagnostics return HTTP 200/unhealthy, upload errors retain 503/QDRANT_CONNECTION_FAILED, and recovery works without an API restart.
+- Qdrant startup/uptime correctly reset on its restart; all 36 pre-deployment IDs/payloads remain. One successful recovery upload brings the retained count to 37.
+- Final service state: API running on 8080, Qdrant healthy on 6333; current metadata is deployed and available through step 6.
+- Image identity, timings, comparisons, and data-preservation evidence are recorded in CONTEXT and ignored `.venv/health-metadata-deploy/`.
 
 ## Accepted limitation and cosmetic cleanup, 2026-10-06
+
+- Historical checkpoint: retain recorded results below; current state is in CONTEXT and the latest formatted-health checkpoint.
 
 - Current Plan 01 status: Verified; extraction/chunking: Implemented & Verified.
 - The user explicitly accepts and defers the known XLSX/CSV corner-header omission; retain coverage warnings and do not claim lossless extraction.
 - Earlier dated unverified results remain historical records.
 - Formatting cleanup changes import grouping, spacing, line wrapping, and function/class docstrings; implementation, public interfaces, and fixture contents are preserved.
 - Recheck locally with `..\.venv\Scripts\python.exe -m tests.run` from `server/`; no Docker rebuild is required for this cosmetic follow-up.
+
+## Formatted-health deployment checkpoint, 2026-10-07
+
+- Plan 02 is Verified; earlier schema/deployment checkpoints remain historical.
+- Step 6 now checks the exact requested successful fields/order, `Qdrant Healthy`, two-decimal uptime, and UTC startup to the second; no collection-total field remains.
+- Full local suite: 43 tests pass; focused deployed-image suite: ten tests pass; Pyright: zero errors/warnings in all four touched application modules; all 31 deployed source hashes match.
+- Live metadata comparisons, repeated uptime, HTTP-200 unhealthy diagnostics, upload HTTP-503 failure, liveness, and recovery without API restart pass.
+- All 37 pre-deployment point IDs/payloads remain unchanged through deployment/outage/recovery; no successful verification upload is added.
+- API runs on 8080; Qdrant runs healthy on 6333. Timings/image identity/evidence are recorded in CONTEXT and ignored `.venv/health-format-deploy/`.
+- Storage-diagnostic presentation changes retain explicit partial telemetry errors and existing upload/storage behavior; no branch changes, staging, or commits.

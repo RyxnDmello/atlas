@@ -1,15 +1,19 @@
+from datetime import datetime, timezone
+from time import time
 from typing import Any
 from uuid import uuid4
 
 from httpx import TransportError
 from qdrant_client import QdrantClient
-from qdrant_client.http.exceptions import ResponseHandlingException
+from qdrant_client.http.exceptions import ResponseHandlingException, UnexpectedResponse
 from qdrant_client.http.models import Distance, PointStruct, UpdateStatus, VectorParams
 
 from app.core.constants import constants
 from app.core.logging import logger
 
 from app.pipeline.embeddings.provider import EmbeddingProvider
+
+from app.schemas.system import CollectionHealth
 
 from app.models.qdrant.chunk import Chunk
 
@@ -27,6 +31,42 @@ def create_client() -> QdrantClient:
         raise QdrantConnectionError(
             "Unable to initialize Qdrant client"
         ) from error
+
+
+def check(client: QdrantClient, collection: str) -> CollectionHealth:
+    """Return collection metadata through an existing client without changing data."""
+    try:
+        info = client.get_collection(collection)
+        return CollectionHealth(
+            name=collection, status=info.status.value, points=info.points_count
+        )
+    except Exception as error:
+        if isinstance(error, UnexpectedResponse) and error.status_code == 404:
+            raise QdrantCollectionError(
+                "Qdrant collection is unavailable") from error
+        raise QdrantConnectionError(
+            "Unable to inspect Qdrant collection"
+        ) from error
+
+
+def details(client: QdrantClient) -> tuple[str, datetime, float]:
+    """Return validated version, UTC startup, and uptime through the existing transport."""
+    try:
+        info = client.http.service_api.telemetry(details_level=0).result
+        if info is None or info.app is None:
+            raise ValueError(
+                "Required Qdrant telemetry metadata is unavailable")
+        app = info.app
+        started = app.startup
+        if not app.version or not isinstance(started, datetime) or started.tzinfo is None:
+            raise ValueError(
+                "Required Qdrant telemetry metadata is unavailable")
+        started = started.astimezone(timezone.utc)
+        uptime = max(0.0, time() - started.timestamp())
+        return app.version, started, uptime
+    except Exception as error:
+        raise QdrantConnectionError(
+            "Unable to read Qdrant telemetry") from error
 
 
 def store(

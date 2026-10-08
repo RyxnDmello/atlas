@@ -46,7 +46,7 @@
    python -m tests.run
    ```
 
-   - Expected result on `phase-01/plan-02`: `Ran 21 tests` and `OK`.
+   - Expected result on `phase-01/plan-02`: `Ran 43 tests` and `OK`.
    - This runner prepares real-model startup and temporary in-memory Qdrant before the unchanged upload tests.
    - Bare discovery does not prepare the services that direct upload calls now require.
    - Use this loop while changing or diagnosing fixtures.
@@ -63,7 +63,7 @@ docker compose --env-file .env -f docker-compose.yml up --build
 - Expected services: `server` and `qdrant`.
 - A build failure, container exit, or repeated health-check failure is a failure.
 
-Check service state:
+- Check service state:
 
 ```bash
 docker compose --env-file .env -f docker-compose.yml ps
@@ -207,7 +207,7 @@ git rev-list --all -- .env
 - `git check-ignore` identifies the ignore rule.
 - `git rev-list` prints no commit IDs.
 
-Check Compose configuration:
+- Check Compose configuration:
 
 ```bash
 docker compose --env-file .env -f docker-compose.yml config --services
@@ -227,6 +227,8 @@ docker compose --env-file .env -f docker-compose.yml config --services
 - VLM document models are intentionally excluded from the Docker model download.
 
 ## Amendment 04 — Cross-plan checks, 2026-10-06
+
+- Historical checkpoint: retain recorded results below; current state is in Plan 01 CONTEXT; current database diagnostics are covered in Plan 02 MANUAL step 6.
 
 - Working directory for every command below: `server/`; stay on `phase-01/plan-02`.
 - Keep existing data and volumes; each successful upload adds points independently.
@@ -349,6 +351,8 @@ docker compose --env-file .env -f docker-compose.yml exec -T server python -m pi
 
 ## Amendment 05 — Heading preservation and coverage warnings, 2026-10-06
 
+- Historical checkpoint: retain recorded results below; current state is in Plan 01 CONTEXT; current database diagnostics are covered in Plan 02 MANUAL step 6.
+
 - Run from `server/`: `..\.venv\Scripts\python.exe -m tests.run`.
   - Existing upload/embedding/storage tests and new heading/coverage regressions must all pass.
   - Focused diagnosis: `..\.venv\Scripts\python.exe -m unittest tests.test_chunking -v`.
@@ -371,6 +375,8 @@ docker compose --env-file .env -f docker-compose.yml exec -T server python -m pi
   - Both PDF omissions are fixed; Plan 01 is Verified with the user-accepted, deferred table corner-header limitation and its active warning; Plan 02 remains In Progress for deferred database health reporting.
 
 ## Accepted limitation and cosmetic cleanup, 2026-10-06
+
+- Historical checkpoint: retain recorded results below; current state is in Plan 01 CONTEXT; current database diagnostics are covered in Plan 02 MANUAL step 6.
 
 - Current Plan 01 status: Verified; extraction/chunking: Implemented & Verified.
 - The user explicitly accepts and defers the known XLSX/CSV corner-header omission; retain coverage warnings and do not claim lossless extraction.

@@ -44,7 +44,7 @@ class ApiError(HTTPException):
             message: A useful explanation safe to return to the client.
             code: The stable code used by clients and mapped to an HTTP status.
         """
-        self.code = code
+        self.code: ErrorCode = code
         self.message = message
         self.status = STATUS_BY_CODE[code]
         super().__init__(status_code=self.status, detail=message)

@@ -1,12 +1,129 @@
 # PHASE_01_PLAN_01 — Context
 
-## Scope
+## Current state
+
+- Status: Verified; upload, extraction, OCR, and chunking are built; Plan 02 adds embedding/storage to the shared upload flow.
+- Original scope stops before embeddings, Qdrant storage, retrieval, generation, citations, authentication, and frontend work.
+- Original branch: `phase-01/plan-01`; shared-code verification and this restructure use `phase-01/plan-02`.
+- `POST /documents/upload` accepts PDF, DOCX, PPTX, XLSX, Markdown, TXT, HTML, CSV, PNG/JPG/JPEG/TIFF/BMP/WebP.
+- Docling `DocumentConverter` uses the standard pipeline with RapidOCR/ONNX, no VLM; empty pages warn, wholly textless uploads fail.
+- `HybridChunker` uses `BAAI/bge-m3` tokenization, configurable `DOCLING_MAX_CHUNK_TOKENS` (default 500), `merge_peers=True`, and fixed `always_emit_headings=True`.
+- Source-reference recovery preserves isolated headings in `display_text`; oversized orphan headings become bounded recovered body segments before contextualization.
+- Canonical `text` is contextualized embedding input; metadata includes optional `page`, top-level `heading`, and nearest `section`.
+- Public response: `name`, `type`, `total`, and `chunks` with `text`, `index`, `count`, `page`, `heading`, `section`.
+- Unsupported, empty, and extraction/textless failures retain structured HTTP 400 responses; process liveness is `GET /system/health`.
+- Independent lexical coverage warns about source-word/number omissions without counting repeated heading context; it does not reject uploads or prove OCR/semantic accuracy.
+- Accepted limitation: XLSX/CSV serialization can omit the `Policy` corner header; user accepts deferral, table output remains unchanged, warnings remain active.
+- All six image extensions have live verification evidence; dedicated TIFF/BMP/WebP local tests remain absent.
+- Uploads read fully into memory without a size cap; corrupt/encrypted files and non-UTF-8 input lack special handling.
+- No retrieval, generation, citation display, auth, folders, user metadata, or client UI is built.
+- Restructured in Plan 02 Amendment 07; historical states and verification failures below remain evidence.
+
+## Verification log
+
+| Amendment                           | Date         | Local tests        | Docker/live                                                 | Result                                                            |
+| ----------------------------------- | ------------ | ------------------ | ----------------------------------------------------------- | ----------------------------------------------------------------- |
+| Plan 01 initial sessions / 10 audit | Not recorded | Initial 6; later 5 | Historical Docker/manual checks                             | Scaffolding and Docling migration recorded                        |
+| Plan 02 04                          | 2026-10-06   | 21                 | 21 storage checks; 19 source checks pass; fresh build fails | Two heading omissions found                                       |
+| Plan 02 05                          | 2026-10-06   | 33; focused 12     | 12 regressions; 23 source/storage checks; fresh build       | PDF defects fixed; table gap accepted; cosmetics verified locally |
+| Plan 02 07                          | 2026-10-08   | Not run: docs only | Not run: docs only                                          | Documentation restructure; status unchanged                       |
+
+## Amendment 10 — Session-history audit (Plan 01)
+
+**Scope**
+
+- Consolidated original Plan 01 sessions and the session-history audit; individual earlier prompts remain frozen.
+
+**Decisions**
+
+- Historical audit: wording such as "current" below describes the original Plan 01 checkpoint; later amendments supersede it.
+
+### Scope
 
 - Phase 1 Plan 01 implements upload, extraction, OCR, and chunking only.
 - The pipeline stops before embeddings, Qdrant storage, retrieval, generation, citations, authentication, and frontend work.
 - Plan 01's original branch is `phase-01/plan-01`; current shared-code verification runs on `phase-01/plan-02` with embedding/storage active.
 
-## Session history
+### Current application behavior
+
+- `POST /documents/upload` accepts one multipart file.
+- Accepted extensions:
+  - `.pdf`, `.docx`, `.pptx`, `.xlsx`.
+  - `.md`, `.txt`, `.html`, `.csv`.
+  - `.png`, `.jpg`, `.jpeg`, `.tiff`, `.bmp`, `.webp`.
+- Unsupported extensions are rejected with HTTP `400` and `INVALID_FILE_TYPE`.
+- Empty uploads are rejected with HTTP `400` and `INVALID_FILE_SIZE`.
+- Extraction failures return HTTP `400` and `FILE_UPLOAD_FAILED`.
+- Successful responses contain:
+  - `name`.
+  - `type`.
+  - `total`.
+  - `chunks` with `text`, `index`, `count`, and optional `page`, `heading`, and `section`.
+- `GET /system/health` returns `version`, `status`, and process `uptime`.
+
+### Extraction and chunking
+
+- All accepted formats use Docling's `DocumentConverter` and `DocumentStream` path.
+- The standard Docling pipeline remains enabled for layout, reading order, and tables.
+- OCR is enabled with RapidOCR using the ONNX Runtime backend.
+- The VLM pipeline is intentionally disabled; SmolDocling and GraniteDocling are not used.
+- Pages that remain empty after OCR produce a warning containing the filename and page number.
+- A file with no chunks after conversion returns a structured upload failure.
+- `HybridChunker` uses Docling's public canonical import paths.
+- The chunk tokenizer is `BAAI/bge-m3` through Hugging Face Transformers.
+- `DOCLING_MAX_CHUNK_TOKENS` is environment-configurable and defaults to `500` in the project environment and Compose fallback.
+- `merge_peers=True` is enabled.
+- Chunk text is the contextualized Docling text, not the raw chunk text.
+- Chunk metadata is derived from Docling provenance and heading metadata.
+- `heading` maps to the top-level heading in the Docling heading path.
+- `section` maps to the nearest or last heading in that path.
+- Chunking is structure-aware; fixed sliding-window overlap and sentence-boundary snapping are no longer part of the implementation.
+
+### Configuration and errors
+
+- `server/app/core/constants.py` loads `server/.env` with `python-dotenv`.
+- `server/app/schemas/constants.py` validates settings with Pydantic models.
+- Settings groups expose:
+  - `constants.app.PORT`.
+  - `constants.logger.LOG_LEVEL`.
+  - `constants.docling.DOCLING_MAX_CHUNK_TOKENS`.
+  - `constants.qdrant.*` health and URL values.
+- The earlier `pydantic-settings` direction was superseded; loading and validation remain separate concerns.
+- `ApiError` provides stable error codes, HTTP status mapping, and `{"error": ..., "code": ...}` responses.
+- Known API errors and unexpected exceptions have separate handlers.
+- Unexpected exceptions are logged with tracebacks and return a generic structured HTTP `500` response.
+
+### Docker and model scope
+
+- The server image installs CPU-oriented PyTorch packages before the Docling requirements.
+- The first Docling image build attempted to resolve CUDA-enabled PyTorch packages; the Docker installation was constrained to CPU-oriented packages.
+- The Docker model-download step requests layout, TableFormer, and ONNX RapidOCR assets only.
+- The BGE-M3 tokenizer is preloaded separately.
+- VLM-tier model downloads are excluded.
+- Docker Compose runs `server` and `qdrant`; the application does not contact Qdrant in Plan 01.
+- The image sets offline model use after build-time downloads.
+- Docker verification history recorded healthy Qdrant startup, server health responses, upload checks, and the complete test suite.
+
+### Superseded decisions
+
+- Initial extraction:
+  - Used `pdfplumber` for PDFs and direct Markdown reads.
+  - Replaced by unified Docling extraction.
+- Initial chunking:
+  - Used `tiktoken`, fixed 500-token windows, 50-token overlap, and sentence heuristics.
+  - Replaced by Docling `HybridChunker` with contextualized structure-aware chunks.
+- Initial fixtures:
+  - Used minimal or hand-authored bytes.
+  - Replaced by real authoring-library output because Docling requires valid document structures.
+- Initial configuration direction:
+  - Earlier settings-loading experiments were superseded by `python-dotenv` loading and Pydantic validation.
+- Initial application title/configuration:
+  - `APP_NAME` was briefly environment-backed.
+  - It was removed because the service uses a fixed application title.
+
+**Verification**
+
+### Session history
 
 - `01a0b98e-e329-7b12-8f89-f871f8492e44`:
   - Created the initial upload, extraction, chunking, configuration, Docker, and test scaffolding.
@@ -27,56 +144,7 @@
   - Added the local virtual-environment test workflow as the primary fixture-debugging loop.
   - Updated the manual and amended the existing local commit instead of creating another commit.
 
-## Current application behavior
-
-- `POST /documents/upload` accepts one multipart file.
-- Accepted extensions:
-  - `.pdf`, `.docx`, `.pptx`, `.xlsx`.
-  - `.md`, `.txt`, `.html`, `.csv`.
-  - `.png`, `.jpg`, `.jpeg`, `.tiff`, `.bmp`, `.webp`.
-- Unsupported extensions are rejected with HTTP `400` and `INVALID_FILE_TYPE`.
-- Empty uploads are rejected with HTTP `400` and `INVALID_FILE_SIZE`.
-- Extraction failures return HTTP `400` and `FILE_UPLOAD_FAILED`.
-- Successful responses contain:
-  - `name`.
-  - `type`.
-  - `total`.
-  - `chunks` with `text`, `index`, `count`, and optional `page`, `heading`, and `section`.
-- `GET /system/health` returns `version`, `status`, and process `uptime`.
-
-## Extraction and chunking
-
-- All accepted formats use Docling's `DocumentConverter` and `DocumentStream` path.
-- The standard Docling pipeline remains enabled for layout, reading order, and tables.
-- OCR is enabled with RapidOCR using the ONNX Runtime backend.
-- The VLM pipeline is intentionally disabled; SmolDocling and GraniteDocling are not used.
-- Pages that remain empty after OCR produce a warning containing the filename and page number.
-- A file with no chunks after conversion returns a structured upload failure.
-- `HybridChunker` uses Docling's public canonical import paths.
-- The chunk tokenizer is `BAAI/bge-m3` through Hugging Face Transformers.
-- `DOCLING_MAX_CHUNK_TOKENS` is environment-configurable and defaults to `500` in the project environment and Compose fallback.
-- `merge_peers=True` is enabled.
-- Chunk text is the contextualized Docling text, not the raw chunk text.
-- Chunk metadata is derived from Docling provenance and heading metadata.
-- `heading` maps to the top-level heading in the Docling heading path.
-- `section` maps to the nearest or last heading in that path.
-- Chunking is structure-aware; fixed sliding-window overlap and sentence-boundary snapping are no longer part of the implementation.
-
-## Configuration and errors
-
-- `server/app/core/constants.py` loads `server/.env` with `python-dotenv`.
-- `server/app/schemas/constants.py` validates settings with Pydantic models.
-- Settings groups expose:
-  - `constants.app.PORT`.
-  - `constants.logger.LOG_LEVEL`.
-  - `constants.docling.DOCLING_MAX_CHUNK_TOKENS`.
-  - `constants.qdrant.*` health and URL values.
-- The earlier `pydantic-settings` direction was superseded; loading and validation remain separate concerns.
-- `ApiError` provides stable error codes, HTTP status mapping, and `{"error": ..., "code": ...}` responses.
-- Known API errors and unexpected exceptions have separate handlers.
-- Unexpected exceptions are logged with tracebacks and return a generic structured HTTP `500` response.
-
-## Fixtures and tests
+### Fixtures and tests
 
 - Tests use standard-library `unittest`.
 - Test-authoring dependencies are isolated in `server/tests/requirements.txt`.
@@ -87,35 +155,17 @@
 - TIFF, BMP, and WEBP are accepted by the router but are not individually covered by the current test suite.
 - The current suite contains five test methods covering successful formats, blank-page warnings, unsupported files, empty files, and short documents.
 
-## Docker and model scope
+### Verification record
 
-- The server image installs CPU-oriented PyTorch packages before the Docling requirements.
-- The first Docling image build attempted to resolve CUDA-enabled PyTorch packages; the Docker installation was constrained to CPU-oriented packages.
-- The Docker model-download step requests layout, TableFormer, and ONNX RapidOCR assets only.
-- The BGE-M3 tokenizer is preloaded separately.
-- VLM-tier model downloads are excluded.
-- Docker Compose runs `server` and `qdrant`; the application does not contact Qdrant in Plan 01.
-- The image sets offline model use after build-time downloads.
-- Docker verification history recorded healthy Qdrant startup, server health responses, upload checks, and the complete test suite.
+- Local virtual-environment suite: five tests passed with `OK`.
+- Compose configuration resolved `server` and `qdrant`, port `8080`, and the `500` chunk-token fallback.
+- Docker verification remained the final authority for the built image, prewarmed models, containers, and live endpoints after the local fixture workflow was introduced.
+- Whitespace validation passed.
+- The current branch and commit history were inspected before documentation work.
 
-## Superseded decisions
+**Limits**
 
-- Initial extraction:
-  - Used `pdfplumber` for PDFs and direct Markdown reads.
-  - Replaced by unified Docling extraction.
-- Initial chunking:
-  - Used `tiktoken`, fixed 500-token windows, 50-token overlap, and sentence heuristics.
-  - Replaced by Docling `HybridChunker` with contextualized structure-aware chunks.
-- Initial fixtures:
-  - Used minimal or hand-authored bytes.
-  - Replaced by real authoring-library output because Docling requires valid document structures.
-- Initial configuration direction:
-  - Earlier settings-loading experiments were superseded by `python-dotenv` loading and Pydantic validation.
-- Initial application title/configuration:
-  - `APP_NAME` was briefly environment-backed.
-  - It was removed because the service uses a fixed application title.
-
-## Known limitations and gaps
+### Known limitations and gaps
 
 - Uploads are fully read into memory and have no configured size limit or background processing.
 - Corrupt or encrypted files and invalid UTF-8 content return extraction errors; repair, password handling, and encoding detection are not implemented.
@@ -125,15 +175,17 @@
 - The three requested rollout sessions were located and read in UUIDv7 order.
 - No unexplained current-code gap was found for the implementation areas covered by those sessions; the initial session includes the earlier DocuMind-to-Atlas project transition.
 
-## Verification record
-
-- Local virtual-environment suite: five tests passed with `OK`.
-- Compose configuration resolved `server` and `qdrant`, port `8080`, and the `500` chunk-token fallback.
-- Docker verification remained the final authority for the built image, prewarmed models, containers, and live endpoints after the local fixture workflow was introduced.
-- Whitespace validation passed.
-- The current branch and commit history were inspected before documentation work.
-
 ## Amendment 04 — Independent cross-plan verification, 2026-10-06
+
+**Scope**
+
+- Origin: Plan 02 Amendment 04; numbers below are cross-plan identifiers, not renumbered Plan 01 amendments.
+
+**Decisions**
+
+- Failure boundaries and accepted limitations are retained in the recorded bullets; no lossless-extraction claim.
+
+**Verification**
 
 - Scope: upload -> extraction/OCR -> chunking -> dense embedding -> Qdrant storage; all nine format categories and all six image extensions exercised.
 - Commands run from `server/`:
@@ -230,7 +282,31 @@
 - `ocr.bmp`: local source PASS; Docker source PASS; 1 point(s), HTTP `1.778 s`; storage PASS.
 - `ocr.webp`: local source PASS; Docker source PASS; 1 point(s), HTTP `1.758 s`; storage PASS.
 
+**Limits**
+
+- Failure boundaries and accepted limitations are retained in the recorded bullets; no lossless-extraction claim.
+
 ## Amendment 05 — Heading preservation, 2026-10-06
+
+**Scope**
+
+- Origin: Plan 02 Amendment 05; source preservation, coverage warnings, explicit acceptance, and cosmetic follow-up.
+
+**Decisions**
+
+Legend: source-reference recovery runs before contextualization; coverage checks the resulting chunks before the shared upload response.
+
+```mermaid
+flowchart LR
+    File["File"] --> Convert["Docling converter and OCR"]
+    Convert --> Hybrid["HybridChunker"]
+    Hybrid --> Recover["Orphan-heading recovery"]
+    Recover --> Context["Contextualize"]
+    Context --> Chunk["Chunk: page, heading, section"]
+    Chunk --> Coverage["Independent coverage check"]
+    Coverage --> Store["Plan 02 embedding and storage"]
+    Store --> Response["Upload response"]
+```
 
 - Root cause: both missing sentences are `SectionHeaderItem` objects labelled `section_header` in Amendment 04's saved Docker extraction results.
   - Sparse PDF: `Keep records for seven years.` on page 2; blank-middle PDF: `Third page also has useful text.` on page 3.
@@ -256,6 +332,8 @@
 - No Docling version change attempted as a fix; Amendment 04's controlled downgrade remains ruled out. Requirements and headers are unchanged.
 - Explain-back: this serves extraction/chunking; supported heading emission is the smallest structural fix, source-reference recovery handles its token-budget edge case, and the independent lexical audit makes remaining gaps visible.
   - OCR can still misread text; textless input and model/storage failures retain existing explicit behavior. Historical stored uploads are not rewritten.
+
+**Verification**
 
 - Local final full suite: `..\.venv\Scripts\python.exe -m tests.run`, `33 tests`, `OK`, `47.113 s`; the original 21 tests remain unchanged.
   - Model initialization `3.989 s`, measured startup `4.025 s`; sequential real-model/in-memory uploads `4.299 s / 0.322 s`; readiness precedes first encode by `3.716 s`; singleton assertions pass.
@@ -304,7 +382,7 @@
 - Final service state: server running on `8080`, Qdrant healthy on `6333`; final health response reports `Server Healthy`.
 - Final Git/whitespace checks: branch `phase-01/plan-02`, HEAD `64abf5d83e0d6c83204ae5e76239e05921edf6c0`, index empty, no new commits/branch operations, `.env` ignored with no committed history; compilation and whitespace checks pass.
 
-## Follow-up — Verification acceptance and cosmetic cleanup, 2026-10-06
+### Follow-up — Verification acceptance and cosmetic cleanup, 2026-10-06
 
 - User explicitly accepts and defers the known XLSX/CSV corner-header omission; Plan 01 is now `Verified` and extraction/chunking is `Implemented & Verified`.
   - Coverage warnings remain active; verification accepts the tested implementation with this documented limitation and does not claim lossless extraction.
@@ -323,3 +401,13 @@
 - Explain-back: status reflects explicit user acceptance; cosmetic maintenance covers existing backend stages without changing implementation. Model availability, OCR quality, and external service failures retain their existing boundaries.
 - Evidence and baseline snapshot: ignored `.venv/cosmetic/`; existing working changes and amendment prompts preserved.
 - Final branch `phase-01/plan-02`, HEAD `64abf5d83e0d6c83204ae5e76239e05921edf6c0`; no staging, commits, or branch operations; `.env` remains ignored and untracked.
+
+**Limits**
+
+- The user-accepted XLSX/CSV corner-header omission remains deferred; coverage warns without rejecting uploads, and OCR accuracy is not guaranteed.
+
+## Maintenance rule
+
+- Read Current state and the latest amendment by default; inspect older history only when needed.
+- Record each future amendment under Scope, Decisions, Verification, and Limits; preserve historical evidence and put results in the verification log.
+- Extend MANUAL when verification paths change; keep CONTEXT and MANUAL factual and bullet-oriented.

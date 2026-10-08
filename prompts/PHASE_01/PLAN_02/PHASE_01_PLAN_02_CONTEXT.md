@@ -1,14 +1,42 @@
 # PHASE_01_PLAN_02 — Context
 
-## Plan scope and current status
+## Current state
 
-- Plan 02 adds embedding and Qdrant storage to the Phase 1 RAG pipeline.
-- Plan 02 is In Progress: Amendments 01–03 implement embedding, startup preparation, upload-to-Qdrant storage, and lifecycle cleanup.
-- Amendment 04's all-format Docker upload/storage checks pass; the later database health amendment remains required.
-- All formats/OCR were independently checked; two PDF chunk omissions remain unresolved, and the fresh image build failed with insufficient memory.
-- Amendment 01's isolated foundation remains reused; retrieval and later stages stay out of scope.
+- Status: Verified; embedding, storage, startup lifecycle, and Qdrant diagnostics are built and deployed.
+- Depends on Plan 01, also Verified with the user-accepted XLSX/CSV `Policy` corner-header omission; lexical coverage warnings stay active.
+- Dense `BAAI/bge-m3` uses FlagEmbedding's `BGEM3FlagModel`, dimension 1024, cosine distance, and one cached startup-loaded provider.
+- Every upload gets an independent internal UUID `file_id`; points store `file_id`, `chunk_index`, `token_count`, `page`, `heading`, `section`, `text`, `display_text`.
+- Contextualized `text` is embedding input; raw `display_text` preserves citation-friendly source text, including recovered orphan headings.
+- Payloads live in `app/models/qdrant/chunk.py`; pipeline DTOs keep raw Docling text internally; upload response fields remain unchanged.
+- Lifespan loads the cached embedder, creates one Qdrant client, ensures the collection, activates storage before requests, and closes the client on shutdown/failure.
+- `/system/health/databases` (`GET /system/health/databases`) reuses that client for lightweight collection/telemetry reads; it always returns HTTP 200 with actual dependency status.
+- Healthy body: `{"qdrant":{"version":"1.19.2","status":"Qdrant Healthy","uptime":"Running For 150.85s","started":"2026-10-07, 09:03:28","collection":{"status":"green","name":"atlas-chunks","points":37}}}`; values are runtime-dependent, startup time is UTC.
+- Collection failure reports `status="unhealthy"` with safe error/code; telemetry-only failure retains healthy collection data with null metadata and `diagnostics_error`.
+- Upload storage failures retain `503/QDRANT_CONNECTION_FAILED`; collection/write errors and embedding failures remain explicit.
+- No Redis, retrieval, generation, streaming, citation formatting, client UI, user file metadata, folders, auth, deduplication, or automatic migration.
+- Model/provider or vector-dimension changes require re-embedding and a new Qdrant collection; tokenizer/Docling first-use overhead remains.
+- Uploads read fully into memory with no size cap; timeouts can leave points persisted, without rollback/retry guarantees.
+- Verification evidence is chronological below; docs-only Amendment 07 preserves both plans' Verified status.
+
+## Verification log
+
+| Amendment | Date                                  | Local tests                                  | Docker/live                                                 | Result                                                                |
+| --------- | ------------------------------------- | -------------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------- |
+| 01        | Not recorded                          | 9; real-model embedding and in-memory Qdrant | Foundation only                                             | Passed local checks                                                   |
+| 02        | Not recorded                          | 21; focused 12                               | Daemon unavailable; config validated                        | Local passed; Docker pending at that checkpoint                       |
+| 03        | 2026-10-05; earlier date not recorded | 21; focused 12                               | Build, upload/storage, outage/recovery                      | Passed; health endpoint still pending then                            |
+| 04        | 2026-10-06                            | 21                                           | 21 storage checks; 19 source checks pass; fresh build fails | Two PDF heading omissions identified                                  |
+| 05        | 2026-10-06                            | 33; focused 12                               | Fresh build, 12 regressions, 23 source/storage checks       | PDF fixes verified; table gap accepted; cosmetic follow-up local only |
+| 06        | 2026-10-07                            | 37 then 41 then 43                           | 4 then 8 then 10 focused tests; schema/outage/recovery      | Diagnostics and formatting deployed; Plan 02 Verified                 |
+| 07        | 2026-10-08                            | Not run: docs only                           | Not run: docs only                                          | Documentation checks recorded below                                   |
 
 ## Amendment 01 — Embedding provider and Qdrant foundation
+
+**Scope**
+
+- Embedding provider and idempotent Qdrant foundation.
+
+**Decisions**
 
 - BGE-M3 loading uses FlagEmbedding's `BGEM3FlagModel`.
 - The library choice was checked against the official BGE-M3 model card (`https://huggingface.co/BAAI/bge-m3`) and FlagEmbedding documentation (`https://github.com/FlagOpen/FlagEmbedding/blob/master/examples/inference/embedder/README.md`).
@@ -24,7 +52,9 @@
 - Qdrant distance is explicitly set to cosine.
 - Collection creation is idempotent and validates an existing collection before treating it as successful.
 
-## Amendment 01 — Verification record
+**Verification**
+
+### Amendment 01 — Verification record
 
 - Timed local run with cached weights:
   - Model load: `4.420 s`.
@@ -36,7 +66,7 @@
 - New modules compile successfully.
 - Whitespace validation passed.
 
-## Follow-up prompt — Dependencies, constants, and type cleanup
+### Follow-up prompt — Dependencies, constants, and type cleanup
 
 - The project `.venv` contains the declared `FlagEmbedding` and `qdrant-client` dependencies.
 - Pylance should use `.venv\Scripts\python.exe` as the selected interpreter.
@@ -45,22 +75,17 @@
 - The Qdrant test fake implements the complete `EmbeddingProvider` protocol, including `embed()` and `dimension`.
 - cSpell vocabulary includes `BGEM` and `vecs`.
 
-## Current boundaries and remaining work
+**Limits**
 
-- Upload route and response shape remain unchanged; successful uploads now additionally persist points.
-- Payloads live in `app/models/qdrant/chunk.py`; pipeline DTOs retain raw Docling text internally.
-- No `/system/health/databases` endpoint exists yet.
-- Retrieval, generation, streaming, citation formatting, and client UI remain outside this plan stage.
-- BGE-M3 weight initialization happens in startup, not the first upload; tokenizer/Docling first-use overhead can remain.
-- A model/provider or vector-dimension change requires re-embedding and a new Qdrant collection.
-
-## Documentation maintenance rule
-
-- Each future amendment gets a titled section in this file with its scope, implementation decisions, verification results, and remaining limitations.
-- The manual file is extended whenever a new pipeline stage or verification path is added.
-- Context and manual updates remain short, factual, and bullet-oriented.
+- Foundation checks do not wire uploads or implement later stages; changing providers requires a new collection and re-embedding.
 
 ## Amendment 02 — Upload wiring, payloads, and startup
+
+**Scope**
+
+- Upload embedding/storage wiring, text payloads, and startup preparation.
+
+**Decisions**
 
 - Every accepted upload gets a new internal UUID `file_id`; every chunk gets an independent point UUID.
 - No deduplication, user metadata, or public identifier fields were added.
@@ -82,7 +107,9 @@
 - Logs include file ID, chunk count, embedding dimension/time, confirmed point count, startup time, and upload processing time.
 - Docker build now caches full BGE-M3 weights plus tokenizer from the centralized model configuration before enabling offline mode.
 
-## Amendment 02 — Verification record
+**Verification**
+
+### Amendment 02 — Verification record
 
 - Local project venv: `qdrant-client 1.19.1`, `FlagEmbedding 1.4.2`, cached Hugging Face weights.
 - Focused multipart upload/startup/failure tests: `12 tests`, `OK`, `4.304 s`.
@@ -107,7 +134,9 @@
 - Plan 01 shared code changed, so its status and component maturity are pending container/manual re-verification despite passing local regressions.
 - No database health route, retrieval, generation, auth, branch changes, or commits were added.
 
-## Amendment 02 — Failure boundaries
+**Limits**
+
+### Amendment 02 — Failure boundaries
 
 - Missing model weights, incompatible collection vectors, or unreachable Qdrant prevent startup.
 - Empty/unsupported uploads preserve their existing validation errors; zero chunks are rejected before embedding.
@@ -116,6 +145,12 @@
 - Existing points are not migrated automatically; a provider/vector change still requires a new collection and re-indexing.
 
 ## Amendment 03 — Startup cleanup and import grouping
+
+**Scope**
+
+- Relocate startup implementation, group imports, and complete manual/live verification.
+
+**Decisions**
 
 - Moved `initialize()` and `lifespan()` into `app/core/lifespan.py`; `app/main.py` now contains application wiring only.
 - Startup still loads the cached embedder, validates the collection, activates storage, and closes the client on shutdown or initialization failure.
@@ -128,7 +163,9 @@
 - Approved test-only adjustment: mock targets now point to `app.core.lifespan`, where startup dependencies are looked up.
   - Test scenarios and assertions are unchanged; Plan 01 and Amendment 01 test files are untouched.
 
-## Amendment 03 — Verification record
+**Verification**
+
+### Amendment 03 — Verification record
 
 - Complete real-model/in-memory-Qdrant suite before the move: `21 tests`, `OK`, `14.813 s`.
 - Complete suite after the move: `21 tests`, `OK`, `12.487 s`.
@@ -147,13 +184,13 @@
 - Branch and HEAD remain `phase-01/plan-02` and `c37aaae5e361505f99a5a37e7b36dfa1d690ac8e`; no commits or branch operations.
 - Existing failure boundaries remain: missing model weights, unreachable Qdrant, or incompatible vectors prevent startup; no fallback was added.
 
-## Amendment 03 — Manual readability follow-up
+### Amendment 03 — Manual readability follow-up
 
 - Reorganized MANUAL last into a beginner-first setup, local-test, Docker, upload, and stored-point walkthrough.
 - Explained essential terms and added command purposes, working directories, placeholders, and expected results.
 - Kept optional diagnostics, detailed payload checks, failure simulation, and timing references separate from the main walkthrough.
 
-## Follow-up — Verification and documentation, 2026-10-05
+### Follow-up — Verification and documentation, 2026-10-05
 
 - Commit work explicitly cancelled; this pass leaves changes unstaged and uncommitted.
 - Full local runner with cached weights and `HF_HUB_OFFLINE=1`: `21 tests`, `OK`, `93.273 s`.
@@ -173,7 +210,7 @@
 - Docling model caching completed in `226.9 s`; BGE-M3 cache/model-loading build step completed in `712.5 s`.
   - FlagEmbedding's loader fetches a repository snapshot; first-build downloads are not startup or upload latency.
 
-## Follow-up — Docker live verification, 2026-10-05
+### Follow-up — Docker live verification, 2026-10-05
 
 - `docker compose --env-file .env -f docker-compose.yml up --build -d` completed successfully.
 - Container versions: Docling `2.133.0`, FlagEmbedding `1.4.2`, qdrant-client `1.19.1`; local Docling is `2.131.0`.
@@ -208,7 +245,7 @@
   - First encode begins `1.878 s` after readiness; singleton and point-count assertions pass.
   - Foundation embedding latency `0.253 s` / `0.161 s`; these remain local/in-memory measurements.
 
-## Follow-up — Local commit checkpoint, 2026-10-05
+### Follow-up — Local commit checkpoint, 2026-10-05
 
 - Local commit now explicitly authorized for Amendments 01–03 on `phase-01/plan-02`; earlier no-commit entries remain historical.
 - Pre-commit offline runner: `21 tests`, `OK`, `14.682 s`; compilation and whitespace checks pass.
@@ -219,7 +256,21 @@
 - Plan 02 remains In Progress until the database health amendment; no application behavior or requirements headers changed in this checkpoint.
 - Commit is local only; no push or branch switch.
 
+**Limits**
+
+- Tokenizer/Docling first-use overhead can remain; startup ordering and explicit failure handling must not change during relocation.
+
 ## Amendment 04 — Independent cross-plan verification, 2026-10-06
+
+**Scope**
+
+- Independent cross-plan source/storage verification and controlled environment comparison.
+
+**Decisions**
+
+- Verify source preservation independently of storage fidelity; isolate the Docling package pair before considering a pin.
+
+**Verification**
 
 - Scope: upload -> extraction/OCR -> chunking -> dense embedding -> Qdrant storage; all nine format categories and all six image extensions exercised.
 - Commands run from `server/`:
@@ -319,13 +370,25 @@
 - `recovery short.md`: `02315a9d-7050-4efd-aea4-bb3461ff3155`, `1` point(s), HTTP `0.156 s`, storage PASS.
 - `restart short.md`: `1e8e0287-0bfd-4104-9589-c9fb1d6ecab9`, `1` point(s), HTTP `1.915 s`, storage PASS.
 
+**Limits**
+
+- Version drift alone does not explain the two heading omissions; failed fresh builds and known source losses are retained as historical failures.
+
 ## Amendment 05 — Plan 01 heading fix, 2026-10-06
+
+**Scope**
+
+- Preserve orphan-heading source content, add lexical coverage diagnostics, and verify the fix.
+
+**Decisions**
 
 - Fix targets Plan 01 extraction/chunking code while remaining on `phase-01/plan-02`; exact cause, implementation choices, and regression evidence are in Plan 01 CONTEXT's Amendment 05 section.
 - Orphan `section_header` source items now reach chunks; oversized orphan headings retain content through bounded body segments and original provenance.
 - Independent coverage warnings expose missing source words/numbers, including the separately documented XLSX/CSV corner-header omission; existing table output stays unchanged.
 - Embedding interface, public response fields, Qdrant payload fields, dependencies, OCR configuration, token limit, and merge setting remain unchanged.
 - PLAN_02 remains `In Progress`; database health reporting remains deferred.
+
+**Verification**
 
 - Local final full suite: `..\.venv\Scripts\python.exe -m tests.run`, `33 tests`, `OK`, `47.113 s`; the original 21 tests remain unchanged.
   - Model initialization `3.989 s`, measured startup `4.025 s`; sequential real-model/in-memory uploads `4.299 s / 0.322 s`; readiness precedes first encode by `3.716 s`; singleton assertions pass.
@@ -374,7 +437,7 @@
 - Final service state: server running on `8080`, Qdrant healthy on `6333`; final health response reports `Server Healthy`.
 - Final Git/whitespace checks: branch `phase-01/plan-02`, HEAD `64abf5d83e0d6c83204ae5e76239e05921edf6c0`, index empty, no new commits/branch operations, `.env` ignored with no committed history; compilation and whitespace checks pass.
 
-## Follow-up — Verification acceptance and cosmetic cleanup, 2026-10-06
+### Follow-up — Verification acceptance and cosmetic cleanup, 2026-10-06
 
 - User explicitly accepts and defers the known XLSX/CSV corner-header omission; Plan 01 is now `Verified` and extraction/chunking is `Implemented & Verified`.
   - Coverage warnings remain active; verification accepts the tested implementation with this documented limitation and does not claim lossless extraction.
@@ -394,7 +457,7 @@
 - Evidence and baseline snapshot: ignored `.venv/cosmetic/`; existing working changes and amendment prompts preserved.
 - Final branch `phase-01/plan-02`, HEAD `64abf5d83e0d6c83204ae5e76239e05921edf6c0`; no staging, commits, or branch operations; `.env` remains ignored and untracked.
 
-## Follow-up — Local bug-fix commit checkpoint, 2026-10-06
+### Follow-up — Local bug-fix commit checkpoint, 2026-10-06
 
 - User explicitly authorizes one local commit for Amendment 04–05 verification records, the heading/content-coverage fix, regressions, cosmetic cleanup, and accepted verification statuses.
   - Earlier no-commit entries remain historical; this authorization applies to the current checkpoint only. No push or branch switch.
@@ -404,3 +467,271 @@
 - Include the reviewed implementation, tests, both amendment prompts, and documentation; exclude `.env`, generated fixtures, caches, and ignored verification artifacts.
 - Plan 01 is Verified with the user-accepted, deferred XLSX/CSV corner-header limitation and active coverage warning; Plan 02 remains In Progress for deferred database health reporting.
 - Explain-back: this local checkpoint records the ingestion correctness fix and its verification; it adds no pipeline behavior beyond the already verified changes.
+
+**Limits**
+
+- The accepted XLSX/CSV corner-header omission remains; coverage warnings do not reject uploads or prove OCR accuracy; old stored uploads are not rewritten.
+
+## Amendment 06 — Database health endpoint, 2026-10-07
+
+**Scope**
+
+- Add Qdrant-only diagnostics, extend metadata, format the healthy response, and fix reported typing issues.
+
+**Decisions**
+
+- Added `GET /system/health/databases` to the existing system router; diagnostics return HTTP 200 for healthy and unhealthy checks.
+- Exact response shapes:
+  - Healthy: `{"qdrant":{"status":"healthy"}}`.
+  - Failed probe: `{"qdrant":{"status":"unhealthy","error":"Unable to inspect Qdrant collection","code":"QDRANT_CONNECTION_FAILED"}}`.
+  - Missing collection: `{"qdrant":{"status":"unhealthy","error":"Qdrant collection is unavailable","code":"QDRANT_COLLECTION_ERROR"}}`.
+  - Unavailable runtime: `{"qdrant":{"status":"unhealthy","error":"Upload storage is not initialized","code":"INTERNAL_SERVER_ERROR"}}`.
+- `core.runtime.storage()` returns lifespan-prepared `Storage`; the endpoint passes its existing `client` and `collection` into `db.qdrant.check()`.
+  - Each request makes one `collection_exists` call; no new client, embedding, scan, write, or collection creation.
+  - Synchronous route runs in FastAPI's worker pool and retains the configured client timeout; no additional retry or configuration change.
+- Probe failures use existing Qdrant error classes; the route catches `ApiError` and merges `to_dict()` into the unhealthy body.
+  - INFO logs healthy collection access; ERROR logs unhealthy status/code and exception context; safe error messages reach the response.
+  - Upload errors and startup's requirement for reachable Qdrant remain unchanged.
+    **Verification**
+
+- Local real-model/in-memory full suite: `37 tests`, `OK`, suite `19.182 s`; all original 33 tests and the startup-aware runner remain unmodified.
+  - Four new tests cover repeated client reuse, no embedding/writes/scans, missing collections, transport/timeout failures, safe responses, recovery, and unavailable runtime.
+  - Measured real-model startup `2.230 s`; initial/sequential uploads `2.802 s / 0.158 s`.
+  - Existing Starlette deprecation and cached-model warnings are expected; no dependency change.
+- Docker Desktop was stopped initially; started the existing engine and containers without replacing the Qdrant volume.
+  - Pre-deployment exact count and paginated payload snapshot: `32` retained points.
+  - Compose build succeeds; BGE-M3 prewarming reruns because cosmetic constants changes invalidated its cached layer.
+  - First live pass verifies behavior and retains `32 -> 34` points, but final hashes expose LF/CRLF differences in the two changed application files captured before normalization.
+  - Cached rebuild aligns final source bytes; first-pass evidence remains in `live-first.json` rather than being discarded.
+- Final server image: `sha256:18d32eefb2b28ecd2378da96ff768f6661485e05d8dec2e2e3ce395991a74964`; SHA-256 values match all 30 workspace application files, including prior cosmetic cleanup.
+  - Four focused tests also pass inside the final container: `4 tests`, `OK`, `0.075 s`; these use in-memory Qdrant and deterministic embeddings.
+  - Final API startup model/total `2.865 s / 2.891 s`; one startup initialization before the live checks.
+- Final live acceptance:
+  - Three healthy calls: HTTP 200 with the exact healthy body, `0.007 / 0.003 / 0.003 s`; repeated diagnostics leave points unchanged.
+  - Stopped only Qdrant: diagnostics remain HTTP 200 with the exact failed-probe body, `7.843 s`; valid upload remains `503 / QDRANT_CONNECTION_FAILED`, `4.206 s`; process liveness stays HTTP 200.
+  - Qdrant restored in `finally`; diagnostics recover to HTTP 200/healthy in `0.008 s`, without an API restart or new client.
+  - Final-image count sequence `34 -> 35 -> 35 -> 36`: one healthy upload, unchanged count across outage, one recovery upload.
+  - Healthy/recovery uploads return unchanged public fields and one stored chunk each, `2.701 s / 0.205 s`.
+  - Every original point ID and payload is retained; four successful uploads across both verification passes remain stored. Observed unchanged outage counts are not a transactional rollback guarantee.
+  - Production logs contain both required health outcomes; server remains running on `8080`, Qdrant healthy on `6333`.
+- Plan 02 is now `Verified`; phase overview, specification, and manual guide reflect Amendment 06. Historical records and the user-added amendment prompt remain intact.
+- Checks pass: compilation, function/class docstrings, no inline comments, CRLF formatting, whitespace, and parsing all 22 manual PowerShell blocks.
+- Evidence and temporary scripts: ignored `.venv/amendment06/`, including pre-deployment payloads, local results, both live passes, server logs, and focused Docker tests.
+- Git: branch `phase-01/plan-02`, HEAD `c88a8195ed0442fa043bd9b0adddc35f4affb5d8`; no staging, commits, pushes, or branch operations; `.env` remains ignored and untracked.
+- Explain-back: database diagnostics serve the storage stage by inspecting collection access through existing startup resources.
+  - Missing collections, timeouts, and connection failures report unhealthy without changing upload error semantics; startup failure can still prevent serving any endpoint.
+  - A healthy report proves collection accessibility at that moment, not successful writes, vector correctness, or later retrieval quality.
+
+### Follow-up — Basic database metadata, 2026-10-07
+
+- User accepts the simplified plan: basic metadata only; memory/disk reporting and a details query parameter remain deferred.
+- Extended the workspace endpoint with Qdrant `version`, UTC `started_at`, numeric `uptime_seconds`, `collections`, and `collection` containing `name`, native `status`, and approximate `points`.
+  - Typed, composed response models live in `schemas/system.py`; unset fields are excluded, preserving the original unhealthy error bodies.
+  - Healthy example: `{"qdrant":{"status":"healthy","version":"1.19.2","started_at":"2026-10-07T07:41:56.020000Z","uptime_seconds":1419.63,"collections":1,"collection":{"name":"atlas-chunks","status":"green","points":36}}}`.
+- `db.qdrant.check()` now uses `get_collection()` instead of `collection_exists()`; remote 404 maps to the existing collection error, and failed inspection retains the connection error.
+  - Native collection status remains separate from connectivity; reported point count can be zero or null and is not an exact-count scan.
+- `db.qdrant.details()` reads `client.http.service_api.telemetry(details_level=0)` through the same startup client's transport.
+  - Uptime is UTC now minus Qdrant startup, rounded to two decimals and clamped to zero for clock skew; API-process uptime remains separate.
+  - Healthy requests make two metadata calls; a failed primary probe makes one and skips telemetry. No embedding, point scans, writes, collection creation, or new request-time clients.
+- Supplementary telemetry failure retains HTTP 200/healthy and the collection result.
+  - `version`, `started_at`, `uptime_seconds`, and `collections` become null; `diagnostics_error` is `{"error":"Unable to read Qdrant telemetry","code":"QDRANT_CONNECTION_FAILED"}`.
+  - Missing required telemetry fields are explicit diagnostic failures; WARNING includes exception context without exposing transport details in the response.
+  - Primary probe/runtime failures retain the previous HTTP-200 unhealthy body and ERROR logging; upload/startup handling is unchanged.
+- Full local startup-aware suite: `41 tests`, `OK`, suite `16.732 s`; original 33 tests and runner unchanged, four existing health tests updated and four metadata scenarios added.
+  - Cases cover client reuse/two-call behavior, no writes/scans/count requests/embedding, missing collections, timeouts, recovery, runtime failure, telemetry failure, missing startup, zero counts, clock skew, and native status/unknown counts.
+  - Final focused pass after explicit UTC normalization: `8 tests`, `OK`, `0.121 s`; offset startup timestamps serialize as UTC and future startup timestamps clamp uptime to zero.
+- Read-only integration uses the workspace route against the already-running Qdrant instance, without invoking app startup or production uploads.
+  - Two responses: HTTP 200, Qdrant `1.19.2`, one collection, native `green` status, 36 points, uptime `1419.63 / 1419.66 s`; measured route times `0.099 / 0.032 s`.
+  - Exact verification counts remain `36 -> 36`; container image IDs, startup timestamps, and restart counts remain identical before/after.
+  - Running API still returns the prior `{"qdrant":{"status":"healthy"}}` body; this is not a deployed-endpoint or Docker-verification claim.
+- No Docker builds, restarts, stops, image changes, uploads, dependencies, config changes, or later-stage work; existing points, amendment prompts, and previous evidence remain intact.
+- Plan 02 returns to `Built, Unverified` per AGENTS.md because its code changed after verification; expanded endpoint deployment/manual verification remains pending.
+- Evidence: ignored `.venv/health-metadata/local.log`, `read-only.log`, and `read-only.json`; prior `.venv/amendment06/` evidence remains intact.
+- Final static checks pass: compilation, docstrings, no inline comments, CRLF formatting, whitespace, and all 22 manual PowerShell blocks; every original Qdrant client/storage/collection function has an unchanged AST versus HEAD.
+- Git: branch `phase-01/plan-02`, HEAD `c88a8195ed0442fa043bd9b0adddc35f4affb5d8`; no staging, commits, pushes, or branch operations; `.env` remains ignored and untracked.
+- Explain-back: this adds lightweight operational metadata to storage diagnostics; uptime belongs to Qdrant, point counts are approximate, and telemetry failures remain visible without changing collection connectivity or upload behavior.
+  - Version-specific telemetry omissions produce a partial diagnostic response; collection failures still produce unhealthy status, and startup still requires reachable Qdrant.
+
+### Follow-up — Metadata Docker deployment and verification, 2026-10-07
+
+- User explicitly requests deployment and verification, superseding the previous follow-up's no-Docker-lifecycle constraint.
+- Pre-deployment exact count and paginated payload snapshot: `36` points; both container identities recorded before changes.
+- From `server/`: `docker compose --env-file .env -f docker-compose.yml up --build -d --no-deps server` succeeds.
+  - Only the API container is rebuilt/recreated; Qdrant identity/start time remains unchanged until the controlled outage.
+  - Dependency/model-prewarming layers are cached; no application, dependency, model, config, collection, or volume change is needed.
+- Final API image: `sha256:2c7490578fbdb8173afd2996aec84f3287be77c11ce08a63c0373d5e9228dbab`; all 31 deployed application SHA-256 values match the workspace, including the new system response schema.
+  - Deployed API startup `2026-10-07T09:02:12.765952316Z`; readiness logs model/total initialization `3.057 s / 3.096 s`.
+  - Prior local evidence retained: full `41 tests`, `OK`, and final focused UTC-normalization `8 tests`, `OK`; original 33 tests/runner remain unchanged.
+  - Eight focused diagnostics tests pass inside this image using in-memory Qdrant: `8 tests`, `OK`, `0.237 s`.
+- Deployed metadata independently matches Qdrant's own telemetry/collection APIs: version `1.19.2`, one collection, `atlas-chunks`, native `green`, 36 reported points, and matching UTC startup timestamps.
+  - Three HTTP-200 healthy responses take `0.090 / 0.060 / 0.060 s`; Qdrant uptime increases `4863.44 -> 4863.61 -> 4863.79 s`.
+  - Exact point snapshots are unchanged after deployment and repeated diagnostics; no health-check writes.
+- Controlled outage stops only Qdrant; restoration executes in `finally`.
+  - Diagnostics remain HTTP 200 with `{"qdrant":{"status":"unhealthy","error":"Unable to inspect Qdrant collection","code":"QDRANT_CONNECTION_FAILED"}}`, `7.916 s`.
+  - Valid upload retains `503 / QDRANT_CONNECTION_FAILED`, `15.276 s`; first-use parsing/embedding contributes to this measured request, with embedding `3.786 s` logged.
+  - API process liveness stays HTTP 200; no API restart or model reload during outage/recovery.
+- Recovery: HTTP 200/healthy, `0.016 s`; Qdrant startup changes from `2026-10-07T07:41:56.020Z` to `2026-10-07T09:03:28.160Z`, and reported uptime resets to `0.91 s`.
+  - API container ID/image/start time remain identical across the outage; production logs contain exactly one startup initialization plus healthy/unhealthy results.
+  - Exact count and every point ID/payload remain `36 -> 36` across deployment and outage; this is observed preservation, not a transactional rollback guarantee.
+- Successful recovery upload: HTTP 200, one chunk/point, `0.287 s`; file ID `f0b0e390-1df7-46b4-b587-e65f7e83dfa5`.
+  - Final count `37`; all 36 baseline IDs/payloads remain. The independent verification upload is retained, with no deletes or collection recreation.
+  - Final metadata returns HTTP 200/healthy with 37 reported points, native `green`, and restarted Qdrant uptime `4.32 s` at the recorded check.
+- Plan 02 is now `Verified`; specification, phase overview, AGENTS.md, and manual guide reflect deployment. Earlier workspace-only/unverified entries remain historical.
+- Evidence and temporary scripts: ignored `.venv/health-metadata-deploy/`, including baseline/live JSON, build/test logs, and production server logs; all earlier evidence and amendment prompts remain intact.
+- Git: branch `phase-01/plan-02`, HEAD `c88a8195ed0442fa043bd9b0adddc35f4affb5d8`; no staging, commits, pushes, or branch operations; `.env` remains ignored and untracked.
+- Explain-back: this deploys and verifies basic operational metadata for storage diagnostics; Qdrant uptime correctly resets on Qdrant restart independently of API uptime.
+  - Connectivity remains distinct from native collection status and approximate point counts; missing telemetry produces explicit partial diagnostics as verified by the focused tests.
+
+### Follow-up - Health response formatting and telemetry typing, 2026-10-07
+
+- Healthy response fields/order: `qdrant.version`, `status`, `uptime`, `started`, `collection`; collection order: `status`, `name`, `points`.
+- Healthy status is `Qdrant Healthy`; uptime is `Running For 150.85s` with two decimal places; startup is `2026-10-07, 09:03:28` in UTC, without fractional seconds.
+- Removed collection totals and the prior numeric/ISO metadata fields; unhealthy HTTP-200 error bodies remain unchanged by the user's clarification.
+- Partial telemetry failure retains accessible collection metadata, null `version`/`uptime`/`started`, and the existing safe `diagnostics_error` with WARNING logging.
+- Optional telemetry result/application fields are checked before access; startup must be a timezone-aware datetime, normalized to UTC.
+- A typed `(version, started, uptime)` tuple and explicit response/error arguments replace heterogeneous dictionary unpacking; uptime uses the Qdrant process startup timestamp and current UTC epoch time, clamped to zero.
+- `ApiError.code` explicitly retains its existing `ErrorCode` annotation; no exception status/body behavior changes.
+- Reuses the startup-created Qdrant client for the same two metadata calls; upload/storage/startup functions remain unchanged.
+- Plan 02 is Built, Unverified until local checks, typing verification, Docker deployment, and live rechecks complete; nothing staged or committed.
+
+### Formatting deployment verification
+
+- Final full startup-aware local suite: `43 tests`, `OK`, `97.759 s`, using cached models with process-only `HF_HUB_OFFLINE=1`; initial pre-annotation suite also passed all 43 tests. Original 33 tests and runner remain unchanged.
+- Pyright checks `db/qdrant.py`, `routers/system.py`, `schemas/system.py`, and `errors/api.py`: `0 errors, 0 warnings, 0 informations`; no application dependency/settings additions or suppression directives.
+- Ten focused Docker health tests pass: `OK`, `0.306 s`; cover exact successful field/order/formatting, missing result/application, invalid startup types, timeout/recovery, safe partial diagnostics, and startup-client reuse without writes/scans/count calls.
+- Compose `up --build -d --no-deps server` rebuilds/recreates only the API; model/dependency layers are cached and Qdrant's image/container remain unchanged before the controlled outage.
+- Deployed image: `sha256:874a298cdaaeb205475a6b69be924052fa83631f8c4f7bfc7692c37fd2ed6cf2`; all 31 application files match workspace SHA-256 hashes, including the error-code type annotation.
+- Three healthy responses return HTTP 200 with exactly the requested fields/order; Qdrant version/native collection status/startup/count agree with its own APIs and uptime increases.
+- Stop-only-Qdrant check: diagnostics return the unchanged HTTP-200/unhealthy body with `QDRANT_CONNECTION_FAILED` (`7.904 s`); genuine storage failure still returns upload HTTP 503/`QDRANT_CONNECTION_FAILED` (`14.661 s`); process liveness stays HTTP 200.
+- Qdrant restored in `finally`; recovered response is HTTP 200/`Qdrant Healthy` (`0.019 s`), with `started: "2026-10-07, 09:35:54"` and `uptime: "Running For 0.96s"`.
+- API identity/start time remain unchanged across the outage; logs contain one startup initialization and INFO healthy/ERROR unhealthy outcomes.
+- Exact snapshots remain `37 -> 37 -> 37` across deployment, repeated diagnostics, outage, and recovery; every existing point ID/payload is preserved and no successful production test upload is added.
+- Final recorded body: `{"qdrant":{"version":"1.19.2","status":"Qdrant Healthy","uptime":"Running For 4.25s","started":"2026-10-07, 09:35:54","collection":{"status":"green","name":"atlas-chunks","points":37}}}`.
+- Plan 02 is Verified again; earlier Built, Unverified and old-schema checkpoints remain historical. Branch `phase-01/plan-02` and HEAD `c88a819` remain unchanged; nothing staged/committed.
+- Evidence: ignored `.venv/health-format-deploy/` baseline/live JSON, local/type/build/container-test logs, verification script, and API logs; prior evidence remains intact.
+- Explain-back: these are storage-diagnostic presentation and typing fixes; optional metadata is validated before use and uptime belongs to Qdrant. Telemetry omissions remain explicit partial diagnostics; dependency outages remain HTTP-200 unhealthy and uploads retain their existing failure behavior.
+
+**Limits**
+
+- Diagnostics report collection accessibility at check time, not successful writes, vector correctness, or retrieval quality.
+- Supplementary telemetry can fail or omit fields; report safe partial diagnostics without hiding failed collection access.
+- Native status and approximate point counts are separate from connectivity; startup still requires reachable Qdrant.
+
+## Amendment 07 — Documentation restructure and diagrams, 2026-10-08
+
+**Scope**
+
+- Documentation only: eight permitted Markdown files; both plans remain Verified, component statuses unchanged.
+- Originals saved byte-for-byte outside the repository at `C:\Users\RYANNO~1\AppData\Local\Temp\atlas-amendment07-ksjmyqxf`; no repository scripts added.
+
+| File                                                   | Before lines | After lines | Before bytes | After bytes |
+| ------------------------------------------------------ | ------------ | ----------- | ------------ | ----------- |
+| `AGENTS.md`                                            | 374          | 257         | 20508        | 16954       |
+| `.agents/skills/rag/SKILL.md`                          | 165          | 111         | 8496         | 10232       |
+| `prompts/PHASE_01/PHASE_01.md`                         | 253          | 164         | 12382        | 10852       |
+| `prompts/PHASE_01/PLAN_01/PHASE_01_PLAN_01_CONTEXT.md` | 325          | 413         | 32431        | 37328       |
+| `prompts/PHASE_01/PLAN_01/PHASE_01_PLAN_01_MANUAL.md`  | 379          | 385         | 18773        | 19266       |
+| `prompts/PHASE_01/PLAN_02/PHASE_01_PLAN_02.md`         | 136          | 128         | 6240         | 6380        |
+| `prompts/PHASE_01/PLAN_02/PHASE_01_PLAN_02_CONTEXT.md` | 538          | 737         | 59761        | 75723       |
+| `prompts/PHASE_01/PLAN_02/PHASE_01_PLAN_02_MANUAL.md`  | 552          | 568         | 34064        | 35161       |
+
+**Decisions**
+
+- Restructured both CONTEXT files into Current state, Verification log, chronological amendments, and a three-bullet Maintenance rule; follow-ups are nested under their originating amendments.
+- Plan 01's original sessions remain in its Amendment 10 audit; later 04/05 records explicitly identify their Plan 02 origin, preserving historical numbering and unknown dates.
+- Current-state sections are short; historical failures, temporary status demotions, timings, versions, hashes, UUIDs, counts, and accepted limits remain in the records.
+- AGENTS deployment summaries were duplicate evidence already present in the detailed CONTEXT records; removed them from current-state documentation without adding another duplicate log.
+- Added FlagEmbedding loading, current Qdrant-only/HTTP-200 diagnostics, documentation format, vertical spacing with the exact supplied example, proportional verification, and scoped CONTEXT reads.
+- Spec resolves FlagEmbedding and both stored text fields; its MANUAL exists, status is a short line with a CONTEXT link, and stale unresolved wording is removed.
+- Phase overview retains its exact status table; Plan 02 now has five scope bullets and links, distinguishing Qdrant statistics from deferred user-facing file metadata.
+- Manuals retain procedures, numbered steps, Expected lines, and commands; historical checkpoints are labelled, and Plan 01's current suite expectation is corrected from 21 to 43 based on Amendment 06.
+- Skill records orphan-heading recovery before contextualization, raw `display_text`, independent lexical coverage, locked dense-only flags, and the accepted `Policy` omission.
+- Still-open citation format, proposed `top_k=5`, Redis caching, Qdrant rationale, and context-window overflow remain open.
+- Extra corrections: the skill's old DTO confused API/payload names with actual `Chunk(id, text, display_text, index, count, page, heading, section)`; storage maps `id/index/count` to `file_id/chunk_index/token_count`.
+- Extra corrections: removed the unsupported promise of later hybrid use "without re-indexing"; code stores dense vectors only, so future hybrid migration requirements remain undecided.
+- Extra corrections: Plan 02's exclusion of "any metadata fields" now excludes user-facing file metadata; the phase's confirmed/open `top_k` contradiction is corrected.
+- Extra corrections: `server/app/main.py` is the entry point; the folder map marks retrieval/generation/Postgres as planned and includes existing storage/health schema paths.
+- Code/doc conflicts were resolved by reading DTO, payload, storage, lifecycle, chunking, and router code; application files remain unchanged.
+- Merged AGENTS rules: folder annotations -> concise map plus storage/schema/config bullets; one class per file and tightly coupled exceptions remain.
+- Merged AGENTS rules: PLAN destination/amendment chronology/narrow prompts -> concise specification rules; reversed decisions and historical prompts remain protected.
+- Merged AGENTS rules: prompt naming, SUMMARY-to-CONTEXT history, sequential verification -> concise primary-file convention.
+- Refined AGENTS rules: established indentation remains; manual vertical spacing wins for edited code; untouched code is deferred to Amendment 08.
+- Refined AGENTS rules: blanket code-change demotion/Docker authority -> explicit proportional verification, preserving full verification for behavioral changes.
+- Merged AGENTS rules: final formatting paragraph -> documentation rules and explain-back; every other prior rule remains, including secrets, approval boundaries, naming, imports, errors, branch discipline, and pipeline scope.
+- Superseded MiniLM details move out of AGENTS into the skill's one-line note; the locked active provider remains BGE-M3.
+- Five Mermaid flowcharts: phase pipeline; Plan 01 extraction/chunking; Plan 02 upload write path and lifecycle; skill contract flow.
+- Each diagram has a legend, unique node IDs, quoted short labels, no lowercase `end`, and at most 10 nodes; only the phase diagram shades built/pending stages.
+
+**Verification**
+
+- No Docker, Compose, test-suite, model, or production endpoint commands run; verification is documentation-only.
+- Manual command fences match the original bytes/content: Plan 01 has 19 blocks, Plan 02 has 22; no command altered or executed.
+- Mermaid fences, bracket/quote balance, node IDs, diagram counts, headings, local Markdown links, UTF-8/CRLF, and whitespace inspected without installing tools.
+- Both CONTEXT original fact sets are preserved; inline comparison covers numbers, versions, dates, hashes, and backticked identifiers, with wrapped source lines joined before comparison.
+- Missing old-file tokens are individually accounted for below; semantic duplicate summaries are removed only within each CONTEXT, and original evidence is retained across files.
+- Pyright is not declared in `server/requirements.txt` or `server/tests/requirements.txt`; no dependency or Common commands entry added/removed.
+- Branch remains `phase-01/plan-02`; HEAD remains `c88a8195ed0442fa043bd9b0adddc35f4affb5d8`; index unchanged, no staging, commits, pushes, or branch operations.
+- Session-baseline SHA-256 comparison confirms only the eight scoped Markdown files changed; all pre-existing code, test, frozen prompt/amendment, README, and configuration bytes are unchanged.
+- `git diff --name-only` still includes pre-existing application diffs from Amendment 06; the baseline comparison separates this amendment's documentation-only delta.
+
+| File                                                   | Missing old tokens | Review                     |
+| ------------------------------------------------------ | ------------------ | -------------------------- |
+| `AGENTS.md`                                            | 21                 | Each token justified below |
+| `.agents/skills/rag/SKILL.md`                          | 1                  | Each token justified below |
+| `prompts/PHASE_01/PHASE_01.md`                         | 9                  | Each token justified below |
+| `prompts/PHASE_01/PLAN_01/PHASE_01_PLAN_01_CONTEXT.md` | 0                  | All retained               |
+| `prompts/PHASE_01/PLAN_01/PHASE_01_PLAN_01_MANUAL.md`  | 1                  | Each token justified below |
+| `prompts/PHASE_01/PLAN_02/PHASE_01_PLAN_02.md`         | 4                  | Each token justified below |
+| `prompts/PHASE_01/PLAN_02/PHASE_01_PLAN_02_CONTEXT.md` | 0                  | All retained               |
+| `prompts/PHASE_01/PLAN_02/PHASE_01_PLAN_02_MANUAL.md`  | 0                  | All retained               |
+
+### Facts deliberately removed or relocated
+
+- `AGENTS.md`: `04` — Duplicate evidence retained in CONTEXT; removed from current-state AGENTS.
+- `AGENTS.md`: `05` — Duplicate evidence retained in CONTEXT; removed from current-state AGENTS.
+- `AGENTS.md`: `06` — Duplicate evidence retained in CONTEXT; removed from current-state AGENTS.
+- `AGENTS.md`: `12` — Duplicate evidence retained in CONTEXT; removed from current-state AGENTS.
+- `AGENTS.md`: `18` — Duplicate evidence retained in CONTEXT; removed from current-state AGENTS.
+- `AGENTS.md`: `2026-10-06` — Duplicate evidence retained in CONTEXT; removed from current-state AGENTS.
+- `AGENTS.md`: `2026-10-07` — Duplicate evidence retained in CONTEXT; removed from current-state AGENTS.
+- `AGENTS.md`: `21` — Duplicate evidence retained in CONTEXT; removed from current-state AGENTS.
+- `AGENTS.md`: `23` — Duplicate evidence retained in CONTEXT; removed from current-state AGENTS.
+- `AGENTS.md`: `30` — Duplicate evidence retained in CONTEXT; removed from current-state AGENTS.
+- `AGENTS.md`: `31` — Duplicate evidence retained in CONTEXT; removed from current-state AGENTS.
+- `AGENTS.md`: `32` — Duplicate evidence retained in CONTEXT; removed from current-state AGENTS.
+- `AGENTS.md`: `33` — Duplicate evidence retained in CONTEXT; removed from current-state AGENTS.
+- `AGENTS.md`: `36` — Duplicate evidence retained in CONTEXT; removed from current-state AGENTS.
+- `AGENTS.md`: `37` — Duplicate evidence retained in CONTEXT; removed from current-state AGENTS.
+- `AGENTS.md`: `384-dim` — Superseded choice retained in the skill note; removed from active decisions.
+- `AGENTS.md`: `41` — Duplicate evidence retained in CONTEXT; removed from current-state AGENTS.
+- `AGENTS.md`: `43` — Duplicate evidence retained in CONTEXT; removed from current-state AGENTS.
+- `AGENTS.md`: `Policy` — Duplicate evidence retained in CONTEXT; removed from current-state AGENTS.
+- `AGENTS.md`: `all-MiniLM-L6-v2` — Superseded choice retained in the skill note; removed from active decisions.
+- `AGENTS.md`: `section_header` — Duplicate evidence retained in CONTEXT; removed from current-state AGENTS.
+- `.agents/skills/rag/SKILL.md`: `Chunk(text, chunk_index, file_id, token_count, page, heading, section)` — Obsolete DTO signature replaced with the actual fields and explicit storage mapping.
+- `prompts/PHASE_01/PHASE_01.md`: `06` — Duplicate deployment/diagnostic evidence retained in Plan 02 CONTEXT; overview is current scope only.
+- `prompts/PHASE_01/PHASE_01.md`: `200/unhealthy` — Duplicate deployment/diagnostic evidence retained in Plan 02 CONTEXT; overview is current scope only.
+- `prompts/PHASE_01/PHASE_01.md`: `21` — Duplicate deployment/diagnostic evidence retained in Plan 02 CONTEXT; overview is current scope only.
+- `prompts/PHASE_01/PHASE_01.md`: `30` — Duplicate deployment/diagnostic evidence retained in Plan 02 CONTEXT; overview is current scope only.
+- `prompts/PHASE_01/PHASE_01.md`: `31` — Duplicate deployment/diagnostic evidence retained in Plan 02 CONTEXT; overview is current scope only.
+- `prompts/PHASE_01/PHASE_01.md`: `36` — Duplicate deployment/diagnostic evidence retained in Plan 02 CONTEXT; overview is current scope only.
+- `prompts/PHASE_01/PHASE_01.md`: `37` — Duplicate deployment/diagnostic evidence retained in Plan 02 CONTEXT; overview is current scope only.
+- `prompts/PHASE_01/PHASE_01.md`: `41` — Duplicate deployment/diagnostic evidence retained in Plan 02 CONTEXT; overview is current scope only.
+- `prompts/PHASE_01/PHASE_01.md`: `43` — Duplicate deployment/diagnostic evidence retained in Plan 02 CONTEXT; overview is current scope only.
+- `prompts/PHASE_01/PLAN_01/PHASE_01_PLAN_01_MANUAL.md`: `Ran 21 tests` — Obsolete current expectation; latest suite has 43 tests, while the historical 21-test checkpoint remains.
+- `prompts/PHASE_01/PLAN_02/PHASE_01_PLAN_02.md`: `31` — Duplicate deployment count retained in CONTEXT; specification status is now a short pointer.
+- `prompts/PHASE_01/PLAN_02/PHASE_01_PLAN_02.md`: `37` — Duplicate deployment count retained in CONTEXT; specification status is now a short pointer.
+- `prompts/PHASE_01/PLAN_02/PHASE_01_PLAN_02.md`: `43` — Duplicate deployment count retained in CONTEXT; specification status is now a short pointer.
+- `prompts/PHASE_01/PLAN_02/PHASE_01_PLAN_02.md`: `sentence-transformers` — Obsolete unresolved loading alternative; FlagEmbedding is the recorded resolution.
+
+**Limits**
+
+- This amendment changes documentation and future editing/verification rules, not pipeline behavior; it supplies no new runtime verification claim.
+- Mermaid syntax is checked by inspection; the human can review rendering in Markdown preview.
+- Historical environments and verification failures remain evidence, not current readiness failures.
+
+## Maintenance rule
+
+- Read Current state and the latest amendment by default; inspect older history only when needed.
+- Record each future amendment under Scope, Decisions, Verification, and Limits; preserve historical evidence and put results in the verification log.
+- Extend MANUAL when verification paths change; keep CONTEXT and MANUAL factual and bullet-oriented.
