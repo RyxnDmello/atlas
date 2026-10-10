@@ -47,6 +47,7 @@ class ApiError(HTTPException):
         self.code: ErrorCode = code
         self.message = message
         self.status = STATUS_BY_CODE[code]
+
         super().__init__(status_code=self.status, detail=message)
 
     def to_dict(self) -> dict[str, str]:

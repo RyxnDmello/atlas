@@ -37,6 +37,7 @@ def check(client: QdrantClient, collection: str) -> CollectionHealth:
     """Return collection metadata through an existing client without changing data."""
     try:
         info = client.get_collection(collection)
+
         return CollectionHealth(
             name=collection, status=info.status.value, points=info.points_count
         )
@@ -44,6 +45,7 @@ def check(client: QdrantClient, collection: str) -> CollectionHealth:
         if isinstance(error, UnexpectedResponse) and error.status_code == 404:
             raise QdrantCollectionError(
                 "Qdrant collection is unavailable") from error
+
         raise QdrantConnectionError(
             "Unable to inspect Qdrant collection"
         ) from error
@@ -53,16 +55,21 @@ def details(client: QdrantClient) -> tuple[str, datetime, float]:
     """Return validated version, UTC startup, and uptime through the existing transport."""
     try:
         info = client.http.service_api.telemetry(details_level=0).result
+
         if info is None or info.app is None:
             raise ValueError(
                 "Required Qdrant telemetry metadata is unavailable")
+
         app = info.app
         started = app.startup
+
         if not app.version or not isinstance(started, datetime) or started.tzinfo is None:
             raise ValueError(
                 "Required Qdrant telemetry metadata is unavailable")
+
         started = started.astimezone(timezone.utc)
         uptime = max(0.0, time() - started.timestamp())
+
         return app.version, started, uptime
     except Exception as error:
         raise QdrantConnectionError(
@@ -80,6 +87,7 @@ def store(
         raise QdrantCollectionError(
             "Qdrant payload and vector counts do not match"
         )
+
     try:
         points = [
             PointStruct(
@@ -89,6 +97,7 @@ def store(
             )
             for payload, vector in zip(payloads, vectors, strict=True)
         ]
+
         result = client.upsert(
             collection_name=collection,
             points=points,
@@ -98,27 +107,33 @@ def store(
         logger.exception(
             "Qdrant chunk storage failed: collection=%s", collection
         )
+
         source = (
             error.source
             if isinstance(error, ResponseHandlingException)
             else error
         )
+
         if isinstance(source, (TransportError, ConnectionError, TimeoutError)):
             raise QdrantConnectionError(
                 "Unable to connect to Qdrant while storing chunks"
             ) from error
+
         raise QdrantCollectionError(
             "Unable to store chunks in Qdrant"
         ) from error
+
     if result.status != UpdateStatus.COMPLETED:
         logger.error(
             "Qdrant write not completed: collection=%s status=%s",
             collection,
             result.status,
         )
+
         raise QdrantCollectionError(
             "Qdrant did not confirm completed chunk storage"
         )
+
     return len(points)
 
 
@@ -148,9 +163,11 @@ def ensure_collection(
 
     if exists:
         _validate_collection(client, collection_name, provider)
+
         return
 
     distance = _distance()
+
     try:
         client.create_collection(
             collection_name=collection_name,
@@ -201,6 +218,7 @@ def _vector_config(vectors: Any) -> tuple[int, Distance]:
         raise ValueError(
             "Named Qdrant vectors are not supported for this collection"
         )
+
     return vectors.size, vectors.distance
 
 

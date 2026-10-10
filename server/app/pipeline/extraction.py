@@ -51,11 +51,14 @@ def extract(content: bytes, file_type: str, filename: str):
         TextExtractionError: If Docling cannot convert the upload.
     """
     del file_type
+
     source = DocumentStream(name=filename, stream=BytesIO(content))
 
     try:
         document = _converter().convert(source).document
+
         _warn_empty_pages(document, filename)
+
         return document
     except Exception as exc:
         raise TextExtractionError(

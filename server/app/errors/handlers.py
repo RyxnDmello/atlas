@@ -20,6 +20,7 @@ def handle_api_error(request: Request, error: ApiError) -> JSONResponse:
         The error's structured JSON response with its mapped status code.
     """
     del request
+
     return error.response()
 
 
@@ -41,6 +42,7 @@ def handle_unexpected_error(request: Request, error: Exception) -> JSONResponse:
         error,
         exc_info=(type(error), error, error.__traceback__),
     )
+
     return JSONResponse(
         status_code=STATUS_BY_CODE["INTERNAL_SERVER_ERROR"],
         content={

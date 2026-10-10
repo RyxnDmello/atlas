@@ -138,14 +138,14 @@ curl -i -X POST http://localhost:8080/documents/upload -F "file=@tests/fixtures/
 ## Unsupported extension
 
 ```bash
-curl -i -X POST http://localhost:8080/documents/upload -F "file=@tests/fixtures/unsupported.txt;filename=archive.zip"
+curl -i -X POST http://localhost:8080/documents/upload -F "file=@tests/fixtures/unsupported.zip"
 ```
 
 - Expected HTTP `400`.
 - Error code is `INVALID_FILE_TYPE`.
 - The response identifies `.zip` as unsupported.
 - The response lists the supported extensions.
-- The filename override is required because `.txt` itself is supported.
+- The `.zip` fixture exercises extension rejection before content parsing.
 
 ## Empty upload
 
@@ -160,7 +160,7 @@ curl -i -X POST http://localhost:8080/documents/upload -F "file=@tests/fixtures/
 ## Blank-page PDF
 
 ```bash
-curl -i -X POST http://localhost:8080/documents/upload -F "file=@tests/fixtures/image-only-page.pdf"
+curl -i -X POST http://localhost:8080/documents/upload -F "file=@tests/fixtures/blank-middle-page.pdf"
 docker compose --env-file .env -f docker-compose.yml logs --no-color --tail 50 server
 ```
 
@@ -250,7 +250,7 @@ docker compose --env-file .env -f docker-compose.yml config --services
 ```powershell
 @'
 from pathlib import Path
-from tests.test_documents import make_docx, make_pptx, make_xlsx, make_png
+from tests.test_02_documents import make_docx, make_pptx, make_xlsx, make_png
 
 root = Path('../.venv/amendment04-manual')
 root.mkdir(exist_ok=True)
@@ -273,7 +273,7 @@ print(root.resolve())
   - Sparse fixture: ReportLab letter pages, Helvetica 14, one line at `(72, 720)` per page.
   - Page 1: `Atlas Docker Verification a1173e9e-3c4f-4cc4-b7ed-4221806d3c27`; page 2: `Keep records for seven years.`.
   - Blank-middle fixture: `First page has extractable policy text.`, blank page, `Third page also has useful text.`.
-  - The existing `tests.test_documents.make_pdf` helper produces this layout.
+  - The existing `tests.test_02_documents.make_pdf` helper produces this layout.
 - Upload each fixture using `curl.exe -F "file=@YOUR_FILE_PATH" http://localhost:8080/documents/upload`; adjust PORT if needed.
 - Require HTTP 200, sequential indices from zero, token counts within the configured limit, and every expected sentence.
   - Office fixtures must preserve their policy text; all OCR fixtures must preserve `ATLAS OCR POLICY`.
@@ -355,7 +355,7 @@ docker compose --env-file .env -f docker-compose.yml exec -T server python -m pi
 
 - Run from `server/`: `..\.venv\Scripts\python.exe -m tests.run`.
   - Existing upload/embedding/storage tests and new heading/coverage regressions must all pass.
-  - Focused diagnosis: `..\.venv\Scripts\python.exe -m unittest tests.test_chunking -v`.
+  - Focused diagnosis: `..\.venv\Scripts\python.exe -m unittest tests.test_01_chunking -v`.
 - Reuse the sparse and blank-middle PDF bytes described above; rebuild Compose and wait for `/system/health` before uploading.
 - Use the same-bytes parse command above to inspect source labels and final chunk text in Docker.
   - Sparse PDF: `Keep records for seven years.` must occur in a chunk; an orphan heading retains page `2` and nonempty `display_text`.

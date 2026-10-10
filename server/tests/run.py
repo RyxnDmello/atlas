@@ -16,12 +16,14 @@ from app.main import app
 def run() -> bool:
     """Run unchanged upload tests inside a real-model, in-memory lifespan."""
     client = QdrantClient(":memory:", force_disable_check_same_thread=True)
+
     started = perf_counter()
     with patch("app.core.lifespan.create_client", return_value=client), patch(
         "app.core.lifespan.get_bge_m3_embedder", wraps=get_bge_m3_embedder
     ) as constructor:
         with TestClient(app) as http:
             startup = perf_counter() - started
+
             services = storage()
             provider = services.provider
             calls: list[float] = []
@@ -30,6 +32,7 @@ def run() -> bool:
             def embed(texts: list[str]) -> list[list[float]]:
                 """Record first-request timing while exercising the real provider."""
                 calls.append(perf_counter())
+
                 return encode(texts)
 
             with patch.object(provider, "embed", side_effect=embed):
@@ -47,19 +50,24 @@ def run() -> bool:
                         },
                     )
                     elapsed = perf_counter() - entered
+
                     assert response.status_code == 200, response.text
                     total = response.json()["total"]
                     assert client.count(services.collection, exact=True).count == before + total
                     assert services.ready <= entered <= calls[-1]
+
                     print(
                         f"Real upload {index + 1}: startup={startup:.3f}s upload={elapsed:.3f}s "
                         f"ready_before_embed={calls[-1] - services.ready:.3f}s points={total}",
                         file=sys.stderr,
                     )
+
             constructor.assert_called_once_with()
             assert services.provider is provider
+
             suite = unittest.defaultTestLoader.discover("tests")
             result = unittest.TextTestRunner(verbosity=2).run(suite)
+
     return result.wasSuccessful()
 
 

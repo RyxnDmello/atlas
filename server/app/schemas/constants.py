@@ -19,7 +19,6 @@ class LoggerConstants(BaseModel):
     @classmethod
     def validate_log_level(cls, value: str) -> str:
         """Validate that the configured logging level is supported."""
-
         levels = {
             "INFO",
             "WARN",
@@ -77,7 +76,6 @@ class QdrantConstants(BaseModel):
     @classmethod
     def validate_qdrant_url(cls, value: str) -> str:
         """Validate that the Qdrant endpoint is an HTTP(S) URL."""
-
         parsed = urlparse(value)
 
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:

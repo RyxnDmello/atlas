@@ -25,9 +25,12 @@ def databases() -> DatabaseHealth:
     except ApiError as error:
         logger.exception(
             "Qdrant health check: status=unhealthy code=%s", error.code)
+
         return DatabaseHealth(qdrant=QdrantHealth(status="unhealthy", error=error.message, code=error.code))
+
     try:
         version, started, uptime = details(services.client)
+
         result = QdrantHealth(
             version=version, status="Qdrant Healthy",
             uptime=f"Running For {uptime:.2f}s",
@@ -37,14 +40,17 @@ def databases() -> DatabaseHealth:
         logger.warning(
             "Qdrant telemetry failed: status=healthy code=%s", error.code, exc_info=True
         )
+
         result = QdrantHealth(
             version=None, status="Qdrant Healthy", uptime=None, started=None,
             collection=collection,
             diagnostics_error=DiagnosticError(
                 error=error.message, code=error.code),
         )
+
     logger.info("Qdrant health check: status=healthy collection=%s",
                 services.collection)
+
     return DatabaseHealth(qdrant=result)
 
 
@@ -55,7 +61,6 @@ def health() -> dict[str, str]:
     Returns:
         The version, status, and uptime of the server.
     """
-
     uptime = round(time.monotonic() - TIME, 2)
 
     return {

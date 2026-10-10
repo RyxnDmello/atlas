@@ -19,7 +19,6 @@ load_dotenv(dotenv_path=ENV_PATH)
 
 def _value(name: str) -> str | None:
     """Return one environment-backed setting."""
-
     return os.getenv(name)
 
 

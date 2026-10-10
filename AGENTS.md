@@ -216,13 +216,12 @@ atlas/
 
 ## Vertical spacing
 
-- New and edited code: one blank line after the docstring and between logical steps (guard, try/except, log, construction, return); no blank lines within one tight step.
+- New and edited code: no blank line between a function/method docstring and the first statement; one blank line between logical steps (guard, try/except, log, construction, return); no blank lines within one tight step.
 - Apply manually; formatters do not insert these lines. This overrides established spacing; a separate amendment handles untouched code.
 
 ```python
 def load(path: str) -> list[str]:
     """Read non-empty lines from a file."""
-
     if not path:
         raise ValueError("path required")
 

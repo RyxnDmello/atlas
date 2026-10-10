@@ -12,8 +12,10 @@ _storage: Storage | None = None
 def activate(storage: Storage) -> Iterator[None]:
     """Publish startup-ready storage for this lifespan and restore prior scope."""
     global _storage
+
     previous = _storage
     _storage = storage
+
     try:
         yield
     finally:
@@ -25,4 +27,5 @@ def storage() -> Storage:
     if _storage is None:
         raise ApiError("Upload storage is not initialized",
                        "INTERNAL_SERVER_ERROR")
+
     return _storage

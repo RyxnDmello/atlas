@@ -29,6 +29,8 @@
 | 05        | 2026-10-06                            | 33; focused 12                               | Fresh build, 12 regressions, 23 source/storage checks       | PDF fixes verified; table gap accepted; cosmetic follow-up local only |
 | 06        | 2026-10-07                            | 37 then 41 then 43                           | 4 then 8 then 10 focused tests; schema/outage/recovery      | Diagnostics and formatting deployed; Plan 02 Verified                 |
 | 07        | 2026-10-08                            | Not run: docs only                           | Not run: docs only                                          | Documentation checks recorded below                                   |
+| 08        | 2026-10-09                            | 43; OK; AST/compile/whitespace passed        | Not run: spacing only                                       | All 39 Python files inspected; both plans remain Verified             |
+| 09        | 2026-10-09                            | 43; OK; Pyright/import/PDF checks passed     | Not run: imports and typing only                            | Chunking and all test/fixture files have zero Pyright diagnostics     |
 
 ## Amendment 01 — Embedding provider and Qdrant foundation
 
@@ -729,6 +731,144 @@
 - This amendment changes documentation and future editing/verification rules, not pipeline behavior; it supplies no new runtime verification claim.
 - Mermaid syntax is checked by inspection; the human can review rendering in Markdown preview.
 - Historical environments and verification failures remain evidence, not current readiness failures.
+
+## Amendment 08 — Vertical spacing sweep, 2026-10-09
+
+**Scope**
+
+- Inspected all 39 Python files under `server/`: 31 application files and eight test/fixture files; modified 20, left 19 already-compliant files unchanged.
+- No file was excluded because of function size or logical-step count; empty package initializers, schema-only files, protocol methods, and single-statement helpers were inspected too.
+- Python changes add/remove blank lines only; identifiers, statement order, indentation, docstrings, strings, imports, and pipeline contracts are preserved.
+- `AGENTS.md` changes only the function/method docstring-spacing instruction and removes the corresponding blank line in its example.
+- This CONTEXT entry and verification-log row are the amendment's explicit documentation exception; no other documentation, configuration, or non-Python file changed.
+- Both plans remain Verified; no Docker, dependencies, commits, staging, or branch operations.
+
+**Inspected files**
+
+- Modified paths below are relative to `server/`:
+  - `app/core/`: `constants.py`, `lifespan.py`, `runtime.py`.
+  - `app/db/`: `qdrant.py`.
+  - `app/errors/`: `api.py`, `handlers.py`.
+  - `app/pipeline/`: `chunking.py`, `extraction.py`, `storage.py`.
+  - `app/pipeline/embeddings/`: `bge_m3.py`.
+  - `app/routers/`: `documents.py`, `system.py`.
+  - `app/schemas/`: `constants.py`.
+  - `tests/`: `run.py`, `test_chunking.py`, `test_documents.py`, `test_embeddings_qdrant.py`, `test_system.py`, `test_upload_storage.py`.
+  - `tests/fixtures/`: `generate_manual_fixtures.py`.
+- Inspected without changes, also relative to `server/`:
+  - `app/`: `__init__.py`, `main.py`.
+  - `app/core/`: `__init__.py`, `logging.py`.
+  - `app/db/`: `__init__.py`.
+  - `app/errors/`: `__init__.py`, `qdrant.py`.
+  - `app/models/`: `__init__.py`.
+  - `app/models/qdrant/`: `__init__.py`, `chunk.py`.
+  - `app/pipeline/`: `__init__.py`.
+  - `app/pipeline/embeddings/`: `__init__.py`, `provider.py`.
+  - `app/routers/`: `__init__.py`.
+  - `app/schemas/`: `__init__.py`, `documents.py`, `pipeline.py`, `system.py`.
+  - `tests/`: `__init__.py`.
+
+**Decisions**
+
+- First statements immediately follow function/method docstrings; class/module docstring spacing stays separate from that rule.
+- `Constants.__init__`, configuration wrappers, and provider/storage constructors keep related validation or field assignments together because they build one configuration/object state.
+- `initialize`, `Storage.write`, `EmbeddingTests.setUpClass`, and `tests.run.run` keep start/call/elapsed timing sequences together because they measure one operation; separate model/client setup, validation, logging, and returns.
+- `_recover` keeps cast/provenance-copy/append together as one recovered-segment mapping; guards, recovery-document construction, iteration, and return are separate steps.
+- `_coverage` separates provenance grouping, context/body extraction, source accounting, and warnings; paired counters, body/context assignments, and output-list updates stay together because each represents one accounting operation.
+- Upload and diagnostics functions separate extraction, chunking, embedding/storage, metadata construction, logs, and return boundaries; exception clauses remain attached to their original try blocks.
+- Test methods keep assertions about one result together, with spacing between fixture setup, calls, response decoding, independent loops, and cleanup; PDF helpers keep font/text drawing together and separate page completion, serialization, and return.
+- Removed redundant import-to-bootstrap gaps in the two existing test modules already edited for body spacing; no imports added, removed, or reordered.
+
+**Verification**
+
+- Saved original bytes and AST dumps for all 39 Python files before editing, plus baseline Git state and protected-file hashes, outside the repository at `C:\Users\RYANNO~1\AppData\Local\Temp\atlas-amendment08-s3_0chh1`.
+- AST comparison: PASS for all 39 files using `ast.dump(ast.parse(...), include_attributes=False)` against saved originals.
+- Additional comparisons: identical nonblank source lines and token type/value sequences (excluding newline tokens), preserving indentation and literal/docstring content; original line endings retained.
+- Scanned all 127 functions/methods: no blank lines after docstrings; manually reviewed logical-step spacing, including small functions and nested methods.
+- From `server/`, `..\.venv\Scripts\python.exe -m tests.run`: 43 tests, OK, `49.917 s` for the discovered suite, plus the runner's real-model startup/upload checks; exit code 0. Used process-only `HF_HUB_OFFLINE=1` with existing cached models; no environment/config file changed.
+- From `server/`, `..\.venv\Scripts\python.exe -m compileall -q .`: PASS; `git diff --check`: PASS.
+- Exact-byte comparison limits `AGENTS.md` to its permitted rule/example edits; baseline hashes confirm all other tracked files outside the Python sweep and this CONTEXT remain unchanged.
+- Amendment prompt remains byte-for-byte unchanged and untracked as at session start; branch remains `phase-01/plan-02`, HEAD remains `038099b5eb8719afa6771797b0131b111fea1b2f`.
+- Evidence: saved sources, `manifest.json`, `spacing-check.json`, and `tests.log` in the external backup directory; no verification scripts added to the repository.
+
+**Limits**
+
+- This is a readability change across the existing upload -> extraction/chunking -> embedding -> storage pipeline, startup, and diagnostics; no new pipeline stage or behavior.
+- Empty/textless uploads, oversized-heading recovery, model/storage failures, timeouts, and partial diagnostics retain their existing failure boundaries and limitations; identical ASTs establish unchanged semantics.
+
+## Amendment 09 — Docling imports and test diagnostics, 2026-10-09
+
+**Scope**
+
+- Addressed the user's Pylance diagnostics in application chunking, the manual fixture generator, and chunking/upload/embedding/health tests; inspected all eight test/fixture Python files, including the runner and empty initializer.
+- Modified six Python files: `app/pipeline/chunking.py`, `tests/test_chunking.py`, `tests/test_documents.py`, `tests/test_embeddings_qdrant.py`, `tests/test_system.py`, and `tests/fixtures/generate_manual_fixtures.py`, relative to `server/`.
+- Updated the existing local, Git-ignored `.vscode/settings.json` spelling vocabulary; no dependency or type-checking configuration changed.
+- Preserved the earlier spacing sweep and existing working-tree edits; Amendment 08 remains the historical record of that separate change.
+
+**Decisions**
+
+- Import Docling classes from their defining modules because `docling-core 2.99.0` has implicit re-exports that trigger private-import diagnostics; direct imports resolve to identical runtime classes.
+- `_source()` declares its return value and dictionary as `dict[str, tuple[TextItem | TableItem, str]]`; those are the collected types and expose the required label/provenance fields.
+- Chunking tests use `BaseTokenizer.get_max_tokens()` and cast configured `HybridChunker` results to `DocChunk`, matching the application's existing library-boundary cast.
+- Both read-only PDF helper parameters accept `Sequence[str | None]`, supporting string lists and blank-page entries without invariant-list conflicts or generation changes.
+- PPTX fixture checks narrow title/body placeholders to `Shape`; the Qdrant test narrows vector configuration to `VectorParams` before retaining the original content/dimension/distance assertions.
+- The injected health-check error uses `httpx.Headers()` to satisfy its constructor's contract; status, reason, content, and expected response remain unchanged.
+- Added requested spelling vocabulary: `charspan`, `unemitted`, `rels`, `openxmlformats`, `officedocument`, `wordprocessingml`, `spreadsheetml`, and `dejavu`; preserved local vocabulary including `autoshape`, XML namespaces, paths, and identifiers.
+- Corrected touched import grouping; internal upload-test imports follow its existing path bootstrap.
+
+**Verification**
+
+- Saved session-start contents of all 39 Python files, local settings, and this CONTEXT at `C:\Users\RYANNO~1\AppData\Local\Temp\atlas-type-cleanup-lkfd9io9`; original line endings retained.
+- Standalone Pyright `1.1.414`, using the project `.venv\Scripts\python.exe` and its bundled typeshed path: nine target files (chunking plus eight test/fixture files), zero errors and zero warnings; no diagnostic suppression or reduced severity.
+- The same checker reproduced all 25 reported Pylance errors against saved pre-fix files, then reported zero against the implementation. Direct VS Code/Pylance UI diagnostics were not driven; its server requires the editor, so verification used standalone Pyright from an external temporary cache.
+- All ten revised Docling imports retain identity with previous runtime imports; no model/provider or dependency version changed.
+- Chunking AST comparison excluding imports and type annotations: identical executable statements; no recovery, mapping, coverage, or provenance logic changed.
+- From `server/`, `..\.venv\Scripts\python.exe -m tests.run`: 43 tests, OK, `48.232 s` for the discovered suite, plus real-model startup/upload checks; exit code 0. Used process-only `HF_HUB_OFFLINE=1` with cached weights.
+- Manual fixture PDF generation passed in-memory string-only and blank-middle-page checks, including page counts and extracted text through existing `pypdfium2`; no tracked fixtures regenerated.
+- Scanned nine target files and their 77 functions/methods: no blank lines after docstrings; touched import/logical-step spacing reviewed manually.
+- From `server/`, `..\.venv\Scripts\python.exe -m compileall -q .` and `git diff --check`: PASS; local settings JSON parses and contains the requested vocabulary.
+- Evidence: saved sources, `manifest.json`, `tests.log`, `pyright-before.json`, and `pyright.json` in the external backup directory.
+
+**Limits**
+
+- Import/type cleanup in existing ingestion code and tests; no public API or pipeline contract changes. Both plans remain Verified.
+- New fixture/configuration assertions expose unexpected library/layout shapes rather than weakening tests; normal fixture content and existing assertions remain intact.
+- Empty/textless uploads, oversized-heading recovery, coverage warnings, storage/model errors, timeouts, and partial diagnostics retain existing behavior and limitations.
+- No Docker, dependency-file changes, regenerated fixtures, commits, staging, or branch operations; branch and HEAD remain unchanged.
+
+## Amendment 09 — Test file ordering and fixture cleanup, 2026-10-10
+
+**Scope**
+
+- Implemented `AMENDMENTS/09_TEST_FILE_ORDERING_AND_FIXTURE_CLEANUP.md`; the earlier diagnostic entry numbered 09 remains unchanged as historical evidence.
+- Renamed the five tracked test modules with `git mv`; preserved existing working-tree edits and all 43 test methods, assertions, classes, and setup/teardown behavior.
+- Deleted the temporary root `TESTS_OVERVIEW.md` without migrating its contents.
+
+**Decisions**
+
+- Test-file order: `test_chunking.py` -> `test_01_chunking.py`; `test_documents.py` -> `test_02_documents.py`; `test_embeddings_qdrant.py` -> `test_03_embeddings_qdrant.py`; `test_upload_storage.py` -> `test_04_upload_storage.py`; `test_system.py` -> `test_05_system.py`.
+- Updated the health tests' shared `Provider` import to `tests.test_04_upload_storage`; `run.py` already discovers `test*.py` automatically and needed no change.
+- Renamed generated fixtures `unsupported.txt` -> `unsupported.zip` and `image-only-page.pdf` -> `blank-middle-page.pdf`, retaining their exact bytes; updated generator output paths.
+- No active test references or loads `no-sentence-boundaries.md`; removed that unused fixture and its generator entry, without removing tests.
+- Updated only required module/fixture references in both MANUAL files; the Plan 01 rejection command now uses the ZIP fixture directly, so its obsolete filename-override explanation was corrected.
+- Updated `.gitignore` fixture paths and removed the unused fixture entry because generated manual inputs must remain ignored; no dependency, application, or pipeline change.
+
+**Verification**
+
+- Saved session-start sources and hashes outside the repository at `C:\Users\RYANNO~1\AppData\Local\Temp\atlas-test-ordering-dzz59d11`; did not save the deleted overview's contents.
+- Byte comparisons: four renamed test files are unchanged; the fifth differs only in its shared-helper import. Both renamed fixture files retain identical bytes. All application code, requirements, amendment prompts, and other protected files match the session baseline.
+- From `server/`, `..\.venv\Scripts\python.exe -m tests.run`: 43 tests, OK, `15.296 s` for the discovered suite, plus real-model startup/upload checks; exit code 0. Used process-only `HF_HUB_OFFLINE=1` with cached models.
+- From `server/`, `..\.venv\Scripts\python.exe -m compileall -q tests`, `git diff --check`, and `git diff --cached --check`: PASS.
+- Git recognizes all five test-file changes as renames: the staged rename operations are 100% matches; comparison with HEAD also identifies all five despite pre-existing edits.
+- Exercised the generator in an external temporary directory: exactly six retained fixture outputs, no old names or unused punctuation-free fixture. Both the retained and regenerated PDF have three pages with a blank second page.
+- The renamed `unsupported.zip` returns HTTP 400 before upload-byte reads or extraction; its existing non-ZIP content needs no archive parsing.
+- Verified numbered test/helper imports and MANUAL references, ignored new fixture paths, deleted overview/unused fixture, and unchanged branch `phase-01/plan-02` and HEAD `038099b5eb8719afa6771797b0131b111fea1b2f`.
+- Evidence: baseline `manifest.json`, saved originals, generated-fixture checks, and `tests.log` in the external verification directory.
+
+**Limits**
+
+- Test organization and manual fixture maintenance only; no pipeline logic, public API, assertion, or failure-boundary changes. Both plans remain Verified.
+- No Docker, new dependencies, commits, or branch changes. `git mv` stages the requested test-file renames; existing unrelated changes remain intact.
 
 ## Maintenance rule
 

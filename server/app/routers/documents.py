@@ -72,8 +72,10 @@ async def upload(file: UploadFile = File(...)) -> UploadResponse:
     logger.info("Processing Upload: %s | Extension: %s", filename, extension)
 
     file_id = str(uuid4())
+
     try:
         document = await run_in_threadpool(extract, content, extension, filename)
+
         chunks = await run_in_threadpool(chunk, document=document, id=file_id)
     except TextExtractionError as exc:
         raise ApiError(str(exc), "FILE_UPLOAD_FAILED") from exc
@@ -85,7 +87,9 @@ async def upload(file: UploadFile = File(...)) -> UploadResponse:
         )
 
     logger.info("Chunked File: %s | Count: %d", filename, len(chunks))
+
     await run_in_threadpool(storage().write, chunks)
+
     logger.info(
         "Upload complete: file_id=%s seconds=%.3f",
         file_id,

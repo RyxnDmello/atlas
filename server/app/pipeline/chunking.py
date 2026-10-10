@@ -1,24 +1,21 @@
 import re
 import unicodedata
+from typing import cast
 from collections import Counter
 from functools import lru_cache
-from typing import cast
+from transformers import AutoTokenizer
 
 from docling_core.transforms.chunker.doc_chunk import DocChunk
 from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
 from docling_core.transforms.chunker.tokenizer.huggingface import HuggingFaceTokenizer
-from docling_core.types.doc import (
-    DoclingDocument,
-    DocItemLabel,
-    SectionHeaderItem,
-    TableItem,
-    TextItem,
-    TitleItem,
-)
-from transformers import AutoTokenizer
 
-from app.core.constants import constants
+from docling_core.types.doc.labels import DocItemLabel
+from docling_core.types.doc.document import DoclingDocument
+from docling_core.types.doc.items.table.table import TableItem
+from docling_core.types.doc.items.text import TextItem, TitleItem, SectionHeaderItem
+
 from app.core.logging import get_logger
+from app.core.constants import constants
 
 from app.schemas.pipeline import Chunk
 
@@ -35,6 +32,7 @@ def _chunker() -> HybridChunker:
         ),
         max_tokens=MAX_CHUNK_TOKENS,
     )
+
     return HybridChunker(
         tokenizer=tokenizer,
         merge_peers=constants.docling.DOCLING_MERGE_PEERS,
@@ -60,6 +58,7 @@ def chunk(document, id: str) -> list[Chunk]:
         for raw in chunker.chunk(dl_doc=document)
         for recovered in _recover(document, cast(DocChunk, raw), chunker)
     ]
+
     for index, item in enumerate(items):
         text = chunker.contextualize(item)
         headings = list(item.meta.headings or [])
@@ -78,6 +77,7 @@ def chunk(document, id: str) -> list[Chunk]:
         )
 
     _coverage(document, items, chunks, chunker, id)
+
     return chunks
 
 
@@ -97,19 +97,25 @@ def _recover(document, item: DocChunk, chunker: HybridChunker) -> list[DocChunk]
     """Split headings removed by token budgeting as body text with original provenance."""
     if item.text:
         return [item]
+
     text = _heading(document, item)
     expected = _words(text)
+
     if not expected or not (expected - _words(chunker.contextualize(item))):
         return [item]
+
     recovery = DoclingDocument(name="heading-content")
     recovery.add_text(label=DocItemLabel.TEXT, text=text)
+
     items = []
+
     for raw in chunker.chunk(dl_doc=recovery):
         segment = cast(DocChunk, raw)
         segment.meta = item.meta.model_copy(
             update={"headings": None, "captions": None}
         )
         items.append(segment)
+
     return items
 
 
@@ -118,14 +124,16 @@ def _words(text: str) -> Counter[str]:
     return Counter(re.findall(r"[^\W_]+", unicodedata.normalize("NFKC", text).casefold()))
 
 
-def _source(document) -> dict[str, tuple[object, str]]:
+def _source(document) -> dict[str, tuple[TextItem | TableItem, str]]:
     """Collect body text and table cells, resolving rich cells without duplicate references."""
-    sources = {}
+    sources: dict[str, tuple[TextItem | TableItem, str]] = {}
+
     for item, _ in document.iterate_items():
         if isinstance(item, TextItem):
             sources[item.self_ref] = (item, item.text)
         elif isinstance(item, TableItem):
             cells = []
+
             for cell in item.data.table_cells:
                 if reference := getattr(cell, "ref", None):
                     for original, _ in document.iterate_items(root=reference.resolve(document)):
@@ -135,7 +143,9 @@ def _source(document) -> dict[str, tuple[object, str]]:
                             )
                 else:
                     cells.append(cell.text)
+
             sources[item.self_ref] = (item, "\n".join(cells))
+
     return sources
 
 
@@ -154,9 +164,11 @@ def _coverage(
     """
     sources = _source(document)
     groups = {reference: {reference} for reference in sources}
+
     for source, _ in sources.values():
         if isinstance(source, TableItem):
             references = {source.self_ref}
+
             for cell in source.data.table_cells:
                 if reference := getattr(cell, "ref", None):
                     references.update(
@@ -164,14 +176,18 @@ def _coverage(
                         for item, _ in document.iterate_items(root=reference.resolve(document))
                         if item.self_ref in sources
                     )
+
             _join(groups, references)
+
     bodies = []
     prefixes = []
+
     for item, output in zip(items, chunks, strict=True):
         references = {
             source.self_ref for source in item.meta.doc_items
         } & sources.keys()
         _join(groups, references)
+
         prefix = chunker.contextualize(item.model_copy(update={"text": ""}))
         if prefix and output.text.startswith(prefix):
             body = output.text[len(prefix):]
@@ -179,31 +195,42 @@ def _coverage(
         else:
             body = output.text
             context = ""
+
         bodies.append((references, _words(body)))
         prefixes.append((list(item.meta.headings or []), _words(context)))
+
     missing = 0
     total = sum(_words(text).total() for _, text in sources.values())
     affected = []
     visited = set()
+
     for reference in sources:
         if reference in visited:
             continue
+
         members = groups[reference]
         expected = Counter()
         actual = Counter()
+
         for member in members:
             original, value = sources[member]
             required = _words(value)
+
             if isinstance(original, TitleItem | SectionHeaderItem):
                 represented = Counter()
+
                 for headings, context in prefixes:
                     if any(_words(heading) == required for heading in headings):
                         represented |= context & required
+
                 required -= represented
+
             expected += required
+
         for references, content in bodies:
             if references & members:
                 actual += content
+
         gap = (expected - actual).total()
         if gap:
             missing += gap
@@ -215,7 +242,9 @@ def _coverage(
                 }
                 for member in sorted(members)
             )
+
         visited.update(members)
+
     if missing:
         logger.warning(
             "Chunk text coverage gap file_id=%s source_units=%d "
@@ -231,6 +260,7 @@ def _coverage(
 def _join(groups: dict[str, set[str]], references: set[str]) -> None:
     """Join source references that share chunk or table provenance."""
     members = set().union(*(groups[reference] for reference in references))
+
     for reference in members:
         groups[reference] = members
 
@@ -243,4 +273,5 @@ def _page(item) -> int | None:
         for provenance in getattr(document_item, "prov", [])
         if getattr(provenance, "page_no", None) is not None
     }
+
     return next(iter(pages)) if len(pages) == 1 else None

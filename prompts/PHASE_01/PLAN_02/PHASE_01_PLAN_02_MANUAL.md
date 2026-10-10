@@ -247,8 +247,8 @@ try {
 - Working directory: server/; Docker is not required.
 
 ```powershell
-..\.venv\Scripts\python.exe -m unittest tests.test_embeddings_qdrant -v
-..\.venv\Scripts\python.exe -m unittest tests.test_upload_storage -v
+..\.venv\Scripts\python.exe -m unittest tests.test_03_embeddings_qdrant -v
+..\.venv\Scripts\python.exe -m unittest tests.test_04_upload_storage -v
 ..\.venv\Scripts\python.exe -m compileall -q app tests
 git diff --check
 ```
@@ -397,7 +397,7 @@ git rev-list --all -- server\.env
 ```powershell
 @'
 from pathlib import Path
-from tests.test_documents import make_docx, make_pptx, make_xlsx, make_png
+from tests.test_02_documents import make_docx, make_pptx, make_xlsx, make_png
 
 root = Path('../.venv/amendment04-manual')
 root.mkdir(exist_ok=True)
@@ -420,7 +420,7 @@ print(root.resolve())
   - Sparse fixture: ReportLab letter pages, Helvetica 14, one line at `(72, 720)` per page.
   - Page 1: `Atlas Docker Verification a1173e9e-3c4f-4cc4-b7ed-4221806d3c27`; page 2: `Keep records for seven years.`.
   - Blank-middle fixture: `First page has extractable policy text.`, blank page, `Third page also has useful text.`.
-  - The existing `tests.test_documents.make_pdf` helper produces this layout.
+  - The existing `tests.test_02_documents.make_pdf` helper produces this layout.
 - Upload each fixture using `curl.exe -F "file=@YOUR_FILE_PATH" http://localhost:8080/documents/upload`; adjust PORT if needed.
 - Require HTTP 200, sequential indices from zero, token counts within the configured limit, and every expected sentence.
   - Office fixtures must preserve their policy text; all OCR fixtures must preserve `ATLAS OCR POLICY`.

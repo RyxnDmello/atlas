@@ -20,17 +20,21 @@ def initialize() -> Storage:
     started = perf_counter()
     provider = get_bge_m3_embedder()
     loaded = perf_counter()
+
     client = create_client()
+
     try:
         ensure_collection(client, constants.qdrant.QDRANT_COLLECTION, provider)
         storage = Storage(provider, client, constants.qdrant.QDRANT_COLLECTION)
     except Exception:
         client.close()
         raise
+
     logger.info(
         "Upload startup ready: dimension=%d model_seconds=%.3f total_seconds=%.3f",
         provider.dimension, loaded - started, perf_counter() - started,
     )
+
     return storage
 
 
@@ -38,6 +42,7 @@ def initialize() -> Storage:
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Prepare upload services before requests and close Qdrant on shutdown."""
     storage = await run_in_threadpool(initialize)
+
     try:
         with activate(storage):
             yield

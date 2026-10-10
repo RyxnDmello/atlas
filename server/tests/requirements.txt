@@ -1,4 +1,11 @@
-Pillow
-python-pptx
-reportlab
+# HTTP TEST CLIENT
 httpx
+
+# IMAGE FIXTURES
+Pillow
+
+# PDF FIXTURES
+reportlab
+
+# POWERPOINT FIXTURES
+python-pptx

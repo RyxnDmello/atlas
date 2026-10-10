@@ -1,36 +1,42 @@
+from app.routers.documents import upload
+from app.pipeline.chunking import MAX_CHUNK_TOKENS
+
 import io
-import logging
 import sys
-import unittest
 import zipfile
+import logging
+import unittest
 from pathlib import Path
+from collections.abc import Sequence
+from PIL import Image, ImageDraw, ImageFont
+
+from pptx import Presentation
+from pptx.shapes.autoshape import Shape
+
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
 
 from fastapi import HTTPException, UploadFile
-from PIL import Image, ImageDraw, ImageFont
-from pptx import Presentation
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-
 
 SERVER_ROOT = Path(__file__).resolve().parents[1]
 if str(SERVER_ROOT) not in sys.path:
     sys.path.insert(0, str(SERVER_ROOT))
 
-from app.pipeline.chunking import MAX_CHUNK_TOKENS
 
-from app.routers.documents import upload
-
-
-def make_pdf(page_texts: list[str | None]) -> bytes:
+def make_pdf(page_texts: Sequence[str | None]) -> bytes:
     """Generate a real PDF; None creates a blank page."""
     output = io.BytesIO()
     document = canvas.Canvas(output, pagesize=letter)
+
     for page_text in page_texts:
         if page_text:
             document.setFont("Helvetica", 14)
             document.drawString(72, 720, page_text)
+
         document.showPage()
+
     document.save()
+
     return output.getvalue()
 
 
@@ -79,9 +85,11 @@ def make_docx() -> bytes:
 def make_zip(files: dict[str, str]) -> bytes:
     """Create a ZIP package containing UTF-8 XML files."""
     output = io.BytesIO()
+
     with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:
         for name, content in files.items():
             archive.writestr(name, content)
+
     return output.getvalue()
 
 
@@ -159,10 +167,18 @@ def make_pptx() -> bytes:
     """Create a PPTX file with one real slide and text frame."""
     presentation = Presentation()
     slide = presentation.slides.add_slide(presentation.slide_layouts[1])
-    slide.shapes.title.text = "PPTX Policy"
-    slide.placeholders[1].text = "PPTX policy slide content."
+
+    title = slide.shapes.title
+    body = slide.placeholders[1]
+    assert isinstance(title, Shape)
+    assert isinstance(body, Shape)
+
+    title.text = "PPTX Policy"
+    body.text = "PPTX policy slide content."
+
     output = io.BytesIO()
     presentation.save(output)
+
     return output.getvalue()
 
 
@@ -170,6 +186,7 @@ def make_png(font_size: int = 64, format: str = "PNG") -> bytes:
     """Create a high-contrast Pillow image containing a readable OCR phrase."""
     image = Image.new("RGB", (1400, 240), "white")
     draw = ImageDraw.Draw(image)
+
     font_paths = (
         Path("C:/Windows/Fonts/arial.ttf"),
         Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
@@ -180,9 +197,12 @@ def make_png(font_size: int = 64, format: str = "PNG") -> bytes:
         if font_path
         else ImageFont.load_default()
     )
+
     draw.text((50, 70), "ATLAS OCR POLICY", fill="black", font=font)
+
     output = io.BytesIO()
     image.save(output, format=format, quality=95)
+
     return output.getvalue()
 
 
@@ -193,6 +213,7 @@ def make_upload(filename: str, content: bytes) -> UploadFile:
 
 class DocumentUploadTests(unittest.IsolatedAsyncioTestCase):
     """Verify supported uploads, validation failures, and blank-page warnings."""
+
     async def test_supported_formats_upload_successfully(self) -> None:
         """Require supported formats to produce bounded chunks and readable OCR text."""
         files = {
@@ -211,6 +232,7 @@ class DocumentUploadTests(unittest.IsolatedAsyncioTestCase):
         for filename, content in files.items():
             with self.subTest(filename=filename):
                 response = await upload(make_upload(filename, content))
+
                 self.assertGreater(response.total, 0)
                 self.assertTrue(response.chunks)
                 self.assertTrue(all(chunk.text for chunk in response.chunks))
@@ -219,7 +241,8 @@ class DocumentUploadTests(unittest.IsolatedAsyncioTestCase):
                 )
 
                 if filename in {"policy.png", "policy.jpg"}:
-                    text = " ".join(chunk.text for chunk in response.chunks).upper()
+                    text = " ".join(
+                        chunk.text for chunk in response.chunks).upper()
                     self.assertIn("ATLAS", text)
 
     async def test_pdf_upload_and_blank_page_warning(self) -> None:
@@ -236,10 +259,13 @@ class DocumentUploadTests(unittest.IsolatedAsyncioTestCase):
             response = await upload(make_upload("policy.pdf", content))
 
         self.assertGreater(response.total, 0)
+
         text = " ".join(chunk.text for chunk in response.chunks)
+
         self.assertIn("First page", text)
         self.assertIn("Third page", text)
-        self.assertTrue(any("page_number=2" in message for message in logs.output))
+        self.assertTrue(
+            any("page_number=2" in message for message in logs.output))
 
     async def test_unsupported_extension_is_rejected(self) -> None:
         """Reject an unsupported extension before processing the uploaded bytes."""

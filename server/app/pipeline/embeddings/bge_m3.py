@@ -58,6 +58,7 @@ class BGEM3Embedder:
                 "BGE-M3 returned a vector count different from the input")
 
         vectors = [self._to_vector(vector) for vector in dense]
+
         if any(len(vector) != self.dimension for vector in vectors):
             raise ValueError(
                 "BGE-M3 returned a vector with an unexpected dimension")
@@ -68,6 +69,7 @@ class BGEM3Embedder:
     def _to_vector(vector: Any) -> list[float]:
         """Convert a model tensor or array row into plain Python floats."""
         values = vector.tolist() if hasattr(vector, "tolist") else vector
+
         return [float(value) for value in values]
 
 

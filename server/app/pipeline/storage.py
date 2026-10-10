@@ -34,11 +34,13 @@ class Storage:
         """Embed contextualized text and return the confirmed stored point count."""
         if not chunks:
             raise ApiError("No chunks to embed or store", "FILE_UPLOAD_FAILED")
+
         try:
             with self._lock:
                 started = perf_counter()
                 vectors = self.provider.embed([chunk.text for chunk in chunks])
                 elapsed = perf_counter() - started
+
             if len(vectors) != len(chunks) or any(
                 len(vector) != self.provider.dimension for vector in vectors
             ):
@@ -47,9 +49,11 @@ class Storage:
                 )
         except Exception as error:
             logger.exception("Embedding failed: file_id=%s", chunks[0].id)
+
             raise ApiError(
                 "Unable to embed uploaded file chunks", "INTERNAL_SERVER_ERROR"
             ) from error
+
         logger.info(
             "Embedded file: file_id=%s chunks=%d dimension=%d seconds=%.3f",
             chunks[0].id,
@@ -57,6 +61,7 @@ class Storage:
             self.provider.dimension,
             elapsed,
         )
+
         payloads = [
             Payload(
                 file_id=UUID(chunk.id),
@@ -70,6 +75,9 @@ class Storage:
             )
             for chunk in chunks
         ]
+
         count = store(self.client, self.collection, payloads, vectors)
+
         logger.info("Stored file: file_id=%s points=%d", chunks[0].id, count)
+
         return count
