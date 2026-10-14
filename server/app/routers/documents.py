@@ -43,7 +43,7 @@ async def upload(file: UploadFile = File(...)) -> UploadResponse:
         file: The multipart document upload.
 
     Returns:
-        The unchanged filename, type, and full-text chunk response.
+        The stored file identifier, filename, type, and full-text chunks.
 
     Raises:
         ApiError: If validation, extraction, embedding, or storage fails.
@@ -97,6 +97,7 @@ async def upload(file: UploadFile = File(...)) -> UploadResponse:
     )
 
     return UploadResponse(
+        id=file_id,
         name=filename,
         type=extension,
         total=len(chunks),

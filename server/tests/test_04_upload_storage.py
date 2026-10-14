@@ -88,13 +88,20 @@ class UploadStorageTests(TestCase):
         expected = chunk(extract(self.content, ".md",
                          "policy.md"), str(uuid4()))
 
-        response = self.upload()
+        file_id = uuid4()
+
+        with patch("app.routers.documents.uuid4", return_value=file_id) as identifier:
+            response = self.upload()
+
+        identifier.assert_called_once_with()
 
         self.assertEqual(response.status_code, 200, response.text)
 
         body = response.json()
 
-        self.assertEqual(set(body), {"name", "type", "total", "chunks"})
+        self.assertEqual(set(body), {"id", "name", "type", "total", "chunks"})
+        self.assertIsInstance(body["id"], str)
+        self.assertEqual(UUID(body["id"]), file_id)
         self.assertEqual(body["name"], "policy.md")
         self.assertEqual(body["type"], ".md")
         self.assertGreater(body["total"], 1)
@@ -123,6 +130,7 @@ class UploadStorageTests(TestCase):
 
         for item, payload, returned in zip(expected, payloads, body["chunks"], strict=True):
             UUID(payload["file_id"])
+            self.assertEqual(payload["file_id"], body["id"])
             self.assertEqual(
                 set(payload),
                 {
@@ -179,6 +187,65 @@ class UploadStorageTests(TestCase):
             identifiers.add(point.payload["file_id"])
 
         self.assertEqual(len(identifiers), 2)
+        self.assertNotEqual(first.json()["id"], second.json()["id"])
+        self.assertEqual(identifiers, {first.json()["id"], second.json()["id"]})
+
+        for response in (first, second):
+            file_id = response.json()["id"]
+            UUID(file_id)
+            count = sum(point.payload["file_id"] == file_id for point in points
+                        if isinstance(point.payload, dict))
+            self.assertEqual(count, response.json()["total"])
+
+    def test_returned_ids_query_only_their_uploaded_chunks(self) -> None:
+        """Use public upload IDs directly and verify distinct fixtures stay scoped."""
+        responses = []
+
+        for name, text in (("retention.md", "Keep records for seven years."),
+                           ("support.md", "Acknowledge support requests within two days.")):
+            response = self.http.post(
+                "/documents/upload", files={"file": (name, text.encode(), "text/markdown")})
+            self.assertEqual(response.status_code, 200, response.text)
+            responses.append(response.json())
+
+        self.assertNotEqual(responses[0]["id"], responses[1]["id"])
+
+        total = sum(body["total"] for body in responses)
+        points, cursor = self.client.scroll(self.collection, limit=total, with_vectors=True)
+        self.assertIsNone(cursor)
+        before = sorted((point.model_dump(mode="json") for point in points),
+                        key=lambda point: str(point["id"]))
+
+        for body in responses:
+            with self.subTest(file_id=body["id"]):
+                response = self.http.post(
+                    f"/files/{body['id']}/query", json={"question": "What is the policy?", "top_k": 20})
+                self.assertEqual(response.status_code, 200, response.text)
+                results = response.json()["results"]
+                self.assertEqual(len(results), body["total"])
+                chunks = {item["index"]: item for item in body["chunks"]}
+                payloads = {}
+
+                for point in points:
+                    assert isinstance(point.payload, dict)
+
+                    if point.payload["file_id"] == body["id"]:
+                        payloads[point.payload["chunk_index"]] = point.payload
+
+                self.assertEqual(len(payloads), body["total"])
+
+                for result in results:
+                    payload = payloads[result["index"]]
+                    self.assertEqual(payload["file_id"], body["id"])
+                    self.assertEqual(result["text"], payload["text"])
+                    self.assertEqual({key: value for key, value in result.items() if key != "score"},
+                                     chunks[result["index"]])
+
+        after, cursor = self.client.scroll(self.collection, limit=total, with_vectors=True)
+        self.assertIsNone(cursor)
+        self.assertEqual(self.client.count(self.collection, exact=True).count, total)
+        self.assertEqual(sorted((point.model_dump(mode="json") for point in after),
+                                key=lambda point: str(point["id"])), before)
 
     def test_embedding_failure_returns_error_without_writing(self) -> None:
         """Return an explicit embedding error without attempting a vector write."""
@@ -216,6 +283,7 @@ class UploadStorageTests(TestCase):
 
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.json()["code"], "QDRANT_COLLECTION_ERROR")
+        self.assertEqual(set(response.json()), {"error", "code"})
 
     def test_unconfirmed_write_is_not_success(self) -> None:
         """Reject an unconfirmed write and require synchronous completion."""
@@ -226,6 +294,7 @@ class UploadStorageTests(TestCase):
 
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.json()["code"], "QDRANT_COLLECTION_ERROR")
+        self.assertEqual(set(response.json()), {"error", "code"})
         self.assertTrue(writer.call_args.kwargs["wait"])
 
     def test_invalid_embeddings_do_not_reach_storage(self) -> None:

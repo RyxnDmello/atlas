@@ -1,21 +1,29 @@
-from datetime import datetime, timezone
 from time import time
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
+from datetime import datetime, timezone
 
 from httpx import TransportError
 from qdrant_client import QdrantClient
 from qdrant_client.http.exceptions import ResponseHandlingException, UnexpectedResponse
-from qdrant_client.http.models import Distance, PointStruct, UpdateStatus, VectorParams
+from qdrant_client.http.models import (
+    Filter,
+    Distance,
+    MatchValue,
+    PointStruct,
+    ScoredPoint,
+    UpdateStatus,
+    VectorParams,
+    FieldCondition,
+)
 
-from app.core.constants import constants
 from app.core.logging import logger
-
-from app.pipeline.embeddings.provider import EmbeddingProvider
-
-from app.schemas.system import CollectionHealth
+from app.core.constants import constants
 
 from app.models.qdrant.chunk import Chunk
+from app.schemas.system import CollectionHealth
+
+from app.pipeline.embeddings.provider import EmbeddingProvider
 
 from app.errors.qdrant import QdrantCollectionError, QdrantConnectionError
 
@@ -135,6 +143,44 @@ def store(
         )
 
     return len(points)
+
+
+def query(
+    client: QdrantClient,
+    collection: str,
+    vector: list[float],
+    file_id: UUID,
+    top_k: int,
+) -> list[ScoredPoint]:
+    """Return ranked dense matches with exact server-side file scope and payloads."""
+    try:
+        return client.query_points(
+            collection_name=collection,
+            query=vector,
+            query_filter=Filter(
+                must=[FieldCondition(
+                    key="file_id", match=MatchValue(value=str(file_id)))]
+            ),
+            limit=top_k,
+            with_payload=True,
+            with_vectors=False,
+        ).points
+    except Exception as error:
+        logger.error(
+            "Qdrant query failed: collection=%s file_id=%s reason=%s",
+            collection, file_id, type(error).__name__,
+        )
+
+        source = error.source if isinstance(
+            error, ResponseHandlingException) else error
+
+        if isinstance(source, (TransportError, ConnectionError, TimeoutError)):
+            raise QdrantConnectionError(
+                "Unable to connect to Qdrant while retrieving chunks"
+            ) from error
+
+        raise QdrantCollectionError(
+            "Unable to retrieve chunks from Qdrant") from error
 
 
 def ensure_collection(
