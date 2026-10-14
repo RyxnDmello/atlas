@@ -15,7 +15,12 @@ FileErrorCode = Literal[
     "FILE_UPLOAD_FAILED",
 ]
 
-ErrorCode = CommonErrorCode | FileErrorCode
+QdrantErrorCode = Literal[
+    "QDRANT_CONNECTION_FAILED",
+    "QDRANT_COLLECTION_ERROR",
+]
+
+ErrorCode = CommonErrorCode | FileErrorCode | QdrantErrorCode
 
 STATUS_BY_CODE: dict[ErrorCode, int] = {
     "BAD_REQUEST": 400,
@@ -24,6 +29,8 @@ STATUS_BY_CODE: dict[ErrorCode, int] = {
     "FILE_UPLOAD_FAILED": 400,
     "UNPROCESSABLE_ENTITY": 422,
     "INTERNAL_SERVER_ERROR": 500,
+    "QDRANT_COLLECTION_ERROR": 500,
+    "QDRANT_CONNECTION_FAILED": 503,
 }
 
 
@@ -37,9 +44,10 @@ class ApiError(HTTPException):
             message: A useful explanation safe to return to the client.
             code: The stable code used by clients and mapped to an HTTP status.
         """
-        self.code = code
+        self.code: ErrorCode = code
         self.message = message
         self.status = STATUS_BY_CODE[code]
+
         super().__init__(status_code=self.status, detail=message)
 
     def to_dict(self) -> dict[str, str]:

@@ -6,6 +6,7 @@ class Chunk(BaseModel):
 
     id: str
     text: str
+    display_text: str
     index: int
     count: int
     page: int | None = None

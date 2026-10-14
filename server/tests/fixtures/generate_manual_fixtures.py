@@ -2,28 +2,33 @@
 
 import io
 from pathlib import Path
+from collections.abc import Sequence
 
-from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
-
+from reportlab.lib.pagesizes import letter
 
 FIXTURE_DIRECTORY = Path(__file__).resolve().parent
 
 
-def make_pdf(pages: list[str | None]) -> bytes:
+def make_pdf(pages: Sequence[str | None]) -> bytes:
     """Build a real PDF; None creates a blank page."""
     output = io.BytesIO()
     document = canvas.Canvas(output, pagesize=letter)
+
     for page_text in pages:
         if page_text:
             document.setFont("Helvetica", 12)
             document.drawString(36, 740, page_text)
+
         document.showPage()
+
     document.save()
+
     return output.getvalue()
 
 
 def main() -> None:
+    """Write the reproducible files used by the manual verification guide."""
     long_sentences = [
         f"Policy sentence {index} explains a distinct workplace rule clearly."
         for index in range(240)
@@ -40,15 +45,12 @@ def main() -> None:
     (FIXTURE_DIRECTORY / "short.md").write_text(
         "A short policy sentence.", encoding="utf-8"
     )
-    (FIXTURE_DIRECTORY / "unsupported.txt").write_text(
+    (FIXTURE_DIRECTORY / "unsupported.zip").write_text(
         "This extension must be rejected.", encoding="utf-8"
     )
     (FIXTURE_DIRECTORY / "empty.md").write_bytes(b"")
-    (FIXTURE_DIRECTORY / "no-sentence-boundaries.md").write_text(
-        "word " * 700, encoding="utf-8"
-    )
     (FIXTURE_DIRECTORY / "valid-multipage.pdf").write_bytes(make_pdf(pdf_pages))
-    (FIXTURE_DIRECTORY / "image-only-page.pdf").write_bytes(
+    (FIXTURE_DIRECTORY / "blank-middle-page.pdf").write_bytes(
         make_pdf(
             [
                 "First page contains extractable employee policy text.",
@@ -57,6 +59,7 @@ def main() -> None:
             ]
         )
     )
+
     print(f"Manual QA fixtures written to {FIXTURE_DIRECTORY}")
 
 
