@@ -44,6 +44,7 @@ class LLMProvider(Protocol):
 - Canonical chunk text = `chunker.contextualize(chunk)` output (heading-enriched), not raw `chunk.text` — this is what actually gets embedded in PLAN_02.
 - Output DTO: `Chunk(id, text, display_text, index, count, page, heading, section)` in `schemas/pipeline.py`.
 - `id` is the upload's internal UUID string; storage maps it to `file_id`, `index` to `chunk_index`, and `count` to `token_count`.
+- Public upload handoff: after confirmed storage, `POST /documents/upload` returns that same UUID as top-level `id: str`, alongside name/type/total/chunks. Internal storage/retrieval names remain `file_id`; use the response `id` directly with `/files/{file_id}/query`. PLAN_03 is verified following human acceptance of the completed walkthrough.
 - `text` is contextualized embedding input; `display_text` is raw Docling source text for citation display and stays internal to the pipeline/storage.
 - `page` (not `page_number`), `heading`, and `section` come from `chunk.meta`; all are optional/`None` when unavailable, e.g. `.txt`.
 - `heading` is the first heading in the path; `section` is the nearest/last; the public response retains `text`, `index`, `count`, `page`, `heading`, `section`.
@@ -64,9 +65,14 @@ class LLMProvider(Protocol):
 
 ## Retrieval contract
 
-- Planned input: user question (string), `file_id`, and `top_k`; proposed default 5 remains open until retrieval is implemented and tested.
+- Verified input: trimmed non-empty question (string), internal UUID `file_id`, and `top_k` (default 5, range 1..20).
 - Steps: embed the question via the same `EmbeddingProvider` used at ingestion -> Qdrant cosine search scoped to the current `file_id` -> return chunks with score.
 - Phase 1 has exactly one file per session, so scoping is trivial now, but the retrieval function signature must already accept a `file_id` filter to avoid a rewrite in Phase 2.
+- `POST /files/{file_id}/query` reuses startup-prepared storage resources and the shared ingestion/query inference lock; blocking work runs in a threadpool.
+- `query_points` uses an exact `file_id` payload match in `query_filter`, payloads enabled, vectors excluded, and no score threshold; preserve result order and raw scores.
+- Internal results retain every stored field plus score; missing payload fields or a scope mismatch fail explicitly. Public results contain only score/text/index/count/page/heading/section.
+- A valid UUID with zero indexed matches returns HTTP 200 with `{"results": []}`; Qdrant is not canonical file state.
+- Retrieval is read-only; safe logs contain file ID, limit, count, scores, and stage timings, excluding question/chunk content and exception bodies.
 
 ## Generation & citation contract
 
@@ -93,13 +99,13 @@ class LLMProvider(Protocol):
 
 ## Contract data flow
 
-Legend: ingestion and storage are built; retrieval, generation, and answer/citation output are planned.
+Legend: ingestion, storage, and retrieval are verified; generation and answer/citation output are planned.
 
 ```mermaid
 flowchart LR
     Chunk["Chunk: text and display_text"] --> Embed["EmbeddingProvider"]
     Embed --> Point["Qdrant point: vector and payload"]
-    Point --> Retrieve["Planned retrieval: file_id filter"]
+    Point --> Retrieve["Verified retrieval: file_id filter"]
     Retrieve --> Generate["Planned LLMProvider"]
     Generate --> Answer["Planned answer and citation"]
 ```
@@ -107,5 +113,5 @@ flowchart LR
 ## Open items — do not let Codex assume these
 
 - Exact citation payload format (inline markers vs. structured metadata).
-- Whether `top_k=5` is final or needs tuning once real retrieval is tested.
+- Any later tuning of the implemented `top_k=5` baseline requires measured evidence and an explicit decision.
 - Redis caching strategy (what gets cached, TTL) — out of scope until the Phase 1 core pipeline works end to end.

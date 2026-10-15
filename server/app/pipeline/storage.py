@@ -1,17 +1,16 @@
+from uuid import UUID
 from threading import Lock
 from time import perf_counter
-from uuid import UUID
-
+from collections.abc import Iterator
+from contextlib import contextmanager
 from qdrant_client import QdrantClient
 
 from app.core.logging import logger
 
 from app.db.qdrant import store
-
 from app.pipeline.embeddings.provider import EmbeddingProvider
 
 from app.schemas.pipeline import Chunk
-
 from app.models.qdrant.chunk import Chunk as Payload
 
 from app.errors.api import ApiError
@@ -30,13 +29,19 @@ class Storage:
         self.ready = perf_counter()
         self._lock = Lock()
 
+    @contextmanager
+    def encoding(self) -> Iterator[None]:
+        """Serialize ingestion and retrieval inference through the same provider."""
+        with self._lock:
+            yield
+
     def write(self, chunks: list[Chunk]) -> int:
         """Embed contextualized text and return the confirmed stored point count."""
         if not chunks:
             raise ApiError("No chunks to embed or store", "FILE_UPLOAD_FAILED")
 
         try:
-            with self._lock:
+            with self.encoding():
                 started = perf_counter()
                 vectors = self.provider.embed([chunk.text for chunk in chunks])
                 elapsed = perf_counter() - started

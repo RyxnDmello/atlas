@@ -17,7 +17,7 @@
 | ---------------- | ----------- | ------------------------------------------------------ |
 | PHASE_01_PLAN_01 | Verified    | Scaffolding, upload, Docling extraction/OCR, chunking  |
 | PHASE_01_PLAN_02 | Verified    | Qdrant setup, embedding, storage, database diagnostics |
-| PHASE_01_PLAN_03 | Not Started | Retrieval (query embed + top-k search)                 |
+| PHASE_01_PLAN_03 | Verified    | Retrieval and upload ID handoff                        |
 | PHASE_01_PLAN_04 | Not Started | Generation, streaming, citation                        |
 | PHASE_01_PLAN_05 | Not Started | Minimal client UI                                      |
 
@@ -25,7 +25,7 @@
 
 ## Pipeline by plan
 
-Legend: green stages belong to built Plans 01–02; gray stages belong to pending Plans 03–05.
+Legend: green stages through retrieval are verified, and gray stages are pending.
 
 ```mermaid
 flowchart LR
@@ -40,8 +40,8 @@ flowchart LR
     Cite --> Client["PLAN_05: Client"]
     classDef built fill:#dcfce7,stroke:#166534,color:#111827,stroke-width:2px
     classDef pending fill:#e5e7eb,stroke:#4b5563,color:#111827,stroke-width:2px,stroke-dasharray:4
-    class Upload,Extract,Chunk,Embed,Store built
-    class Retrieve,Generate,Stream,Cite,Client pending
+    class Upload,Extract,Chunk,Embed,Store,Retrieve built
+    class Generate,Stream,Cite,Client pending
 ```
 
 ## PHASE_01_PLAN_01 — Scaffolding, Upload, Extraction, Chunking
@@ -101,12 +101,17 @@ flowchart LR
 
 - **Branch:** `phase-01/plan-03`
 
+- **Status:** Verified; accepted after human review of the completed agent walkthrough.
+
 - **Depends on:** PLAN_02 verified.
 
 - **Builds:**
 
-- `POST /files/{file_id}/query` (or similar — confirm exact path when writing this plan) — accepts a question, embeds it via the same `EmbeddingProvider`, runs a `file_id`-scoped cosine search, returns top-k chunks with scores.
-- `top_k` proposed default is 5 (open item — resolve or confirm when this plan is written).
+- `POST /files/{file_id}/query` accepts a trimmed non-empty question and internal UUID, reuses the prepared provider/client, and returns ranked chunks with raw cosine scores.
+- Upload-to-query handoff: `POST /documents/upload` returns the stored UUID as top-level `id`; internal storage/retrieval identifiers remain `file_id`. Both amendments are verified under PLAN_03.
+- `top_k` defaults to 5 and accepts 1..20; exact server-side file scope, no score threshold, empty scoped results return HTTP 200.
+- Public results expose score/text/index/count/page/heading/section; `display_text` stays internal.
+- [CONTEXT](PLAN_03/PHASE_01_PLAN_03_CONTEXT.md) records implementation, verification evidence, and human acceptance; [MANUAL](PLAN_03/PHASE_01_PLAN_03_MANUAL.md) retains the repeatable acceptance checks.
 
 - **Explicitly excluded:** LLM generation — raw retrieved chunks only.
 

@@ -15,6 +15,7 @@ class ResponseChunk(BaseModel):
 class UploadResponse(BaseModel):
     """Represent the upload endpoint response."""
 
+    id: str
     name: str
     type: str
     total: int

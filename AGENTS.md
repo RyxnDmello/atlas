@@ -22,13 +22,13 @@
 | Extraction & chunking   | Implemented & Verified |
 | Embedding               | Implemented & Verified |
 | Vector storage (Qdrant) | Implemented & Verified |
-| Retrieval               | Not Yet Built          |
+| Retrieval               | Implemented & Verified |
 | Generation/streaming    | Not Yet Built          |
 | Citation display        | Not Yet Built          |
 
 - Statuses: `Not Yet Built` / `Implemented, Unverified` (code exists but untested/unexplained) / `Implemented & Verified`. Never treat "Unverified" as "Verified."
 
-- Current implementation: [Plan 01 CONTEXT](prompts/PHASE_01/PLAN_01/PHASE_01_PLAN_01_CONTEXT.md) and [Plan 02 CONTEXT](prompts/PHASE_01/PLAN_02/PHASE_01_PLAN_02_CONTEXT.md).
+- Current implementation: [Plan 01 CONTEXT](prompts/PHASE_01/PLAN_01/PHASE_01_PLAN_01_CONTEXT.md), [Plan 02 CONTEXT](prompts/PHASE_01/PLAN_02/PHASE_01_PLAN_02_CONTEXT.md), and [Plan 03 CONTEXT](prompts/PHASE_01/PLAN_03/PHASE_01_PLAN_03_CONTEXT.md).
 
 ## Common commands
 
@@ -94,7 +94,7 @@ atlas/
 │   │   │   ├── chunking.py
 │   │   │   ├── embeddings/
 │   │   │   ├── storage.py
-│   │   │   ├── retrieval.py     # planned
+│   │   │   ├── retrieval.py     # file-scoped dense retrieval
 │   │   │   └── generation/      # planned
 │   │   └── db/                  # Qdrant; Postgres from Phase 3
 │   └── tests/
@@ -106,7 +106,8 @@ atlas/
         │   ├── PHASE_01_PLAN_01.md
         │   ├── PHASE_01_PLAN_01_CONTEXT.md
         │   └── PHASE_01_PLAN_01_MANUAL.md
-        └── PLAN_02/             # same three-file pattern
+        ├── PLAN_02/             # same three-file pattern
+        └── PLAN_03/             # retrieval; same three-file pattern
 ```
 
 - `server/` = backend; `client/` = frontend; handlers live in `routers/` (not `api/`), imported into `main.py`.
