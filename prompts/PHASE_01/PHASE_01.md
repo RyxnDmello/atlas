@@ -13,13 +13,13 @@
 
 ## Plan status
 
-| Plan             | Status      | One-line Scope                                         |
-| ---------------- | ----------- | ------------------------------------------------------ |
-| PHASE_01_PLAN_01 | Verified    | Scaffolding, upload, Docling extraction/OCR, chunking  |
-| PHASE_01_PLAN_02 | Verified    | Qdrant setup, embedding, storage, database diagnostics |
-| PHASE_01_PLAN_03 | Verified    | Retrieval and upload ID handoff                        |
-| PHASE_01_PLAN_04 | Not Started | Generation, streaming, citation                        |
-| PHASE_01_PLAN_05 | Not Started | Minimal client UI                                      |
+| Plan             | Status            | One-line Scope                                         |
+| ---------------- | ----------------- | ------------------------------------------------------ |
+| PHASE_01_PLAN_01 | Verified          | Scaffolding, upload, Docling extraction/OCR, chunking  |
+| PHASE_01_PLAN_02 | Verified          | Qdrant setup, embedding, storage, database diagnostics |
+| PHASE_01_PLAN_03 | Verified          | Retrieval and upload ID handoff                        |
+| PHASE_01_PLAN_04 | Built, Unverified | Grounded generation/citation core                      |
+| PHASE_01_PLAN_05 | Not Started       | Minimal client UI                                      |
 
 ---
 
@@ -125,14 +125,17 @@ flowchart LR
 
 - **Branch:** `phase-01/plan-04`
 
+- **Status:** Built, Unverified overall; Amendment 02 is complete and the provider, configuration, and internal grounding/citation core passed Docker verification. Public transport/final acceptance remain incomplete.
+
 - **Depends on:** PLAN_03 verified.
 
 - **Builds:**
 
 - `LLMProvider` interface + `GeminiFlashProvider` implementation.
-- Prompt assembly from retrieved chunks + question.
-- SSE (or WebSocket — confirm before writing this plan) streaming response.
-- Citation metadata format (inline markers vs. structured return) — must be decided and recorded before this plan's prompt is written.
+- Deterministic grounded prompt assembly from retrieved chunks + question and incremental internal clean-text streaming.
+- Native FastAPI SSE streaming response and `/files/{file_id}/ask` remain Amendment 03.
+- Structured citations from trusted retrieval metadata; internal `[[cite:chunk_index]]` markers are validated and suppressed from answer text.
+- [CONTEXT](PLAN_04/PHASE_01_PLAN_04_CONTEXT.md) records provider/core verification and the reusable Docker baseline; [MANUAL](PLAN_04/PHASE_01_PLAN_04_MANUAL.md) covers repeatable acceptance.
 
 - **Explicitly excluded:** client UI — API-only, tested via curl/SSE client or script.
 

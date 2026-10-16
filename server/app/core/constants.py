@@ -2,11 +2,13 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
+from pydantic import BaseModel, SecretStr, ValidationError
 
 from app.schemas.constants import (
     AppConstants,
     LoggerConstants,
     QdrantConstants,
+    GeminiConstants,
     DoclingConstants,
     EmbeddingDenseKey,
     EmbeddingConstants,
@@ -17,48 +19,41 @@ ENV_PATH = Path(__file__).resolve().parents[2] / ".env"
 load_dotenv(dotenv_path=ENV_PATH)
 
 
-def _value(name: str) -> str | None:
-    """Return one environment-backed setting."""
-    return os.getenv(name)
+def _values(schema: type[BaseModel]) -> dict[str, str]:
+    """Read overrides, omitting absent or blank default-backed fields for validation."""
+    values = {}
+    for name, field in schema.model_fields.items():
+        value = os.getenv(name)
+        if value is None or (not field.is_required() and not value.strip()):
+            continue
+
+        values[name] = value
+
+    return values
 
 
 class Constants:
     """Expose validated settings through the established nested API."""
 
+    @property
+    def gemini(self) -> "_Gemini":
+        """Validate optional generation settings only when generation is prepared."""
+        try:
+            config = GeminiConstants.model_validate(_values(GeminiConstants))
+        except ValidationError:
+            raise ValueError(
+                "Invalid Gemini configuration: key, model, and positive token limit required") from None
+
+        return _Gemini(config)
+
     def __init__(self) -> None:
         """Load and validate settings before exposing the nested configuration groups."""
-        app = AppConstants.model_validate(
-            {
-                "PORT": _value("PORT"),
-            }
-        )
-        logger = LoggerConstants.model_validate(
-            {
-                "LOG_LEVEL": _value("LOG_LEVEL"),
-            }
-        )
-        docling = DoclingConstants.model_validate(
-            {
-                "DOCLING_MAX_CHUNK_TOKENS": _value("DOCLING_MAX_CHUNK_TOKENS"),
-            }
-        )
-        embedding = EmbeddingConstants.model_validate({})
-        qdrant = QdrantConstants.model_validate(
-            {
-                "QDRANT_URL": _value("QDRANT_URL"),
-                **{
-                    name: value
-                    for name in ("QDRANT_COLLECTION", "QDRANT_CLIENT_TIMEOUT")
-                    if (value := _value(name)) is not None
-                },
-                "QDRANT_HEALTHCHECK_RETRIES": _value("QDRANT_HEALTHCHECK_RETRIES"),
-                "QDRANT_HEALTHCHECK_TIMEOUT": _value("QDRANT_HEALTHCHECK_TIMEOUT"),
-                "QDRANT_HEALTHCHECK_INTERVAL": _value("QDRANT_HEALTHCHECK_INTERVAL"),
-                "QDRANT_HEALTHCHECK_START_PERIOD": _value(
-                    "QDRANT_HEALTHCHECK_START_PERIOD"
-                ),
-            }
-        )
+        app = AppConstants.model_validate(_values(AppConstants))
+        logger = LoggerConstants.model_validate(_values(LoggerConstants))
+        docling = DoclingConstants.model_validate(_values(DoclingConstants))
+        embedding = EmbeddingConstants.model_validate(
+            _values(EmbeddingConstants))
+        qdrant = QdrantConstants.model_validate(_values(QdrantConstants))
 
         self.app = _App(app.PORT)
         self.logger = _Logger(logger.LOG_LEVEL)
@@ -87,6 +82,16 @@ class Constants:
             qdrant.QDRANT_CLIENT_TIMEOUT,
             qdrant.QDRANT_WRITE_WAIT,
         )
+
+
+class _Gemini:
+    """Expose lazily validated Gemini settings under the gemini group."""
+
+    def __init__(self, config: GeminiConstants) -> None:
+        """Expose the secret credential, explicit model, and output limit."""
+        self.GEMINI_API_KEY: SecretStr = config.GEMINI_API_KEY
+        self.GEMINI_MODEL = config.GEMINI_MODEL
+        self.GEMINI_MAX_OUTPUT_TOKENS = config.GEMINI_MAX_OUTPUT_TOKENS
 
 
 class _App:

@@ -32,6 +32,7 @@ class LLMProvider(Protocol):
 ```
 
 - `GeminiFlashProvider` wraps `google-genai`. The model string must be read from config/env, never hardcoded — Gemini Flash variants deprecate on a period of months.
+- PLAN_04 Amendment 01 implements the independent provider using stateless Interactions streaming (`store=False`), model-output text only, explicit completion/error handling, and per-call client/stream cleanup. Generation settings validate lazily; retrieval/API integration remains deferred.
 
 ## Text extraction & chunking contract (Docling)
 
@@ -77,7 +78,13 @@ class LLMProvider(Protocol):
 ## Generation & citation contract
 
 - Prompt assembly: retrieved chunks + question, passed to `LLMProvider.stream_generate`.
-- The response must carry enough metadata to render a citation (which chunk_index the answer drew from). Whether this is inline prompt markers or a separate structured return value is an **open decision — flag it to the human, do not assume** the first time generation code is written.
+- PLAN_04 Amendment 02 implements `prompt.build(question, chunks)` over ordered internal `RetrievedChunk` values: contextualized `text` remains verbatim inside collision-checked untrusted source delimiters, labelled only by trusted `chunk_index`. Source-only instructions and the canonical insufficient-context sentence are separate from source data.
+- `CitationParser` removes exact ASCII `[[cite:<non-negative integer>]]` markers across arbitrary deltas, rejects malformed/unfinished/unknown references and duplicate retrieval indexes or mixed-file input, and deduplicates in first-reference order. Its retained prefix and saturating numeric state are bounded; it never accumulates the answer. Leading zeros are accepted; incomplete non-reserved bracket text remains literal.
+- Frozen `Citation` fields are `index/page/heading/section/excerpt`, mapped only from retrieval `chunk_index/page/heading/section/display_text`; no model provenance, scores, or per-citation file IDs.
+- `GroundedStream(provider, question, chunks)` snapshots inputs and yields incremental clean provisional text. `.citations` is unavailable until successful exhaustion and cleanup; callers must close on early exit. Later provider/parser/contract failures remain failures, using sanitized `GenerationError`, even after text was yielded.
+- Zero chunks bypass the provider with exactly `I don't have enough information in this file to answer that.` and empty citations. With sources, only that exact fallback without citations or a nonblank answer with valid citations can succeed. Citation validity establishes provenance membership, not semantic entailment or universal prompt-injection resistance.
+- Amendment 02 is complete with local and packaged regressions, live Gemini checks, and Docker upload/retrieval-to-citation evidence recorded in PLAN_04 CONTEXT. PLAN_04 remains Built, Unverified pending public transport and final acceptance.
+- PLAN_04 resolves public transport as native FastAPI SSE over `POST /files/{file_id}/ask`; the endpoint and transport remain unbuilt after the provider foundation.
 
 ## Reindexing (relevant only when a provider swap is discussed)
 
@@ -99,19 +106,19 @@ class LLMProvider(Protocol):
 
 ## Contract data flow
 
-Legend: ingestion, storage, and retrieval are verified; generation and answer/citation output are planned.
+Legend: ingestion, storage, and retrieval are verified; the internal generation/citation core is implemented and public transport is pending.
 
 ```mermaid
 flowchart LR
     Chunk["Chunk: text and display_text"] --> Embed["EmbeddingProvider"]
     Embed --> Point["Qdrant point: vector and payload"]
     Point --> Retrieve["Verified retrieval: file_id filter"]
-    Retrieve --> Generate["Planned LLMProvider"]
-    Generate --> Answer["Planned answer and citation"]
+    Retrieve --> Generate["LLMProvider and GroundedStream"]
+    Generate --> Answer["Internal clean text and trusted citations"]
+    Answer --> Transport["Pending ask/SSE transport"]
 ```
 
 ## Open items — do not let Codex assume these
 
-- Exact citation payload format (inline markers vs. structured metadata).
 - Any later tuning of the implemented `top_k=5` baseline requires measured evidence and an explicit decision.
 - Redis caching strategy (what gets cached, TTL) — out of scope until the Phase 1 core pipeline works end to end.

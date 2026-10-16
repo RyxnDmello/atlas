@@ -16,19 +16,20 @@
 
 ## Component maturity (update as work lands)
 
-| Component               | Status                 |
-| ----------------------- | ---------------------- |
-| Upload endpoint         | Implemented & Verified |
-| Extraction & chunking   | Implemented & Verified |
-| Embedding               | Implemented & Verified |
-| Vector storage (Qdrant) | Implemented & Verified |
-| Retrieval               | Implemented & Verified |
-| Generation/streaming    | Not Yet Built          |
-| Citation display        | Not Yet Built          |
+| Component               | Status                  |
+| ----------------------- | ----------------------- |
+| Upload endpoint         | Implemented & Verified  |
+| Extraction & chunking   | Implemented & Verified  |
+| Embedding               | Implemented & Verified  |
+| Vector storage (Qdrant) | Implemented & Verified  |
+| Retrieval               | Implemented & Verified  |
+| Generation/streaming    | Implemented, Unverified |
+| Citation display        | Not Yet Built           |
 
 - Statuses: `Not Yet Built` / `Implemented, Unverified` (code exists but untested/unexplained) / `Implemented & Verified`. Never treat "Unverified" as "Verified."
 
-- Current implementation: [Plan 01 CONTEXT](prompts/PHASE_01/PLAN_01/PHASE_01_PLAN_01_CONTEXT.md), [Plan 02 CONTEXT](prompts/PHASE_01/PLAN_02/PHASE_01_PLAN_02_CONTEXT.md), and [Plan 03 CONTEXT](prompts/PHASE_01/PLAN_03/PHASE_01_PLAN_03_CONTEXT.md).
+- Generation includes the Docker-verified independent Gemini provider and internal grounding/citation core; Amendment 02 is complete. Public ask/SSE and citation display remain unbuilt.
+- Current implementation: [Plan 01 CONTEXT](prompts/PHASE_01/PLAN_01/PHASE_01_PLAN_01_CONTEXT.md), [Plan 02 CONTEXT](prompts/PHASE_01/PLAN_02/PHASE_01_PLAN_02_CONTEXT.md), [Plan 03 CONTEXT](prompts/PHASE_01/PLAN_03/PHASE_01_PLAN_03_CONTEXT.md), and [Plan 04 CONTEXT](prompts/PHASE_01/PLAN_04/PHASE_01_PLAN_04_CONTEXT.md).
 
 ## Common commands
 
@@ -77,7 +78,7 @@ atlas/
 │   ├── app/
 │   │   ├── main.py              # wiring only
 │   │   ├── routers/             # all endpoints, including system/
-│   │   ├── errors/              # api.py, qdrant.py
+│   │   ├── errors/              # api.py, qdrant.py, generation.py
 │   │   ├── core/
 │   │   │   ├── constants.py     # dotenv loading and validated Constants
 │   │   │   ├── lifespan.py      # startup services and Qdrant shutdown
@@ -95,7 +96,7 @@ atlas/
 │   │   │   ├── embeddings/
 │   │   │   ├── storage.py
 │   │   │   ├── retrieval.py     # file-scoped dense retrieval
-│   │   │   └── generation/      # planned
+│   │   │   └── generation/      # provider, grounding, citations; API integration pending
 │   │   └── db/                  # Qdrant; Postgres from Phase 3
 │   └── tests/
 ├── client/                      # placeholder; Next.js in PLAN_05
@@ -107,7 +108,8 @@ atlas/
         │   ├── PHASE_01_PLAN_01_CONTEXT.md
         │   └── PHASE_01_PLAN_01_MANUAL.md
         ├── PLAN_02/             # same three-file pattern
-        └── PLAN_03/             # retrieval; same three-file pattern
+        ├── PLAN_03/             # retrieval; same three-file pattern
+        └── PLAN_04/             # grounded generation core; public transport pending
 ```
 
 - `server/` = backend; `client/` = frontend; handlers live in `routers/` (not `api/`), imported into `main.py`.
