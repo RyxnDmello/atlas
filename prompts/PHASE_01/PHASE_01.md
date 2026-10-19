@@ -18,14 +18,14 @@
 | PHASE_01_PLAN_01 | Verified          | Scaffolding, upload, Docling extraction/OCR, chunking  |
 | PHASE_01_PLAN_02 | Verified          | Qdrant setup, embedding, storage, database diagnostics |
 | PHASE_01_PLAN_03 | Verified          | Retrieval and upload ID handoff                        |
-| PHASE_01_PLAN_04 | Built, Unverified | Grounded generation/citation core                      |
+| PHASE_01_PLAN_04 | Verified          | Grounded generation, native SSE ask API, trusted citations |
 | PHASE_01_PLAN_05 | Not Started       | Minimal client UI                                      |
 
 ---
 
 ## Pipeline by plan
 
-Legend: green stages through retrieval are verified, and gray stages are pending.
+Legend: green backend stages through trusted citations are verified; the gray client stage is pending.
 
 ```mermaid
 flowchart LR
@@ -40,8 +40,8 @@ flowchart LR
     Cite --> Client["PLAN_05: Client"]
     classDef built fill:#dcfce7,stroke:#166534,color:#111827,stroke-width:2px
     classDef pending fill:#e5e7eb,stroke:#4b5563,color:#111827,stroke-width:2px,stroke-dasharray:4
-    class Upload,Extract,Chunk,Embed,Store,Retrieve built
-    class Generate,Stream,Cite,Client pending
+    class Upload,Extract,Chunk,Embed,Store,Retrieve,Generate,Stream,Cite built
+    class Client pending
 ```
 
 ## PHASE_01_PLAN_01 — Scaffolding, Upload, Extraction, Chunking
@@ -125,7 +125,7 @@ flowchart LR
 
 - **Branch:** `phase-01/plan-04`
 
-- **Status:** Built, Unverified overall; Amendment 02 is complete and the provider, configuration, and internal grounding/citation core passed Docker verification. Public transport/final acceptance remain incomplete.
+- **Status:** Verified; Amendment 04 and the complete backend plan passed local, Docker, and live SDK/API acceptance performed by the agent under explicit user delegation. Client citation display remains PLAN_05 scope.
 
 - **Depends on:** PLAN_03 verified.
 
@@ -133,7 +133,7 @@ flowchart LR
 
 - `LLMProvider` interface + `GeminiFlashProvider` implementation.
 - Deterministic grounded prompt assembly from retrieved chunks + question and incremental internal clean-text streaming.
-- Native FastAPI SSE streaming response and `/files/{file_id}/ask` remain Amendment 03.
+- Native FastAPI SSE streaming response and `/files/{file_id}/ask` are implemented in Amendment 04. Amendment 03 aligned documentation structure.
 - Structured citations from trusted retrieval metadata; internal `[[cite:chunk_index]]` markers are validated and suppressed from answer text.
 - [CONTEXT](PLAN_04/PHASE_01_PLAN_04_CONTEXT.md) records provider/core verification and the reusable Docker baseline; [MANUAL](PLAN_04/PHASE_01_PLAN_04_MANUAL.md) covers repeatable acceptance.
 

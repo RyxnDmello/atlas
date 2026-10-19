@@ -1,9 +1,10 @@
 # PHASE_01_PLAN_04 — Human Acceptance Manual
 
-- Status: Amendment 02 is complete; the provider, constants overrides, and internal grounding/citation core passed Docker verification. The full PLAN remains Built, Unverified pending Amendment 03 and final acceptance.
+- Status: Amendment 04 is complete and PLAN_04 is Verified, including final Docker and whole-plan acceptance performed by the agent under explicit user delegation.
 - Commands use PowerShell from `server/`, except the first Git check. Use only harmless synthetic content for live provider checks.
 - [CONTEXT](PHASE_01_PLAN_04_CONTEXT.md) records actual counts, usage, timings, compatibility findings, and remaining scope.
-- **Human gate:** the approved Docker run is complete. Preserve the verified services/storage recorded in CONTEXT. Steps 6–8 and 10–13 remain the repeatable Docker procedure; actual results belong in CONTEXT.
+- **Acceptance authority:** the user explicitly authorized final Docker verification and delegated the entire PLAN_04 review/acceptance to the agent. That superseded the earlier pause-for-review gate; no separate human walkthrough remains pending. Reproduction must still establish actual passing evidence before reporting verification.
+- Steps 6–8 and 10–13 document the earlier packaged baseline procedure. For Amendment 04, reuse that baseline using steps 14–19; rebuild only after deployment-sensitive changes. Preserve its images, containers, network, and volume.
 
 ## Acceptance steps
 
@@ -37,7 +38,7 @@
 4. Run deterministic tests and the full regression suite.
 
    ```powershell
-   ..\.venv\Scripts\python.exe -m unittest tests.test_01_constants tests.test_08_generation tests.test_09_grounded_generation -v
+   ..\.venv\Scripts\python.exe -m unittest tests.test_01_constants tests.test_07_retrieval tests.test_08_generation tests.test_09_grounded_generation tests.test_10_ask -v
    ..\.venv\Scripts\python.exe -m tests.run
    ```
 
@@ -52,7 +53,7 @@
 
    Expected: `Gemini smoke OK` and three `Grounded smoke OK` cases: supported (trusted citations), unsupported (exact canonical fallback, zero citations), hostile (correct synthetic answer with trusted citation). Excerpts equal retrieval `display_text` and nullable provenance is preserved. Natural delta count may vary; record safe count/usage/timing logs without forcing multiple chunks. No generated text, prompt, context, or credential is printed. `FAILED`/exit 1 means verification did not succeed; investigate without printing raw provider bodies. The hostile fixture observes one case and does not prove universal model immunity.
 
-6. **Only after explicit human Docker approval**, build through the ordinary Compose path, then start the services without resetting data.
+6. Establish a fresh packaged baseline when deployment-sensitive changes require it. Amendment 04 instead reuses the existing image in step 16 under the user's Docker authorization.
 
    ```powershell
    docker compose --env-file .env -f docker-compose.yml build server
@@ -108,7 +109,7 @@
     docker compose --env-file .env -f docker-compose.yml run --rm --no-deps -w /verification -e PYTHONPATH=/server -e GEMINI_MODEL= -e GEMINI_API_KEY= -v "${PWD}/tests:/verification/tests:ro" -v "${PWD}/.env.example:/verification/.env.example:ro" -v "${PWD}/.env.example:/verification/.env:ro" -v "${PWD}/docker-compose.yml:/verification/docker-compose.yml:ro" --entrypoint sh server -c 'python -m pip install -r tests/requirements.txt && python -m unittest tests.test_01_constants tests.test_08_generation tests.test_09_grounded_generation -v && python -m tests.run'
     ```
 
-    Expected: focused/full tests pass using `/server/app` from the image, including real startup with Gemini key/model blank. Never mount local `app/`. The synthetic `.env` is the example file, not the real development secret. Test-only dependencies install in this disposable container; record versions and any dependency-resolution changes. Constants tests prove all 24 keys/defaults/required validation. Separately compare runtime environment forwarding with the intended Compose inputs using key names/pass-fail only; verify lazy Gemini validation and process-env precedence without exposing values.
+    Expected for the earlier packaged baseline: focused/full tests pass using `/server/app` from the image, including real startup with Gemini key/model blank. Do not mount local `app/` when verifying packaged source; Amendment 04 intentionally verifies current source through the read-only mount in step 16. The synthetic `.env` is the example file, not the real development secret. Test-only dependencies install in this disposable container; record versions and any dependency-resolution changes. Constants tests prove all 24 keys/defaults/required validation. Separately compare runtime environment forwarding with intended Compose inputs using key names/pass-fail only, without exposing values.
 
 12. Verify the running Compose upload/query path and the internal retrieval-to-citation path using controlled synthetic fixtures.
     - Record the initial collection point count; upload two uniquely distinguishable Markdown fixtures through `/documents/upload`, retain each returned `id`, and record point additions.
@@ -117,7 +118,7 @@
     - Assert a nonblank supported answer and at least one citation whose five fields exactly match retrieved metadata; ask an unsupported question and assert exact fallback/zero citations. Print only safe IDs/counts/timing/usage.
     - Compare exact Qdrant point counts before/after queries and generation; only uploads may add points. Record fixture IDs and counts in CONTEXT. Leave fixtures documented rather than deleting points.
 
-    Expected: real upload -> chunk -> embed -> store -> retrieve -> grounded generation -> trusted citation passes. No public `/ask` or SSE claim; those remain unbuilt. Grounded text is provisional until exhaustion and `.citations` succeeds.
+    Expected: real upload -> chunk -> embed -> store -> retrieve -> grounded generation -> trusted citation passes. This historical internal-core check makes no public SSE claim; public `/ask` acceptance uses steps 14–17. Grounded text is provisional until exhaustion and `.citations` succeeds.
 
 13. Record the reusable Docker baseline and leave it available.
 
@@ -127,4 +128,55 @@
     docker compose --env-file .env -f docker-compose.yml ps
     ```
 
-    Expected: CONTEXT records final image/container identities, health, resolved versions, point count, and closure of the configuration side-task gap only after evidence passes. Keep server/Qdrant images, containers, and volume available. Do not run `down -v`, delete images/volumes, or reset the collection. PLAN_04 stays Built, Unverified; Amendment 03 still owns the public ask endpoint, native SSE, transport failures, and final API acceptance.
+    Expected: CONTEXT records final image/container identities, health, resolved versions, point count, and closure of the configuration side-task gap only after evidence passes. Keep server/Qdrant images, containers, and volume available. Do not run `down -v`, delete images/volumes, or reset the collection. PLAN_04 stays Built, Unverified; Amendment 04 owns public ask/native SSE and final backend verification.
+
+14. Verify native SSE deterministically, then explicitly run local live HTTP without Docker.
+
+    ```powershell
+    ..\.venv\Scripts\python.exe -m unittest tests.test_10_ask -v
+    ..\.venv\Scripts\python.exe -m tests.smoke_ask --local
+    ```
+
+    Expected: discovered tests use fake Gemini only. The explicit smoke starts the actual app on loopback with real BGE-M3/Gemini and in-memory Qdrant; two synthetic uploads exist only for that process. Supported/isolation cases yield clean answers, trusted citations, then done; unsupported/unindexed cases return the exact canonical fallback, empty citations, then done. Citations are compared privately to stored payloads. Output contains only counts/indexes/timings; persistent storage is untouched. Real Gemini requires network access.
+
+15. Review request/error/lifecycle boundaries as part of acceptance.
+    - AskRequest inherits query validation: required trimmed nonblank question, top_k default 5 and range 1..20, UUID in path only.
+    - Retrieval/provider preparation precede commitment; retrieval keeps HTTP status/code/body, invalid generation settings return safe HTTP 502.
+    - Event data: answer `{"text":"<delta>"}`; citations `{"citations":[...]}`; done `{"status":"completed"}`; error `{"error":"Generation failed.","code":"GENERATION_FAILED"}`.
+    - Successful exhaustion yields one citations then one done. Error yields once and terminates without either. Answer text remains provisional until done.
+    - Deterministic tests prove provider failure before/after clean deltas, invalid citations, no thought/marker leakage, early close, ASGI disconnect, actual incremental HTTP delivery, and socket disconnect during synchronous generation.
+
+    Expected: dependency teardown owns cleanup, including cancellation; incomplete consumption cannot expose final citations. No custom heartbeat, provider retry, or app-global provider is introduced.
+
+16. Reuse the verified image and Compose Qdrant service for focused checks; do not rebuild for application Python/tests/docs changes. The user's final instruction authorized this step.
+
+    ```powershell
+    docker compose --env-file .env -f docker-compose.yml up -d --no-build qdrant
+    docker compose --env-file .env -f docker-compose.yml run --rm --no-deps --entrypoint python -v "${PWD}/app:/server/app:ro" -v "${PWD}/tests:/server/tests:ro" server -m unittest tests.test_07_retrieval tests.test_08_generation tests.test_09_grounded_generation tests.test_10_ask -v
+    ```
+
+    Expected: current source/tests are mounted read-only into a disposable container using the existing verified image on `server_default`. If test-only dependencies are absent, install `tests/requirements.txt` only in the disposable container as in step 11. Runtime variables come from Compose; never mount the real `.env`, print resolved configuration, or overwrite baseline container files. Record current imports, versions, image identity, health, and results. Requirements/Dockerfile/Compose/config/startup/caching changes require reporting scope and proportional rebuild verification instead.
+
+17. Verify current public code against the existing persistent fixtures over real HTTP.
+
+    ```powershell
+    docker compose --env-file .env -f docker-compose.yml run --rm --no-deps --entrypoint python -v "${PWD}/app:/server/app:ro" -v "${PWD}/tests:/server/tests:ro" server -m tests.smoke_ask --serve
+    ```
+
+    Expected: the helper owns the real configured lifespan and a loopback HTTP server in the disposable container. Supported, unsupported, isolation, unindexed, invalid-request, query, health, and exact stored-provenance checks pass with real Gemini. It also points only this disposable process's client at a reserved non-listening loopback port: real refused transport must produce HTTP 503 JSON for query/ask before commitment, with no Gemini construction; the original client is restored and the temporary client closed. It uses the documented Luma/Vela UUIDs by default; flags allow replacement fixtures. It performs no upload, asserts exact point counts unchanged, and prints safe counts/indexes/timings. If memory requires one BGE instance, temporarily stop only the baseline server and restore the same container in `finally`; preserve Qdrant throughout.
+
+18. Complete the whole-plan checks in the same reused runtime, beyond existing-fixture public acceptance.
+
+    ```powershell
+    docker compose --env-file .env -f docker-compose.yml run --rm --no-deps --entrypoint sh -v "${PWD}/app:/server/app:ro" -v "${PWD}/tests:/server/tests:ro" server -c 'python -m tests.smoke_generation && python -m tests.smoke_grounded && python -m tests.smoke_ask --local'
+    docker compose --env-file .env -f docker-compose.yml run --rm --no-deps -e GEMINI_MODEL= -e GEMINI_API_KEY= -v "${PWD}/app:/server/app:ro" -v "${PWD}/tests:/server/tests:ro" -v "${PWD}/.env.example:/server/.env.example:ro" -v "${PWD}/.env.example:/server/.env:ro" -v "${PWD}/docker-compose.yml:/server/docker-compose.yml:ro" --entrypoint sh server -c 'python -m pip install -r tests/requirements.txt && python -m unittest tests.test_01_constants tests.test_07_retrieval tests.test_08_generation tests.test_09_grounded_generation tests.test_10_ask -v && python -m tests.run'
+    ```
+
+    Expected: real SDK provider and supported/unsupported/hostile-source grounded checks pass. The `--local` mode runs inside Docker with real BGE/Gemini and in-memory Qdrant: normal HTTP uploads return IDs used directly for public ask; exact trusted provenance and stream ordering pass, without persistent point additions. Discovered focused/full tests make no live Gemini calls. The safe `.env` mount in the deterministic command is `.env.example`, never the actual secret file. Test dependencies install only in the disposable container; no image rebuild or baseline overwrite. These commands compose checks actually performed during final acceptance; individual results and the initial corrected helper failure are in CONTEXT.
+
+19. Finish only after all Amendment 04 and PLAN_04 acceptance criteria have evidence.
+    - Confirm baseline image/container identities and `server_qdrant_storage` remain available; leave the same baseline services running and health endpoints working. Record that current source was verified with read-only mounts, rather than packaged into a replacement image.
+    - Record final point count, any documented fixture additions, live/disconnect results, and deviations in CONTEXT; cross-check every PLAN acceptance category.
+    - Under the user's delegated acceptance authority, mark Amendment 04 complete and PLAN_04 Verified only after all checks pass. An external failure or unmet criterion keeps verification incomplete.
+
+    Expected: no separate manual acceptance remains pending for this completion; no frontend/PLAN_05 work or prohibited Git operation. CONTEXT contains actual results, with no assumed Docker success.

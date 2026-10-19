@@ -1,86 +1,221 @@
 # PHASE_01_PLAN_03 — Retrieval (Specification)
 
-- This specification defines the exhaustive end-state: architecture, contracts, requirements, and acceptance criteria.
-- Focused prompts live chronologically in `AMENDMENTS/`, as in PLAN_02; check work against this specification and execute through amendments.
+- This specification defines the verified PLAN_03 end-state: architecture, contracts, requirements, acceptance criteria, risks, and verification boundaries.
+- Chronological implementation history belongs in `CONTEXT` and focused implementation prompts live separately. This PLAN describes the destination and verified contract, not the sequence used to reach it.
 
 - **Branch:** `phase-01/plan-03`
 - **Depends on:** PLAN_02, Verified.
-- **Status:** Verified; accepted after human review of the completed agent walkthrough recorded in CONTEXT.
-- Current implementation and evidence: [CONTEXT](PHASE_01_PLAN_03_CONTEXT.md).
+- **Status:** Verified; accepted after human review of the recorded verification walkthrough.
+- **Pipeline stage:** retrieve.
+- **Current implementation and evidence:** [CONTEXT](PHASE_01_PLAN_03_CONTEXT.md).
+- **Repeatable acceptance:** [MANUAL](PHASE_01_PLAN_03_MANUAL.md).
+
+---
+
+## Objective
+
+Add the first measurable retrieval layer over PLAN_02's stored vectors.
+
+Given a user question and a file UUID, Atlas must:
+
+1. embed the question through the already-prepared BGE-M3 provider;
+2. search the existing Qdrant collection;
+3. enforce exact `file_id` scope inside the vector query;
+4. preserve Qdrant ranking and raw cosine scores;
+5. map stored payloads into trusted internal retrieval results;
+6. expose a stable public scored-chunk response through `POST /files/{file_id}/query`;
+7. preserve enough internal provenance for later generation and citation work.
+
+This plan establishes the dense retrieval baseline. More complex retrieval techniques require measured evidence rather than assumption.
 
 ---
 
 ## Scope
 
-- Add file-scoped dense retrieval over the chunks already embedded and stored by PLAN_02. Accept a user question and internal `file_id`, embed the question through the existing `EmbeddingProvider`, run a server-side `file_id`-scoped cosine query against the existing Qdrant collection, and return ranked chunks with raw similarity scores.
-- Expose the retrieval contract through `POST /files/{file_id}/query`.
-- Amendment 02 closes the upload handoff: `POST /documents/upload` returns the same internal UUID as public top-level `id`, after confirmed storage. Existing fields/chunks remain unchanged; internal `file_id` naming is preserved.
-- This plan establishes the measurable dense retrieval baseline that PLAN_04 will consume. Retrieval quality findings must be recorded before adding more complex retrieval techniques.
+### In scope
 
-- **Explicitly excluded:** LLM generation, prompt assembly, streaming, citation formatting/output, Gemini integration, hybrid dense+sparse retrieval, lexical/BM25 retrieval, reranking, query rewriting, similarity-threshold filtering, Redis, Postgres/file metadata, authentication, folders, folder-tree/drive scopes, chunking changes, embedding-model changes, Qdrant vector-schema changes, payload-index migrations, and reindexing.
+- file-scoped dense retrieval;
+- query embedding through the verified BGE-M3 provider;
+- exact server-side Qdrant `file_id` filter;
+- request-configurable `top_k`;
+- raw cosine-ranked results;
+- internal retrieval DTO with trusted provenance;
+- public query API;
+- upload-to-query UUID handoff;
+- empty-result semantics;
+- structured dependency failures;
+- retrieval timing and score observability;
+- cross-file isolation verification.
+
+### Explicitly excluded
+
+- LLM generation;
+- prompt assembly;
+- answer streaming;
+- citation rendering/output;
+- Gemini integration;
+- hybrid dense+sparse retrieval;
+- BM25/lexical retrieval;
+- reranking;
+- query rewriting;
+- similarity score thresholds;
+- Redis;
+- PostgreSQL/file metadata;
+- authentication/authorization;
+- folders, folder trees, or drive scope;
+- chunking changes;
+- embedding-model changes;
+- Qdrant vector-schema changes;
+- payload-index migrations;
+- reindexing.
 
 ---
 
-## Architecture
+## Architecture overview
 
-### Retrieval contract
-
-- Input: `question` (string), `file_id` (the internal UUID produced by upload), and `top_k`.
-- Output: an ordered list of retrieved chunks with their raw Qdrant cosine similarity scores.
-- Retrieval is read-only: querying must not mutate, rewrite, or re-embed stored points.
-
-Legend: retrieval reuses the verified PLAN_02 provider and Qdrant runtime; the endpoint returns scored chunks only and stops before generation.
+PLAN_03 reuses PLAN_02's embedding provider and Qdrant runtime. It does not create another embedding space, client, or collection.
 
 ```mermaid
 flowchart LR
-    Request["POST /files/{file_id}/query"] --> Validate["Validate file_id, question, top_k"]
-    Validate --> Embed["Existing EmbeddingProvider"]
-    Embed --> Vector["Dense query vector"]
-    Vector --> Search["Qdrant cosine query + file_id filter"]
-    Search --> Results["Ranked stored payloads + raw scores"]
-    Results --> Internal["Atlas retrieval result"]
-    Internal --> Response["Public scored-chunk response"]
+    Request["POST /files/{file_id}/query"] --> Validate["Validate UUID, question, top_k"]
+    Validate --> Embed["Existing BGE-M3 EmbeddingProvider"]
+    Embed --> Vector["1024-d query vector"]
+    Vector --> Search["Qdrant query_points"]
+    Scope["Exact file_id filter"] --> Search
+    Search --> Ranked["Ranked scoped points<br/>raw cosine scores"]
+    Ranked --> Internal["Trusted RetrievalResult values"]
+    Internal --> Public["Public scored-chunk response"]
 ```
 
-### Query embedding
+### Scope isolation
 
-- Reuse the existing startup-loaded, cached `EmbeddingProvider` / `BGEM3Embedder`; do not construct or load another model for retrieval.
-- The question must be embedded through the same `BAAI/bge-m3` dense embedding space used for indexed chunks: dimension 1024, dense output only.
-- The query embedding is transient. Do not store it in Qdrant or application state.
-- Provider, tokenizer, dimension, and embedding flags remain PLAN_02 contracts; PLAN_03 does not reopen them.
+The file filter is applied by Qdrant itself, not after a global search.
 
-### Qdrant search
+```mermaid
+flowchart TB
+    Question["Question vector"] --> Query["Qdrant nearest-neighbor query"]
+    Requested["Requested file_id = A"] --> Filter["query_filter: file_id == A"]
+    Filter --> Query
 
-- Reuse the existing startup-prepared Qdrant client and existing collection. Do not create a parallel client, collection, or retrieval-specific vector store.
-- Preserve the existing cosine metric and stored payload schema.
-- At plan authoring, the current official Qdrant Python API uses `QdrantClient.query_points(...)` for nearest-neighbor queries, with `query_filter`, `with_payload`, `with_vectors`, and `limit`. The implementation amendment must verify the current official Qdrant Python API and the repository's installed/current client before coding; adapt mechanics if the API has changed without changing Atlas's locked retrieval contract.
-- The Qdrant query must:
-  - use the dense query vector;
-  - apply the `file_id` filter inside the Qdrant query itself;
-  - request the stored payload required for result mapping;
-  - omit stored vectors from the response;
-  - use the validated `top_k` as the result limit;
-  - apply no `score_threshold`.
-- Preserve Qdrant's returned ranking and raw score. Do not normalize, rescale, convert to a percentage, or label similarity as confidence.
+    A["Points for file A"] --> Query
+    B["Points for file B"] -. "excluded by server-side filter" .-> Query
 
-### Retrieval scope
+    Query --> Results["Only file A candidates"]
+    Results --> Guard["Atlas payload scope validation"]
+    Guard --> Return["Ranked RetrievalResult list"]
+```
 
-- `file_id` scoping is mandatory and server-side. Do not query globally and filter results in Python afterward.
-- A result whose payload belongs to another `file_id` is a retrieval-scope failure.
-- In Phase 1 this is retrieval scope, not user authorization. Authentication and ownership enforcement remain deferred.
-- Do not add a Qdrant payload index or collection migration in this baseline plan. If filtered-search performance becomes a measured problem at larger scale, treat indexing as a separate evidence-based change.
+### Internal-to-public mapping
 
-### top_k
+```mermaid
+flowchart LR
+    Stored["Stored Qdrant payload + score"] --> Internal["Internal RetrievalResult"]
 
-- `top_k` is request-configurable.
-- Default: `5`.
-- Minimum: `1`.
-- Maximum: `20`.
-- The default of `5` is the initial baseline, not a claim that five results are globally optimal. Tuning requires measured retrieval evidence and a later explicit decision.
+    Internal --> I1["file_id"]
+    Internal --> I2["chunk_index"]
+    Internal --> I3["token_count"]
+    Internal --> I4["page / heading / section"]
+    Internal --> I5["text"]
+    Internal --> I6["display_text"]
+    Internal --> I7["score"]
 
-### Retrieval result
+    Internal --> Map["Public mapping"]
+    Map --> Public["score / text / index / count /<br/>page / heading / section"]
 
-The internal Atlas retrieval result must preserve enough trusted storage metadata for PLAN_04 without exposing citation-specific fields prematurely:
+    I6 -. "kept internal for later citation" .-> Internal
+    I1 -. "already represented by route scope" .-> Internal
+```
+
+---
+
+## Locked retrieval contract
+
+### Input
+
+- `question`: trimmed, non-empty string;
+- `file_id`: UUID produced by the upload flow;
+- `top_k`: request-configurable integer.
+
+### Output
+
+An ordered list of retrieved chunks with raw Qdrant cosine similarity scores.
+
+### Read-only invariant
+
+Retrieval must not:
+
+- mutate points;
+- rewrite payloads;
+- re-embed stored chunks;
+- store query vectors;
+- change collection configuration.
+
+---
+
+## Query embedding
+
+- Reuse the existing startup-loaded `EmbeddingProvider` / `BGEM3Embedder`.
+- Do not construct a second embedding model for retrieval.
+- Query and indexed chunks share `BAAI/bge-m3`.
+- Dimension remains `1024`.
+- Dense output only.
+- The query embedding is transient and is not persisted.
+- Provider/tokenizer/dimension/embedding flags remain PLAN_02 contracts and are not reopened here.
+
+---
+
+## Qdrant search
+
+Use the existing prepared Qdrant client and collection.
+
+The query must:
+
+- use the dense query vector;
+- apply exact `file_id` filtering in `query_filter`;
+- request payloads required for trusted result mapping;
+- exclude stored vectors from returned query results;
+- use validated `top_k` as the result limit;
+- use no `score_threshold`.
+
+Ranking contract:
+
+- preserve Qdrant result order;
+- preserve raw similarity scores;
+- do not normalize or convert scores to percentages;
+- do not describe raw cosine score as calibrated confidence.
+
+At implementation time the official/current Qdrant client API must be checked for mechanics, but API-version drift must not alter these Atlas retrieval semantics.
+
+---
+
+## Retrieval scope and trust boundary
+
+- `file_id` scope is mandatory and server-side.
+- Do not globally retrieve then filter in Python.
+- Atlas still validates returned payload scope defensively.
+- A returned payload with a different `file_id` is an internal retrieval-scope failure.
+- Phase 1 scope is retrieval isolation, not user authorization.
+- Authentication/ownership enforcement remains deferred.
+- No payload index is required for the Phase 1 baseline. Add one later only if measured filtered-search performance warrants it.
+
+---
+
+## top_k contract
+
+- default: `5`;
+- minimum: `1`;
+- maximum: `20`;
+- user/request configurable within that range.
+
+`5` is the measured baseline default, not a claim of universal optimality. Tuning requires retrieval evidence and an explicit later decision.
+
+---
+
+## Retrieval result contracts
+
+### Internal RetrievalResult
+
+The internal result preserves:
 
 - `file_id`
 - `chunk_index`
@@ -88,23 +223,20 @@ The internal Atlas retrieval result must preserve enough trusted storage metadat
 - `page`
 - `heading`
 - `section`
-- contextualized `text`
-- raw `display_text`
-- raw similarity `score`
-
-The PLAN_03 public API returns an object containing `results`. Each result exposes:
-
-- `score`
 - `text`
-- `index`
-- `count`
-- `page`
-- `heading`
-- `section`
+- `display_text`
+- `score`
 
-`text`, `index`, and `count` preserve the existing public chunk vocabulary. `display_text` remains internal because citation presentation is a PLAN_04 decision. `file_id` is already present in the route and is not repeated per result.
+Semantics:
 
-Reference response shape:
+- `text` is contextualized stored chunk text.
+- `display_text` remains internal and preserves raw source text for later citation presentation.
+- metadata is trusted only after payload validation.
+- `score` is the raw Qdrant similarity value.
+
+### Public query response
+
+Reference shape:
 
 ```json
 {
@@ -122,10 +254,29 @@ Reference response shape:
 }
 ```
 
+Public mapping:
+
+- `score` <- raw score
+- `text` <- contextualized `text`
+- `index` <- `chunk_index`
+- `count` <- `token_count`
+- `page` <- `page`
+- `heading` <- `heading`
+- `section` <- `section`
+
+`display_text` is intentionally not exposed by PLAN_03.
+
+---
+
+## Public API contract
+
 ### Query endpoint
 
-- `POST /files/{file_id}/query`
-- Request body:
+```text
+POST /files/{file_id}/query
+```
+
+Request:
 
 ```json
 {
@@ -134,11 +285,17 @@ Reference response shape:
 }
 ```
 
-- `top_k` is optional and defaults to `5`.
-- `file_id` must follow the internal UUID format produced by upload.
-- `question` is required, trimmed, and must remain non-empty after trimming.
-- `top_k` outside `1..20` is rejected through the established validation/error pattern.
-- A successful query with a validly formed `file_id` but zero matching indexed points returns HTTP 200 with:
+Validation:
+
+- `file_id` must be a valid UUID in the established format;
+- `question` is required, trimmed, and non-empty after trimming;
+- `top_k` defaults to `5`;
+- accepted range is `1..20`;
+- values outside the range are rejected through existing validation patterns.
+
+### Empty result
+
+A valid UUID with no matching indexed points returns HTTP 200:
 
 ```json
 {
@@ -146,91 +303,228 @@ Reference response shape:
 }
 ```
 
-- Do not infer file existence from Qdrant and do not return 404 solely because no indexed points match. Qdrant is a retrieval index, not canonical application state; canonical file existence arrives with PostgreSQL later.
-
-### Error handling
-
-- Reuse the existing structured `ApiError` and Qdrant error patterns; do not introduce a second error system for retrieval.
-- Qdrant connection failures remain explicit and use the established connection-failure behavior.
-- Collection/query failures remain explicit structured failures; do not convert dependency failures into empty retrieval results.
-- Query-embedding failures remain explicit; do not fall back to lexical search, a zero vector, or a default result.
-- Request validation follows established FastAPI/Pydantic project patterns.
-- A genuinely successful query returning zero scoped points is distinct from a failed query.
-
-### Logging
-
-- Log enough retrieval metadata to evaluate and debug the baseline:
-  - `file_id`;
-  - requested `top_k`;
-  - returned result count;
-  - ranked raw similarity scores;
-  - query-embedding duration;
-  - Qdrant query duration;
-  - total retrieval duration.
-- Do not log full user questions, chunk bodies, `display_text`, secrets, or other unnecessary content.
-
-### Folder placement (per `AGENTS.md`)
-
-- `server/app/pipeline/retrieval.py` — Atlas retrieval orchestration.
-- `server/app/schemas/retrieval.py` — retrieval request, public response, and tightly coupled retrieval DTOs as appropriate.
-- `server/app/routers/files.py` — the forward-looking `/files/{file_id}/query` endpoint.
-- Reuse the existing `server/app/pipeline/embeddings/`, `server/app/db/`, `server/app/core/runtime.py`, `server/app/models/qdrant/chunk.py`, and existing error modules rather than duplicating their responsibilities.
-- `server/app/main.py` remains wiring only.
+Do not infer canonical file existence from Qdrant and do not return 404 solely because no indexed points match. Qdrant remains an index; canonical application file state belongs to later PostgreSQL-backed phases.
 
 ---
 
-## Requirements (full plan scope, not one amendment)
+## Upload-to-query handoff
+
+The existing upload route exposes the stored upload UUID as top-level `id`.
+
+Contract:
+
+- successful confirmed upload returns fields exactly:
+  - `id`
+  - `name`
+  - `type`
+  - `total`
+  - `chunks`
+- the returned `id` is the same UUID stored as Qdrant payload `file_id`;
+- no second identifier is generated;
+- clients can use the returned `id` directly as `/files/{file_id}/query`;
+- internal storage/retrieval vocabulary remains `file_id`.
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant U as Upload API
+    participant Q as Qdrant
+    participant R as Query API
+
+    C->>U: POST /documents/upload
+    U->>Q: Store chunks under UUID
+    Q-->>U: Confirm write
+    U-->>C: { id: UUID, ... }
+    C->>R: POST /files/{UUID}/query
+    R->>Q: scoped vector query file_id == UUID
+    Q-->>R: ranked chunks
+    R-->>C: { results: [...] }
+```
+
+---
+
+## Error handling
+
+Reuse the existing structured error architecture.
+
+- Qdrant connection failure remains explicit.
+- Collection/query failure remains explicit.
+- Query-embedding failure remains explicit.
+- Missing/invalid stored payload fields are internal failures.
+- Scope mismatch is an internal retrieval failure.
+- Do not convert dependency errors into `results: []`.
+- Do not fall back to:
+  - lexical retrieval;
+  - a zero vector;
+  - unscoped retrieval;
+  - default/preselected chunks.
+
+A successful zero-result query is distinct from a failed query.
+
+---
+
+## Observability
+
+Safe retrieval logs may contain:
+
+- `file_id`;
+- requested `top_k`;
+- result count;
+- ranked raw similarity scores;
+- query-embedding duration;
+- Qdrant-query duration;
+- total retrieval duration.
+
+Do not log:
+
+- full user question;
+- chunk bodies;
+- `display_text`;
+- secrets;
+- raw dependency bodies unnecessarily.
+
+---
+
+## Folder placement
+
+```text
+server/app/
+├── pipeline/
+│   └── retrieval.py                            # File-scoped dense retrieval orchestration
+├── schemas/
+│   └── retrieval.py                            # Retrieval request/internal/public DTOs
+├── routers/
+│   └── files.py                                # /files/{file_id}/query HTTP boundary
+├── pipeline/
+│   └── embeddings/                             # Reused verified embedding provider
+├── db/                                         # Reused Qdrant adapter/client
+├── core/
+│   └── runtime.py                              # Reused startup-prepared resources
+└── models/
+    └── qdrant/
+        └── chunk.py                            # Reused stored payload contract
+```
+
+Guidelines:
+
+- retrieval orchestration belongs in `pipeline/retrieval.py`;
+- HTTP validation/response mapping stays thin in the router;
+- schemas define DTOs, not business logic;
+- embedding/Qdrant/storage responsibilities are reused rather than duplicated;
+- `main.py` remains wiring only;
+- later generation/citation logic must consume the internal result contract rather than move retrieval into generation.
+
+---
+
+## Requirements
 
 - File-scoped dense retrieval accepting `question`, `file_id`, and `top_k`.
-- Existing cached `EmbeddingProvider` reused for query embedding; no second model instance or embedding space.
-- Existing Qdrant collection/client reused with mandatory server-side `file_id` filtering.
-- Cosine-ranked results returned in Qdrant order with raw, unnormalized scores.
-- `top_k` default `5`, validated to `1..20`.
-- No minimum similarity threshold in the PLAN_03 baseline.
-- Internal retrieval results retain `display_text` and trusted provenance metadata for PLAN_04; public PLAN_03 results do not expose `display_text`.
-- `POST /files/{file_id}/query` with the approved request/response contract.
-- Validly formed `file_id` values with zero indexed points return HTTP 200 and an empty `results` list.
-- Existing structured embedding/Qdrant errors remain explicit; no silent fallback.
-- Retrieval logging includes safe timing, count, and score information without logging query/chunk content.
-- Existing upload, chunking, embedding, storage, and health behavior remains unchanged except for Amendment 02's additive top-level upload `id`; no second UUID or public `file_id` is introduced.
-- No new third-party dependency, collection schema change, payload-index migration, or future-stage scaffolding.
-- `PHASE_01_PLAN_03_CONTEXT.md` and `PHASE_01_PLAN_03_MANUAL.md` follow the established project conventions.
+- Existing BGE-M3 provider reused for query embedding.
+- Same 1024-dimensional dense embedding space as indexed chunks.
+- Existing Qdrant collection/client reused.
+- Mandatory exact server-side `file_id` filtering.
+- Cosine-ranked results preserved in Qdrant order.
+- Raw scores remain unnormalized.
+- `top_k` default `5`, range `1..20`.
+- No score threshold.
+- Internal retrieval result retains trusted provenance and `display_text`.
+- Public response excludes `display_text`.
+- Valid UUID with zero scoped points returns HTTP 200 + empty results.
+- Query operation is read-only.
+- Upload response exposes the same stored UUID as top-level `id`.
+- Existing structured dependency errors remain explicit.
+- Safe timing/count/score observability is retained.
+- No new third-party dependency, Qdrant schema migration, payload index, or future-stage scaffolding is introduced.
 
-## Acceptance criteria (full plan, checked once all amendments land)
+---
 
-- Upload response fields are exactly `id`, `name`, `type`, `total`, and `chunks`; the returned UUID equals every stored payload `file_id` for that upload and can be used directly with the query endpoint.
-- Sequential uploads return independent IDs/scopes; failed or unconfirmed storage returns an explicit error without a successful response/ID.
-- `POST /files/{file_id}/query` accepts a non-empty question and optional `top_k`, using default `5` when omitted.
-- `top_k=1` and `top_k=20` are accepted; values outside `1..20` are rejected.
-- Query embedding uses the already-prepared BGE-M3 provider and remains 1024-dimensional; the model is not reloaded per retrieval request.
-- The Qdrant query applies the requested `file_id` filter server-side and returns no chunks from another file.
-- A two-file isolation test proves that querying file A cannot return a highly similar/competing chunk stored under file B.
-- Results preserve Qdrant ranking and raw scores, expose exactly the approved public retrieval fields, and do not expose `display_text`.
-- A question with an obvious answer in a known fixture ranks the relevant chunk among the highest results, with the expected chunk demonstrably identifiable.
-- An unrelated question still returns the nearest scoped chunks when points exist, and visibly lower raw scores can be inspected; no hidden threshold suppresses the baseline.
-- A valid UUID with no indexed points returns HTTP 200 with `{"results": []}`.
-- Retrieval does not mutate Qdrant: point count and stored payloads remain unchanged across query requests.
-- Qdrant unavailability/query failure propagates the established structured dependency error rather than returning an empty success.
-- Existing PLAN_01 and PLAN_02 regression behavior remains passing; new tests cover validation, ranking/mapping, empty results, dependency failure, and cross-file scope isolation.
-- Full local verification uses the established `python -m tests.run` workflow and records exact results rather than assuming success.
-- A live API/Qdrant acceptance check verifies the real query path against the existing Compose stack without requiring a rebuild unless deployment-sensitive files actually changed.
-- PLAN_03 is marked Verified only after explicit human acceptance of the recorded walkthrough evidence, either by reviewing the agent's completed checks and explain-back or by executing the MANUAL directly.
+## Acceptance criteria
 
-## Key risk
+PLAN_03 is Verified because the following end-state was implemented and accepted.
 
-- Dense-only BGE-M3 retrieval has a quality ceiling. Exact identifiers, lexical-heavy queries, or domain-specific wording may expose failures that dense similarity does not rank well. Record those failures as evaluation evidence; do not silently add sparse retrieval, hybrid fusion, reranking, query rewriting, or arbitrary score thresholds in this plan.
-- Raw cosine similarity is ranking evidence, not a calibrated probability or answer-confidence score.
-- `file_id` filtering without a payload index is acceptable for the Phase 1 baseline; if filtered-search performance becomes a measured scaling problem, evaluate a payload index as a separate targeted change.
+### Upload handoff
+
+- Upload response fields are exactly `id`, `name`, `type`, `total`, and `chunks`.
+- Returned `id` equals stored payload `file_id`.
+- Sequential uploads produce independent UUID scopes.
+- Failed/unconfirmed storage does not return a successful ID.
+
+### Validation
+
+- Non-empty question accepted.
+- default `top_k=5`.
+- `top_k=1` and `top_k=20` accepted.
+- values outside `1..20` rejected.
+
+### Query embedding and reuse
+
+- Query embedding uses the existing prepared BGE-M3 provider.
+- Vector dimension remains 1024.
+- Provider is not reloaded per query.
+
+### Scope isolation
+
+- Exact `file_id` filter is executed by Qdrant.
+- File A cannot return competing chunks from file B.
+- Payload scope mismatch is not silently accepted.
+
+### Ranking and mapping
+
+- Qdrant ranking order is preserved.
+- Raw scores are preserved.
+- Public fields match the approved response contract.
+- `display_text` remains internal.
+- An obvious-answer fixture ranks the relevant chunk among the highest results.
+- An unrelated question still returns nearest scoped chunks when points exist, exposing the dense baseline rather than hiding it behind a threshold.
+
+### Empty/failure semantics
+
+- Valid unused UUID returns `{"results":[]}` with HTTP 200.
+- Qdrant/dependency failure remains an explicit error.
+- Retrieval does not mutate point count or payloads.
+
+### Regression and acceptance
+
+- PLAN_01 and PLAN_02 regression behavior remains passing.
+- Tests cover validation, ranking/mapping, empty results, dependency failure, and cross-file scope isolation.
+- Live API/Qdrant acceptance proves the real upload-to-query handoff.
+- Human review of the recorded evidence completed PLAN_03 acceptance.
+
+---
+
+## Risks and accepted boundaries
+
+### Dense retrieval quality ceiling
+
+BGE-M3 dense-only retrieval may underperform on exact identifiers, lexical-heavy questions, or domain-specific wording. Record measured misses; do not silently add sparse search, hybrid fusion, reranking, query rewriting, or arbitrary thresholds.
+
+### Score interpretation
+
+Raw cosine similarity is ranking evidence, not a calibrated probability or answer-confidence score.
+
+### Filter performance
+
+Unindexed `file_id` filtering is accepted for the Phase 1 baseline. A Qdrant payload index is a later targeted optimization only if measured scale/performance requires it.
+
+---
 
 ## Verification approach
 
-- See [MANUAL](PHASE_01_PLAN_03_MANUAL.md) for procedural acceptance checks covering:
-  - request validation and response shape;
-  - obvious-answer ranking;
-  - unrelated-query score visibility;
-  - two-file scope isolation;
-  - empty scoped results;
-  - Qdrant outage/error propagation;
-  - read-only point-count preservation;
-  - provider reuse and retrieval timing;
-  - full regression verification.
+See [MANUAL](PHASE_01_PLAN_03_MANUAL.md).
+
+Verification should cover:
+
+- request validation;
+- upload-ID handoff;
+- obvious-answer ranking;
+- unrelated-query score visibility;
+- two-file competitive scope isolation;
+- empty scoped results;
+- Qdrant outage/error propagation;
+- read-only point-count preservation;
+- provider reuse;
+- retrieval timings;
+- full local regression;
+- live Compose/API acceptance when deployment-sensitive state requires it.
+
+Historical command outputs, timings, versions, and implementation chronology belong in CONTEXT rather than this specification.

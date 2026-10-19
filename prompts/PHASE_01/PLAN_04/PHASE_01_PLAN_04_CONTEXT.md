@@ -2,10 +2,10 @@
 
 ## Current state
 
-- Status: Amendment 02 is complete after fresh Docker verification of the provider, configuration side task, and internal grounding/citation core. PLAN_04 remains Built, Unverified pending Amendment 03 and final acceptance.
-- Branch: `phase-01/plan-04`; Amendments 01–02 are prepared for the human-authorized local commit. No pushes, branch changes, merges, or history rewrites.
+- Status: Amendment 04 is complete and PLAN_04 is Verified. Local, Docker, live SDK/public HTTP, and whole-plan acceptance passed; the agent performed final acceptance under explicit user delegation. The final Amendment 04 entry below records the evidence and supersedes the earlier review checkpoint.
+- Branch: `phase-01/plan-04`; existing human edits preserved. No commit, push, branch change, merge, or history rewrite during Amendment 04.
 - `LLMProvider` and `GeminiFlashProvider` retain independent synchronous answer streaming. `GroundedStream` connects ordered `RetrievedChunk` inputs to deterministic grounding, incremental marker filtering, and trusted citations; existing upload/retrieval contracts and their Verified statuses remain intact.
-- Public `/ask`, router-level retrieval/generation orchestration, and native FastAPI SSE remain Amendment 03.
+- Public `/ask`, router-level retrieval/generation orchestration, and native FastAPI SSE are implemented in Amendment 04. Amendment 03 aligned documentation structure only.
 - User corrected the amendment folder spelling to `AMENDMENTS` before implementation; the supplied prompt is preserved there.
 - The configuration side task's deployment evidence gap is closed by the fresh Docker verification below; its environment overrides, application defaults, required values, and lazy generation validation passed.
 
@@ -275,3 +275,235 @@
 - Both containers report `OOMKilled=false`, restart count **0**; deliberate stop/start retained the server identity. Images, services, volume, and documented fixtures are left available. Do not delete/reset them during ordinary future work.
 - **Amendment 02 complete**, including fresh provider/configuration/core Docker verification. No application code, dependencies, `.env`, or Git history changed during this final run.
 - Amendment 03 remains `/files/{file_id}/ask`, router-level retrieval/generation coordination, native FastAPI SSE, transport cancellation/error semantics, and final public API acceptance. PLAN_04 remains **Built, Unverified**; await further human instructions.
+
+## Amendment 03 — Project documentation structural alignment
+
+- Date: 2026-10-17.
+- Reviewed the human's five structural rewrites:
+  - [AGENTS.md](../../../AGENTS.md).
+  - [RAG SKILL.md](../../../.agents/skills/rag/SKILL.md).
+  - [PLAN_02 specification](../PLAN_02/PHASE_01_PLAN_02.md).
+  - [PLAN_03 specification](../PLAN_03/PHASE_01_PLAN_03.md).
+  - [PLAN_04 specification](PHASE_01_PLAN_04.md).
+- Adopted the shared documentation architecture: PHASE owns the major objective/current statuses; PLAN specifies the stable end-state; AMENDMENT records one focused chronological step; CONTEXT records decisions/evidence; MANUAL provides reproducibility/acceptance procedures.
+- AGENTS.md remains the repository-wide operating contract; its substantive engineering, Git, security, scope, and status rules are preserved. SKILL.md remains the authoritative RAG technical contract; its provider, chunking, vector, retrieval, generation, and citation contracts are preserved.
+- PLAN_02 and PLAN_03 were documentation-only structural rewrites; their accepted technical contracts and Verified statuses remain unchanged.
+- PLAN_04 follows the shared PLAN architecture and preserves locked decisions, including the transport-agnostic grounded core and native FastAPI SSE destination. It remains Built, Unverified: provider/configuration/core evidence is historical; public ask/SSE and final acceptance remain pending.
+- Review found that PLAN_04's rewritten exclusions omitted retries. With explicit human approval, restored that exclusion to preserve the committed specification and existing no-retry contract. No remaining material contract discrepancy was found.
+- Standardized sectioning and Mermaid diagrams improve navigation. AGENTS.md and SKILL.md each retain three Mermaid diagrams; PLAN specifications may use more where materially useful.
+- Future Amendment numbering was intentionally removed from PLAN specifications because capabilities/contracts define the destination while actual Amendments establish chronology. This documentation task occupies Amendment 03, superseding earlier expectations in Current state and historical entries that Amendment 03 would implement ask/SSE; no future implementation number is assigned.
+- Historical Amendment files and prior CONTEXT evidence remain authoritative and were not rewritten, deleted, renamed, or reordered. PHASE and MANUAL files are unchanged.
+- Documentation checks: reviewed the five structural diffs and the appended entry; relative Markdown links resolve; Markdown/Mermaid fences balance; diagram counts comply; PLAN specifications contain no numbered Amendment roadmap; AGENTS/SKILL authority boundaries remain clear; `git diff --check` passes.
+- No runtime/source/configuration/dependency/test behavior changed. No executable/live verification was required, run, or claimed; Mermaid renderer validation was not run. No application implementation code was inspected; no Docker, database, commit, push, branch-changing, or destructive Git operation occurred.
+
+## Amendment 04 — Public Ask API and Native SSE
+
+### Codebase review checkpoint
+
+- Date: 2026-10-17; branch `phase-01/plan-04`.
+- Public backend implementation and local verification are ready for review. **Amendment 04 is incomplete until its final Docker run passes.**
+- Human instruction: implement and verify locally, run no Docker commands, give a review checkpoint, then await explicit instruction to perform Docker verification. This supersedes the amendment's original uninterrupted verification sequence.
+- PLAN_04 remains **Built, Unverified**. Pending work: human code review, explicitly authorized Docker verification, then explicit final human acceptance. Do not claim only human acceptance remains yet.
+
+### Files and responsibilities
+
+| File                               | Amendment 04 responsibility                                                                                              |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `server/app/schemas/generation.py` | AskRequest inherits QueryRequest; existing frozen Citation unchanged                                                     |
+| `server/app/routers/files.py`      | Pre-commit retrieval/configuration, request-owned cleanup, synchronous native SSE ask route                              |
+| `server/tests/test_10_ask.py`      | Deterministic API, SDK filtering, grounding, isolation, ASGI and socket lifecycle checks                                 |
+| `server/tests/smoke_ask.py`        | Explicit real HTTP/Gemini checks; local ephemeral mode, existing-server mode, configured-app mode for later Docker reuse |
+| `AGENTS.md`                        | Current public transport maturity/module pointers; generation remains unverified overall                                 |
+| `.agents/skills/rag/SKILL.md`      | Current public transport state and lifecycle/error boundary                                                              |
+| `prompts/PHASE_01/PHASE_01.md`     | Actual PLAN_04 scope and pending final verification                                                                      |
+| `PHASE_01_PLAN_04.md`              | Current status header; specification contracts unchanged                                                                 |
+| `PHASE_01_PLAN_04_MANUAL.md`       | Correct amendment numbering, local/public checks, review gate, source-mounted Docker reuse procedure                     |
+| `PHASE_01_PLAN_04_CONTEXT.md`      | Current state plus this chronological evidence entry                                                                     |
+
+- Preserved the existing human structural rewrites, Amendment 03 record, and untracked amendment prompts. No additional edits to PLAN_02/03, historical Amendment 01–03 evidence, retrieval/core/provider logic, main/lifespan, configuration, requirements, Dockerfile, Compose, model caches, or client.
+- MANUAL correction: earlier packaged-baseline commands remain historical/reproducible; the default for Amendment 04 is existing-image reuse with read-only current-source mounts. Removed stale current-state references assigning public transport to Amendment 03. No historical CONTEXT entry was rewritten.
+
+### Verified native API and implementation choices
+
+- Installed versions before implementation: FastAPI **0.142.2**, Starlette **1.7.0**; verification runtime also has Uvicorn **0.54.0**, google-genai **2.31.0**.
+- Rechecked official [FastAPI native SSE documentation](https://fastapi.tiangolo.com/tutorial/server-sent-events/) and [yield-dependency lifecycle](https://fastapi.tiangolo.com/tutorial/dependencies/dependencies-with-yield/). Native SSE supports POST, synchronous generator endpoints, explicit ServerSentEvent names, and JSON data; native routing supplies 15-second keepalive comments, no-cache, and X-Accel-Buffering headers.
+- Inspected installed FastAPI routing/concurrency and Starlette streaming behavior: synchronous preparation/iteration use worker threads; the request exit stack cancels/waits for the native bounded producer before dependency teardown. Use the generator endpoint with `response_class=EventSourceResponse`, rather than manually formatting SSE strings or returning an unencoded iterator in a response instance.
+- The unchanged configured `gemini-3.8-flash` identifier was rechecked against Google's [current model page](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash) before live use. No provider/model/retry/settings change.
+
+### Request flow and failure boundaries
+
+1. FastAPI validates path UUID and AskRequest. Inheriting QueryRequest preserves required string question, identical trimming/nonblank validation, default top_k **5**, inclusive range **1..20**, and existing coercion behavior. No body UUID or second validation policy.
+2. Synchronous request-scoped `prepare` calls internal `retrieve(question, file_id, top_k)` directly and preserves returned chunk order. Retrieval finishes before SSE commitment because errors must retain their HTTP status/code/body. No HTTP self-call or changes to the exact file filter, embeddings, cosine scores, or storage.
+3. Empty retrieval yields the empty-request state without constructing GeminiFlashProvider, accessing generation configuration, or creating GroundedStream. It streams exactly one canonical fallback answer, empty citations, then done.
+4. Nonempty retrieval constructs GeminiFlashProvider and GroundedStream before commitment. Existing provider config validation raises safe ValueError; the router converts that narrow preparation failure to GenerationError, preserving HTTP **502** with `{"error":"Generation failed","code":"GENERATION_FAILED"}`. Retrieval failures occur outside that conversion and retain their established HTTP contract.
+5. The synchronous native SSE endpoint consumes GroundedStream's nonempty clean deltas as provisional answer events. Blocking retrieval and provider iteration stay off the async event loop; no full-answer accumulation, citation parsing, provenance reconstruction, or SDK event handling in the router.
+6. Only successful exhaustion exposes `.citations`. Native JSON serialization uses the trusted frozen Citation values unchanged: index/page/heading/section/excerpt. CitationParser removes internal markers; GeminiFlashProvider filters thought/non-model events before GroundedStream. The API does not expose scores, internal event fields, or extra provenance.
+7. GenerationError/invalid citations/provider failure after commitment yields one safe error and returns. Unexpected streaming exceptions log category plus exception class only and yield the same error; raw messages, source, question, generated text, and credentials are excluded. No fallback masks an operational failure, and no re-raise follows a delivered terminal error.
+
+| Event       | Exact data                                                  |
+| ----------- | ----------------------------------------------------------- |
+| `answer`    | `{"text":"<clean delta>"}`                                  |
+| `citations` | `{"citations":[<trusted Citation values>]}`                 |
+| `done`      | `{"status":"completed"}`                                    |
+| `error`     | `{"error":"Generation failed.","code":"GENERATION_FAILED"}` |
+
+- Success order: answer(s), one citations, one done, end. Failure: optional provisional answer(s), one error, end; no citations/done after failure. Consumers must treat earlier text as provisional until done.
+- The `prepare` dependency is the single request-scoped GroundedStream cleanup owner: `try: yield stream; finally: stream.close()`. GroundedStream retains ownership of the provider iterator; the provider retains its SDK client/response ownership. No application-global Gemini lifecycle or detached worker.
+- Normal completion, provider/grounding failure, explicit early close, ASGI disconnect, and actual socket disconnect all reach cleanup. Incomplete consumption cannot expose final citations. The current Uvicorn HTTP implementation advertises ASGI **2.3**, exercised by the deterministic receive-disconnect test and real socket checks.
+- A socket test disconnects while a synchronous `next` call is waiting; native teardown waits for that call to return, then closes without racing the iterator or logging a second application error. Blocking SDK calls cannot be forcibly interrupted by Python generator cancellation; cleanup follows their return/SDK timeout. No new cancellation/heartbeat/timeout protocol was introduced, and no installed-framework cleanup blocker was found on the actual server path.
+- Empty/oversized-question policies remain the existing query/provider policies: blanks are rejected; no new length/chunk/output limit or overflow fallback. Upstream timeout/rejection remains sanitized failure, including after partial text.
+
+### Deterministic and static verification
+
+Commands ran from `server/` with the existing repository venv; no discovered test calls live Gemini.
+
+| Check                                                                                                                                             | Actual result                                                                                                |
+| ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `..\.venv\Scripts\python.exe -m unittest tests.test_07_retrieval tests.test_08_generation tests.test_09_grounded_generation tests.test_10_ask -v` | **64 passed, 1.641s** at the intermediate checkpoint, before the additional in-flight socket-disconnect test |
+| `..\.venv\Scripts\python.exe -m unittest tests.test_10_ask -v`                                                                                    | Final module: **15 passed, 0.860s**                                                                          |
+| `..\.venv\Scripts\python.exe -m tests.run`                                                                                                        | Final full suite: **117 passed, 53.960s**, including all retrieval/provider/grounding/ask regressions        |
+| Pyright **1.1.414**, explicit installed typeshed and repository Python, four changed Python modules                                               | **0 errors, 0 warnings, 0 informations**                                                                     |
+| `python -m compileall -q` on the four changed Python modules                                                                                      | Passed                                                                                                       |
+| `git diff --check`                                                                                                                                | Passed; only Windows LF/CRLF conversion notices                                                              |
+
+- Pyright invocation from repository root:
+
+  ```powershell
+  $checker = "$env:TEMP/atlas-pyright-verification-20261009/_npx/110e52990071af13/node_modules/pyright/dist"
+  node "$checker/pyright.js" --typeshedpath "$checker/typeshed-fallback" --pythonpath .venv/Scripts/python.exe server/app/routers/files.py server/app/schemas/generation.py server/tests/test_10_ask.py server/tests/smoke_ask.py
+  .\.venv\Scripts\python.exe -m compileall -q server/app/routers/files.py server/app/schemas/generation.py server/tests/test_10_ask.py server/tests/smoke_ask.py
+  ```
+
+- Full suite starts real cached BGE-M3 (**4.873s** startup); its two initial real uploads succeeded in **4.541s** and **0.333s**, one point each in its independent in-memory collection.
+- Tests prove exact payload fields/order/text, trimmed retrieval arguments, bounds/default, pre-commit HTTP errors, missing/invalid Gemini settings, empty-context bypass, thought filtering through the actual provider with a fake SDK, trusted citation values, and failure before/after deltas. Actual in-memory Qdrant excludes a globally stronger foreign point before grounding; foreign context/excerpts never reach provider/citations, query fields remain unchanged, and point counts are unchanged.
+- Safe synthetic wire evidence: success **answer x3 -> citations x1 (indexes [7,2]) -> done x1**; deterministic partial failure **answer x2 -> error x1**. Invalid citation/uncited output yields error without citations/done. No internal control markers reach answer data.
+- Real socket incremental-delivery test gates provider completion on the HTTP client's receipt of its first event; this proves streaming independent of provider chunk boundaries. Socket/ASGI disconnect tests verify closure and unavailable final citations, without noisy secondary error handling.
+- Initial test-development failure used a deliberately invalid fake lacking `.close()`; replaced it with an actual GroundedStream/property failure so unexpected-error and cleanup behavior are both tested. Final checks above pass.
+- Existing warnings remain: Starlette's httpx TestClient deprecation, cached-model network fallback in sandbox, and the already accepted XLSX/CSV coverage limitation. No dependency change made to address unrelated warnings.
+- Final documentation checks passed: relative links, balanced fences, AGENTS/SKILL Mermaid limits, and byte-normalized preservation of committed Amendment 01–02 history. AST comparisons confirm the existing query handler and Citation class are unchanged. Live-log scans confirmed the actual credential and full synthetic source sentences are absent; Mermaid renderer validation was not run.
+
+### Real local public HTTP verification
+
+- Explicit command: `..\.venv\Scripts\python.exe -m tests.smoke_ask --local`.
+- Uses the actual FastAPI app, normal lifespan, cached real BGE-M3, real configured Gemini, Uvicorn on loopback, and HTTP streaming client. Only Qdrant construction is replaced with isolated in-memory storage; normal upload/retrieval/storage/generation paths run.
+- Initial sandboxed attempt retrieved successfully but outbound generation failed before clean text and correctly produced a safe SSE error. The authorized network-enabled local run then passed; the finalized helper was rerun to add exact stored-payload provenance assertions. No Docker command was involved.
+- Final safe observations:
+
+| Case                     | Answer events | Citations/indexes | First event | Done   |
+| ------------------------ | ------------- | ----------------- | ----------- | ------ |
+| Supported synthetic Luma | 1             | 1 / [0]           | 3.574s      | 3.619s |
+| Unsupported budget       | 2             | 0 / []            | 3.719s      | 3.768s |
+| Competing synthetic Vela | 1             | 1 / [0]           | 3.050s      | 3.109s |
+| Valid unindexed UUID     | 1             | 0 / []            | 0.360s      | 0.362s |
+
+- Every case had `text/event-stream`, answer(s) then one citations then one done. Supported facts were checked privately; unsupported/unindexed answers exactly matched the canonical sentence. No markers or extra public fields. Malformed UUID and blank question returned HTTP **422**. Query and health endpoints remained operational.
+- Both supported cases' five citation fields exactly matched stored scoped payloads, including raw display_text/excerpt. Cross-file answers/citations remained isolated. In-memory telemetry lacks REST metrics, so the existing health endpoint reported its expected diagnostic warning while retaining healthy collection access.
+- Two temporary synthetic uploads: collection **0 -> 2 -> 2** across upload/checks; the in-memory client/lifespan were closed at exit. No persistent Qdrant points were added, removed, queried, or reset by these local checks. No source/generated answer/credential content was printed by the helper; only event counts/indexes/timings and ordinary safe stage logs.
+
+### Deferred Docker verification and remaining work
+
+- **Not run in this implementation stage**, as explicitly requested. No current Docker-environment `/ask`, running Qdrant integration, final point count, or final baseline-health claim is made.
+- Planned method after review/instruction: existing verified `server-server` image, disposable Compose `server` container on `server_default`, current `server/app` and `server/tests` mounted read-only, runtime environment injected through existing Compose. No rebuild by default, no `.env` source mount, no overwrite of `server-server-1`.
+- Run focused tests plus `python -m tests.smoke_ask --serve`; the latter owns the actual configured server/lifespan and exercises the documented persistent Luma/Vela fixtures without uploads. Record exact image/container identities, point count before/after, current-source imports, health, live events/provenance, and cleanup results. MANUAL steps 16–18 give repeatable commands.
+- Preserve baseline `server-server-1`, `server-qdrant-1`, their images, network, and `server_qdrant_storage`. Historical Amendment 02 evidence records **2 points** and the exact identities; this is historical evidence, not a new final count. If temporarily stopping the baseline server is necessary to limit concurrent BGE memory, restore the same container after verification.
+- No deployment-sensitive files were changed, so no scope expansion/rebuild is currently warranted. No Docker resources were mutated during this codebase stage; their current runtime state is deliberately not reinspected until the authorized Docker stage.
+- No PLAN_05/frontend changes. No commits, pushes, branch changes, destructive Git operations, collection resets, or baseline deletions. Amendment 04 stays incomplete and PLAN_04 stays Built, Unverified through the review checkpoint.
+
+### Final Docker and delegated whole-plan acceptance — 2026-10-19
+
+#### Authorization and result
+
+- The user subsequently authorized the final Docker run and explicitly delegated the amendment review and **entire PLAN_04 verification/acceptance** to the agent instead of doing a manual walkthrough. The user confirmed real Gemini SDK use and instructed implementation of the final verification plan.
+- This supersedes the earlier review checkpoint and human-only acceptance gate for this completion. Those historical instructions/results above remain intact. No additional human review is pending.
+- **Amendment 04 complete; PLAN_04 Verified.** All acceptance categories below passed. PLAN_05/client citation display remains unbuilt and was not started.
+- Applied the existing RAG skill; no provider, retrieval, grounding, schema, dependency, configuration, startup, or deployment redesign. Final code work only added refused-transport acceptance to `tests/smoke_ask.py` and corrected import grouping in the two new verification files. Production ask behavior remains the locally verified implementation above.
+
+#### Docker reuse, runtime, and preservation
+
+| Resource                    | Actual final evidence                                                                   |
+| --------------------------- | --------------------------------------------------------------------------------------- |
+| Docker engine               | 29.8.0                                                                                  |
+| Server image reused         | `sha256:85661f4eb7b258d3859746c480ece0f81419aab6d3e4ee319bf95f4b3163924a`               |
+| Original server container   | `3162eff2c7d2de65a26d44b46e1e1aa69d5f415cea92cccfda37ca3af3777e4b` / `server-server-1`  |
+| Qdrant image preserved      | `sha256:b7b0444c4c351c970b98e90a6f89c2ee4287c65b44e52b4cb503fa5b2aa927ad`               |
+| Original Qdrant container   | `cd368a56ddde13cfe0b7ef076df43a0374b6e168634f3e895fb65129257cad1b` / `server-qdrant-1`  |
+| Reused network              | `server_default`, ID `3bc6b660a69409497f68ac8ed9dc14667ec682a4a49a6117c1c312862c204113` |
+| Preserved named volume      | `server_qdrant_storage`, local driver                                                   |
+| Final persistent collection | `atlas-chunks`, green, **2 points**, Qdrant **1.19.2**                                  |
+
+- Both original containers were stopped at entry (server exit 137, Qdrant exit 143, neither OOMKilled). Started the same Qdrant container for integration; started the same server container after disposable checks. Final server health reports `Server Healthy`; database health reports `Qdrant Healthy`, green collection, 2 points. No recreation, reset, image build/pull, baseline file overwrite, or volume deletion.
+- Disposable Compose containers used the existing image, existing network, current `/server/app` and `/server/tests` mounted **read-only**, and Compose runtime environment injection. No actual `.env` source mount. Direct inspection proved current application source SHA-256 equality for **42 Python files**, expected image identity, network membership, read-only mounts, and all intended `.env` values forwarded without printing values.
+- Final public disposable container: `atlas-amendment04-public`, ID `65a79679ccbf6b1afd8e3ccd3da2129c74b3ed36816cb66c3c62f9c679d824b6`; removed automatically by `--rm`. Other disposable verification containers also exited/removed. Baseline images/containers/network/volume remain available.
+- This verifies **current mounted application source in the existing runtime image**; it does not claim the preserved baseline image/container was repackaged with Amendment 04. Reuse is the amendment's approved Docker acceptance method.
+- Runtime: Python **3.12.15**, FastAPI **0.143.2**, Starlette **1.8.0**, Uvicorn **0.54.0**, google-genai **2.31.0**, Pydantic **2.14.1**, qdrant-client **1.19.1**, Docling **2.140.0**, FlagEmbedding **1.4.2**, torch **2.14.1+cpu**, httpx **0.28.1**. The image's FastAPI/Starlette differ from the local environment recorded above; the full/native streaming tests pass in both environments.
+- Image lacked test-only reportlab; installed declared `tests/requirements.txt` only in the disposable regression container. Only **reportlab 5.0.1** was added; production packages were already satisfied. No requirements/Dockerfile/Compose/configuration/lifespan/cache changes, so no rebuild was warranted.
+- Rechecked Google's [configured model documentation](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash) and [FastAPI native SSE documentation](https://fastapi.tiangolo.com/tutorial/server-sent-events/). Live requests used the unchanged configured model through official `google-genai` Interactions streaming, not an HTTP substitute.
+
+#### Commands and regression results
+
+Commands ran from `server/`, with `docker compose --env-file .env -f docker-compose.yml` and disposable `run --rm --no-deps` containers. MANUAL steps 16–19 retain reproducible mount/entrypoint details.
+
+| Check                                                                                                                                                                                    | Actual result                                                                                     |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Disposable dependency install, then `python -m unittest tests.test_01_constants tests.test_07_retrieval tests.test_08_generation tests.test_09_grounded_generation tests.test_10_ask -v` | **73 passed, 0.974s**                                                                             |
+| Same disposable container: `python -m tests.run`                                                                                                                                         | **117 passed, 18.306s**; real cached BGE, normal upload/extraction regressions, in-memory storage |
+| Final current-source public container: `python -m unittest tests.test_07_retrieval tests.test_08_generation tests.test_09_grounded_generation tests.test_10_ask -v`                      | **65 passed, 1.111s**, including all 15 ask tests                                                 |
+| Final local `..\.venv\Scripts\python.exe -m unittest tests.test_10_ask -v` after import grouping changes                                                                                 | **15 passed, 0.888s**                                                                             |
+| Final Pyright 1.1.414 on four changed Python files, explicit installed typeshed/repository interpreter                                                                                   | **0 errors, 0 warnings, 0 informations**                                                          |
+
+- Deterministic full/focused container used blank Gemini key/model plus read-only **safe example** inventory mounts at `/server/.env.example`, `/server/.env`, and the Compose inventory file. The `.env` here is `.env.example`, never the actual secret. No discovered test makes a real Gemini call.
+- Docker tests cover SDK request/completion/usage/retry/error behavior, every citation split boundary and bounded parser state, source delimiting, trusted citation mapping, exact fallback, request validation, HTTP errors, partial-output failure, and all cleanup paths.
+- Public lifecycle proof includes actual socket delivery gated on first answer reception, ASGI disconnect, socket disconnect while synchronous iteration is waiting, request dependency closure, and unavailable finalized citations after cancellation. Blocking work runs off the event loop. No custom cancellation/heartbeat/SSE dependency was needed.
+- Safe deterministic transcript remains **answer x3 -> citations x1, indexes [7,2] -> done x1**; failure **answer x2 -> error x1**, with no final citations/done. Unexpected exceptions, malformed/unknown references, incomplete completion, and provider failure remain failures rather than fallback success.
+
+#### Live SDK and public HTTP acceptance
+
+- Explicit `python -m tests.smoke_generation`: official SDK **2.31.0**, **3 deltas**, **6.120s**, successful stateless completion; usage **27 input / 46 output / 518 thought / 591 total tokens**. Only counts/usage/timing were logged.
+- Explicit `python -m tests.smoke_grounded`:
+  - supported: **2 deltas**, **1 citation [7]**, **2.912s**;
+  - unsupported: exact canonical sentence, **2 deltas**, **0 citations**, **3.481s**;
+  - hostile source: correct synthetic fact, no injected sentinel/page, **1 delta**, **1 trusted citation [7]**, **6.862s**. This is observed fixture behavior, not a universal prompt-injection guarantee.
+- Final `python -m tests.smoke_ask --serve`: actual configured app/lifespan, real BGE, real Gemini, running Compose Qdrant, Uvicorn loopback HTTP server and streaming client; uses the existing documented Luma/Vela IDs, no uploads.
+
+| Persistent public case | Answer events | Citation count/indexes | First event | Done   |
+| ---------------------- | ------------- | ---------------------- | ----------- | ------ |
+| Supported Luma         | 1             | 1 / [0]                | 4.065s      | 4.074s |
+| Unsupported            | 1             | 0 / []                 | 3.199s      | 3.206s |
+| Scoped Vela            | 2             | 1 / [0]                | 3.447s      | 3.496s |
+| Unindexed UUID         | 1             | 0 / []                 | 0.232s      | 0.232s |
+
+- Every success had native `text/event-stream`, clean answer(s), exactly one citations event, then exactly one done. All five citation fields privately equalled stored scoped payloads, including excerpt/display_text. Unsupported/unindexed answers privately equalled the exact canonical fallback. No markers/extra fields/foreign source content. Malformed UUID and blank question returned 422; health and existing query endpoints worked.
+- New `outage` helper reserves a non-listening loopback port and temporarily replaces only this disposable app's Qdrant client with a real client aimed there. Both actual HTTP query and ask encounter real connection refusal and return **503 application/json**, exactly `{"error":"Unable to connect to Qdrant while retrieving chunks","code":"QDRANT_CONNECTION_FAILED"}`. Gemini constructor calls: **0**. Original client restored and temporary client closed; persistent Qdrant never stopped. This verifies outage-before-commit behavior without interrupting the baseline service.
+- Persistent point count **2 -> 2** across retrieval, generation, provenance reads, and outage checks; final independent baseline count **2**. No persistent fixtures were added/deleted.
+- Final `python -m tests.smoke_ask --local` ran **inside Docker**: normal HTTP uploads with real Docling/BGE returned IDs used directly for query/ask, real Gemini, isolated in-memory Qdrant. Two uploads each stored one point; ephemeral count **0 -> 2 -> 2**, closed at exit. Supported **2 answer events / 1 citation [0], first 6.209s / done 6.246s**; unsupported **1 / 0, 3.100s / 3.107s**; Vela **1 / 1 [0], 2.911s / 2.918s**; unindexed **1 / 0, 0.200s / 0.200s**. Exact stored provenance and all event/validation checks passed. Persistent storage untouched by these uploads.
+
+#### Whole-plan acceptance cross-check
+
+| PLAN_04 acceptance category                 | Evidence and outcome                                                                                                                                                    |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Official provider/interface/configuration   | Existing exact protocol retained; current model documentation checked; real SDK stream/completion/usage succeeds; lazy validation and secret handling regressions pass  |
+| Provider failures and non-answer filtering  | Deterministic SDK error/timeout/truncation/no-text/retry/partial-output and thought filtering checks pass in Docker                                                     |
+| Grounded prompt and hostile source boundary | Verbatim ordered scoped sources, collision-safe delimiting and input snapshots tested; real supported/unsupported/hostile smokes pass                                   |
+| Incremental citations                       | All split boundaries, malformed/unknown markers, bounded state, deduplication/order, uncited substantive failure tested; markers absent from HTTP answers               |
+| Trusted provenance                          | Exact frozen Citation shape preserved; all five public fields equal actual stored payloads; model supplies only validated indexes                                       |
+| Public API/SSE                              | Shared validation, direct internal retrieval, approved four payloads, native media type, incremental delivery and terminal ordering tested/live-checked                 |
+| Zero/unsupported context                    | Empty retrieval bypasses Gemini/config; exact fallback and empty citations; unsupported nonempty live checks pass                                                       |
+| Scope/read-only behavior                    | Competitive stronger foreign fixture excluded before provider in deterministic Qdrant integration; real two-file answers/citations isolated; persistent count unchanged |
+| Pre/post commitment failures                | Real refused Qdrant transport is HTTP 503; invalid prep config HTTP 502; partial generation/citation failure becomes one safe SSE error without citations/done          |
+| Upload handoff and compatibility            | Real Docker HTTP upload IDs used for ask; upload/query/health regressions and live checks pass; query handler/Citation AST unchanged                                    |
+| Resource lifecycle                          | SDK contexts, GroundedStream, dependency owner, early close, actual ASGI/socket disconnect, and incomplete citation restrictions pass                                   |
+| Local/full/Docker/static verification       | Recorded local 117-test suite plus Docker 117-test suite, focused suites, final type/syntax/diff checks; no remaining failing acceptance criterion                      |
+| Final acceptance                            | Agent completed PLAN/MANUAL review under explicit user delegation; no separate human walkthrough required                                                               |
+
+#### Findings, documentation, and completion boundaries
+
+- Sandbox Docker access initially failed at the Docker pipe/config; normal tool escalation allowed the authorized verification. No automatic approval rejection occurred.
+- Initial version inventory included absent reportlab and exited before point inspection; corrected the inventory and installed declared test dependencies in the disposable full-suite container as above.
+- The newly added outage helper initially used QdrantClient as a context manager, which it does not support. Pyright caught this; corrected to `contextlib.closing`. The initial live chain had already passed provider/grounded/public provenance checks but stopped at helper TypeError. Reran final focused tests and hosted/isolated public checks successfully; that failed chain is not counted as completed acceptance.
+- One local command used the wrong venv-relative path from `server/` and did not run tests; corrected to `..\.venv\Scripts\python.exe`, with the passing 15-test result above. No production defect was found during final Docker verification.
+- Existing warnings remain: Starlette httpx TestClient deprecation, accepted extraction coverage warnings, and in-memory Qdrant's unsupported REST telemetry (health still reports accessible collection). No unrelated dependency or pipeline change made.
+- Safe probe checked the real credential is absent from image config/history and verification logs, actual `.env` absent from runtime filesystem, intended environment forwarding, and full synthetic source sentences absent from logs. `.env` remains ignored. No source/answer transcript or credential copied into this evidence.
+- Updated current-state AGENTS/SKILL/PHASE/PLAN header and CONTEXT to Verified; MANUAL records delegated authority, final acceptance commands, real refused-transport procedure, preserved baseline, and whole-plan checks. Amendment 01–03 history and initial Amendment 04 review checkpoint remain intact; the amendment prompt remains the historical task specification.
+- Final checks passed after the completion updates: relative documentation links, balanced fences, AGENTS/SKILL diagram limits, UTF-8-normalized committed history preservation, unchanged query/Citation AST, complete-log credential/source scans, compileall for all four changed Python files, Pyright with zero errors/warnings, and `git diff --check`. Mermaid renderer validation was not run; diagrams received structural checks.
+- Final task explain-back: the `prepare` yield dependency validates/retrieves before commitment to preserve HTTP errors, bypasses Gemini on empty results, prepares nonempty GroundedStream, and owns its closure. Native synchronous SSE consumes provisional clean deltas off the event loop; only successful exhaustion exposes trusted citations and done. Failures after commitment emit safe error once. Provider/parser/provenance interfaces remain unchanged. Known semantic/source-injection/cancellation limitations above remain explicit.
+- Current source is verified through read-only Docker mounts without repackaging the preserved baseline image. Client UI, citation rendering, PLAN_05, multi-file scopes, auth, and other excluded features remain outside this completion. No commit/push/branch/history/destructive Git operation occurred.
