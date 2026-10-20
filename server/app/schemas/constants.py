@@ -10,6 +10,41 @@ class AppConstants(BaseModel):
     PORT: int = Field(ge=1, le=65535)
 
 
+class CorsConstants(BaseModel):
+    """Validate a comma-separated allow-list of exact browser origins."""
+
+    CORS_ORIGINS: list[str] = []
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def validate_origins(cls, value: object) -> list[str]:
+        """Reject wildcard, credentialed, or non-origin URLs before startup."""
+        origins = value.split(",") if isinstance(value, str) else value
+        if not isinstance(origins, list):
+            raise ValueError(
+                "CORS_ORIGINS must be a comma-separated origin list")
+
+        result = []
+        for origin in origins:
+            if not isinstance(origin, str):
+                raise ValueError("CORS origins must be strings")
+
+            origin = origin.strip()
+            parsed = urlparse(origin)
+            if (parsed.scheme not in {"http", "https"} or not parsed.hostname
+                    or "*" in origin or parsed.username is not None
+                    or parsed.password is not None or parsed.path
+                    or parsed.query or parsed.fragment or "?" in origin or "#" in origin
+                    or any(character.isspace() for character in origin)):
+                raise ValueError("CORS origins must be exact HTTP(S) origins")
+
+            _ = parsed.port
+            if origin not in result:
+                result.append(origin)
+
+        return result
+
+
 class GeminiConstants(BaseModel):
     """Validate generation settings without displaying sensitive input values."""
 

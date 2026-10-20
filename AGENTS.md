@@ -43,15 +43,16 @@ Do not begin Phase 2+ work unless explicitly requested.
 
 ## 2. Current component maturity
 
-| Component               | Status                 |
-| ----------------------- | ---------------------- |
-| Upload endpoint         | Implemented & Verified |
-| Extraction & chunking   | Implemented & Verified |
-| Embedding               | Implemented & Verified |
-| Vector storage (Qdrant) | Implemented & Verified |
-| Retrieval               | Implemented & Verified |
-| Generation/streaming    | Implemented & Verified |
-| Citation display        | Not Yet Built          |
+| Component                | Status                 |
+| ------------------------ | ---------------------- |
+| Upload endpoint          | Implemented & Verified |
+| Extraction & chunking    | Implemented & Verified |
+| Embedding                | Implemented & Verified |
+| Vector storage (Qdrant)  | Implemented & Verified |
+| Retrieval                | Implemented & Verified |
+| Generation/streaming     | Implemented & Verified |
+| Client foundation/upload | Implemented & Verified |
+| Citation display         | Not Yet Built          |
 
 Status meanings:
 
@@ -63,12 +64,15 @@ Never treat `Implemented, Unverified` as `Implemented & Verified`.
 
 Generation includes the verified Gemini provider, internal grounding/citation core, and public ask/native SSE boundary. PLAN_04 acceptance was performed by the agent under explicit user delegation; citation display remains unbuilt.
 
+PLAN_05 foundation/upload implements the static Bun/Next client, direct upload/returned-ID handoff, and configured CORS. Amendment 02 aligns naming, hook-owned requests, aliases, Prettier, and the Query environment API. Foundation/upload acceptance passed; whole PLAN_05 remains Built, Unverified because question/stream/answer/citation UI remains unbuilt.
+
 Current implementation evidence:
 
 - [PLAN_01 CONTEXT](prompts/PHASE_01/PLAN_01/PHASE_01_PLAN_01_CONTEXT.md)
 - [PLAN_02 CONTEXT](prompts/PHASE_01/PLAN_02/PHASE_01_PLAN_02_CONTEXT.md)
 - [PLAN_03 CONTEXT](prompts/PHASE_01/PLAN_03/PHASE_01_PLAN_03_CONTEXT.md)
 - [PLAN_04 CONTEXT](prompts/PHASE_01/PLAN_04/PHASE_01_PLAN_04_CONTEXT.md)
+- [PLAN_05 CONTEXT](prompts/PHASE_01/PLAN_05/PHASE_01_PLAN_05_CONTEXT.md)
 
 ### Phase 1 maturity flow
 
@@ -91,12 +95,19 @@ flowchart LR
 
 ### Stack
 
-- Backend: FastAPI
-- Frontend: React/Next.js
-- Vector database: self-hosted Qdrant in Docker
-- PostgreSQL: introduced from Phase 3 for canonical application state
-- Redis: introduced only when caching becomes relevant; not part of Phase 1
-- Deployment/runtime: Docker Compose
+- Backend: FastAPI.
+- Frontend: latest stable Next.js available when PLAN_05 is implemented, App Router, TypeScript only.
+- Client runtime/package manager/script runner: Bun only; do not introduce Node.js as a required client runtime.
+- Client rendering/deployment model: static export (`output: "export"`); no Next.js runtime server and no client Docker service in Phase 1.
+- Client styling: Tailwind CSS + shadcn/ui.
+- Client standard HTTP: Axios.
+- Client server-state orchestration: TanStack Query v5.
+- Client streamed `/ask` transport: native browser `fetch()` + `ReadableStream`; do not force Axios or TanStack Query around the SSE stream.
+- Client forms/runtime validation: React Hook Form + Zod.
+- Vector database: self-hosted Qdrant in Docker.
+- PostgreSQL: introduced from Phase 3 for canonical application state.
+- Redis: introduced only when caching becomes relevant; not part of Phase 1.
+- Backend/Qdrant deployment: Docker Compose under `server/`; PLAN_05 does not move Compose to the repository root.
 
 ### Extraction and chunking
 
@@ -163,6 +174,25 @@ Flag additions before implementing them.
 - Do not use `pydantic-settings`.
 - Loading and validation remain separate concerns.
 
+### Frontend architecture — locked for PLAN_05
+
+- Browser client communicates directly with FastAPI; do not insert a Next.js BFF/proxy in Phase 1.
+- FastAPI must use an explicit configured CORS allow-list for the client origin; do not use permissive wildcard CORS as the default.
+- Use the latest stable Next.js release available when scaffolding PLAN_05. Do not pin a stale version from planning documentation.
+- Use TypeScript only with strict compiler settings; application code must not use JavaScript files or casual `any`.
+- Use Bun for client scaffolding, dependency installation, package execution, development, build, and test commands.
+- Use `bun.lock` as the canonical client lockfile. Do not add `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`, or `bun.lockb`.
+- Prefer `bun create`, `bunx --bun`, `bun add`, `bun install`, and `bun run`; do not use `npm`, `npx`, `pnpm`, or `yarn` in normal client workflows.
+- Run Next.js CLI commands under Bun rather than relying on Node.js as the runtime.
+- The production client artifact is static output and therefore has no persistent JavaScript server runtime.
+- `NEXT_PUBLIC_ATLAS_API_BASE_URL` is a build-time public value for the static client; never place secrets in `NEXT_PUBLIC_*` variables.
+- Use Axios for ordinary request/response HTTP such as uploads and future CRUD/authenticated calls.
+- Use TanStack Query for server-state mutations/queries and their lifecycle; do not use it as a substitute for local ephemeral UI state.
+- Use native browser `fetch()` for `POST /files/{file_id}/ask` so the client can consume the response `ReadableStream` directly.
+- Use an `AbortController` internally for streamed request ownership and cleanup, but do not add a user-facing Cancel feature in Phase 1.
+- Use React Hook Form for forms and Zod for form/network boundary validation. Treat network/SSE JSON as `unknown` until validated.
+- Do not add Redux, Zustand, or another global client-state library in Phase 1.
+
 ---
 
 ## 4. Repository architecture
@@ -211,7 +241,7 @@ atlas/
 │   │
 │   └── tests/
 │
-├── client/                                           # Placeholder; Next.js in PLAN_05
+├── client/                                           # Static client foundation/upload; full target structure below
 │
 └── prompts/
     └── PHASE_01/
@@ -219,7 +249,8 @@ atlas/
         ├── PLAN_01/
         ├── PLAN_02/
         ├── PLAN_03/
-        └── PLAN_04/
+        ├── PLAN_04/
+        └── PLAN_05/
 ```
 
 ### Placement rules
@@ -233,7 +264,105 @@ atlas/
 - `schemas/` contains validation, API shapes, and pipeline DTOs.
 - Group schemas by cohesive concern; one class per file unless tightly coupled with no independent use.
 - `core/constants.py` loads environment values and validates them through `schemas/constants.py`.
-- Compose remains beside `.env` for automatic loading; reconsider the repo-root location when `client/` becomes a real service.
+- Backend Compose remains beside `server/.env` for automatic loading; PLAN_05 does not move Compose to the repository root because the client is a static export, not a Compose service.
+
+### PLAN_05 client target structure — partially implemented
+
+This tree is the required destination for frontend code. Foundation/upload layers now exist; ask/citations and unused future folders remain unbuilt.
+
+```text
+client/
+├── public/
+├── src/
+│   ├── app/                              # Next.js routes/layout/composition only
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components/
+│   │   ├── ui/                           # shadcn/ui generated primitives only
+│   │   ├── Common/                       # app-wide reusable Atlas components
+│   │   ├── Upload/                       # upload-specific components
+│   │   ├── Ask/                          # question/stream-specific components
+│   │   └── Citations/                    # citation-specific components
+│   ├── hooks/
+│   │   ├── common/                       # truly cross-domain React hooks
+│   │   ├── upload/                       # upload hooks/mutations
+│   │   └── ask/                          # streamed ask lifecycle hooks
+│   ├── services/
+│   │   └── http/                         # shared Axios infrastructure; endpoints belong in hooks
+│   ├── schemas/
+│   │   ├── upload/                       # upload form/response Zod schemas
+│   │   └── ask/                          # ask form/SSE event Zod schemas
+│   ├── types/
+│   │   ├── common/                       # compile-time-only shared types when needed
+│   │   ├── upload/                       # upload types not derived from schemas
+│   │   └── ask/                          # ask types not derived from schemas
+│   ├── providers/
+│   │   └── query/                        # TanStack Query provider wiring
+│   ├── config/                           # validated client configuration/env access
+│   ├── constants/
+│   │   └── common/                       # stable cross-cutting constants only
+│   ├── utils/
+│   │   ├── common/                       # pure cross-cutting helpers
+│   │   └── stream/                       # pure stream/SSE parsing helpers if needed
+│   └── lib/
+│       └── utils.ts                      # shadcn-required utility boundary; no business logic
+├── tests/
+│   ├── unit/
+│   │   ├── upload/
+│   │   └── ask/
+│   └── integration/
+│       └── rag/
+├── components.json                       # shadcn/ui configuration
+├── next.config.ts                        # static export configuration
+├── tsconfig.json                         # strict TypeScript configuration
+├── package.json
+└── bun.lock                              # only client package-manager lockfile
+```
+
+### Frontend placement and organization rules
+
+- The folder contract is mandatory. Do not create ad hoc top-level frontend folders when an existing category fits.
+- Organize technical layers by domain consistently, using PascalCase component groups and lowercase non-component domains, for example `hooks/upload/`, `components/Upload/`, and `schemas/upload/`.
+- Add a domain subfolder only when that layer actually has code for the domain; do not create empty symmetry folders.
+- Atlas component domain folders and reusable component files use PascalCase (`components/Upload/UploadPanel.tsx`); shared presentation belongs in `components/Common/` only when needed.
+- `components/ui/` retains generated shadcn naming. Next/tool-required names (`page.tsx`, `layout.tsx`, `not-found.tsx`, `next-env.d.ts`, `next.config.ts`, `eslint.config.mts`) remain exceptions.
+- Hook domain folders stay lowercase; hook filenames use `use<Name>.ts` and contain no JSX.
+- Other user-controlled multiword filenames/directories use lowerCamelCase; single-word names may remain lowercase. Tests follow lowerCamelCase before `.test.ts` (or `.test.tsx` only for JSX). No hyphenated user-controlled filenames.
+- Export component/type symbols with PascalCase and variables/functions with camelCase.
+- Endpoint-specific request/response validation and React lifecycle belong in the domain hook module. Small request helpers may remain in that module for testing; do not add redundant endpoint services.
+- `services/http/client.ts` owns the shared configured Axios client and cross-cutting HTTP concerns/future approved interceptors; no auth interceptors in Phase 1.
+- Use dedicated aliases across source roots; short local relative imports are acceptable. Preserve `@/*` as fallback; add no speculative aliases.
+- Use Prettier defaults through Bun `format` and `format:check`; exclude generated/build artifacts. Keep lint/typecheck/test/build as separate checks.
+
+Current alias map:
+
+- `@app/*` -> `./src/app/*`;
+- `@components/*` -> `./src/components/*`;
+- `@config/*` -> `./src/config/*`;
+- `@hooks/*` -> `./src/hooks/*`;
+- `@lib/*` -> `./src/lib/*`;
+- `@providers/*` -> `./src/providers/*`;
+- `@schemas/*` -> `./src/schemas/*`;
+- `@services/*` -> `./src/services/*`;
+- `@/*` -> `./src/*` (fallback).
+
+- `src/app/` owns Next.js routing, layouts, route composition, and route-level metadata only. Do not bury reusable components, hooks, services, schemas, or business logic inside route folders.
+- `components/ui/` is reserved for shadcn/ui primitives. Do not place Atlas feature/business logic there.
+- `components/Common/` is for genuinely app-wide reusable Atlas presentation components. Keep domain-owned components under `components/<domain>/`.
+- `hooks/<domain>/` owns endpoint-specific requests, response validation, and React orchestration. Pure reusable parsing helpers may live in utilities.
+- `services/http/` contains shared HTTP infrastructure such as the Axios instance. Endpoint-specific transport lives in domain hooks.
+- `schemas/<domain>/` contains Zod validation schemas for forms and untrusted external data. Prefer inferred TypeScript types from Zod rather than maintaining duplicate manual interfaces.
+- `types/<domain>/` is only for compile-time types that are not naturally derived from Zod schemas or external library types.
+- `providers/<domain>/` contains application provider wiring such as TanStack Query. Do not place ordinary hooks or feature components there.
+- `config/` is for configuration/env access and validation. It is not a generic constants folder.
+- `constants/` contains stable literal constants only; prefer domain subfolders when constants are domain-owned.
+- `utils/` contains pure helpers with no React state or network ownership. Use domain subfolders where appropriate; avoid dumping unrelated helpers into generic files.
+- `lib/utils.ts` exists only because shadcn/ui expects the shared `cn`-style utility boundary; do not turn `lib/` into a miscellaneous business-logic directory.
+- `tests/` mirrors behavior by test level and domain. Do not scatter `__tests__` directories throughout `src/`.
+- Do not create barrel `index.ts` files by default. Prefer explicit imports to keep ownership visible and reduce circular-dependency risk.
+- Do not create vague files/folders such as `helpers.ts`, `misc.ts`, `stuff/`, or catch-all `common.ts`. Promote code to `common/` only when it is genuinely cross-domain.
+- Use the dedicated current source-root aliases above for cross-root imports; preserve `@/*` rooted at `client/src/` as fallback. Avoid deep relative chains.
 
 ---
 
@@ -360,6 +489,15 @@ Preserve dead ends/reversed decisions in chronological evidence rather than rewr
 - Prefer single-word variable/function/parameter names where clear.
 - Use multiple words only when necessary to avoid ambiguity.
 
+### Frontend TypeScript and naming
+
+- Frontend application source is TypeScript only: `.ts` and `.tsx`.
+- Keep TypeScript `strict` enabled; do not weaken compiler strictness to bypass errors.
+- Do not use `any` unless an external library boundary makes it unavoidable and the exception is narrowly documented; prefer `unknown` plus validation/narrowing.
+- Follow the frontend placement/naming rules above: PascalCase component groups/files, `use<Name>.ts` hooks, lowerCamelCase other multiword names, and documented framework/shadcn exceptions.
+- Components focus on presentation/composition; domain hooks own endpoint requests and React lifecycle; shared HTTP infrastructure stays in services/http.
+- Validate untrusted HTTP/SSE payloads at runtime before treating them as typed application data.
+
 ### Comments and docstrings
 
 - Do not scatter inline comments explaining individual code lines.
@@ -470,7 +608,7 @@ The pattern is adapted from the human-provided TypeScript/Hono reference; preser
 
 Do not choose silently:
 
-- a new third-party library/service/API outside the fixed stack;
+- a new third-party library/service/API outside the fixed stack, including new frontend state/form/network/component libraries beyond the PLAN_05 locked client stack;
 - chunk-size/overlap policy;
 - embedding model;
 - similarity metric;
@@ -482,7 +620,9 @@ Do not choose silently:
 - pull Phase 2+ scope forward unless explicitly requested, including multi-document, auth, teams, or portfolio-style scope;
 - add auth/session/user scoping before Phase 3 is explicitly requested;
 - use Gemini File Search or managed RAG-as-a-service;
-- commit `.env` or any file containing real secrets.
+- commit `.env` or any file containing real secrets;
+- introduce Node.js, npm, npx, pnpm, or Yarn as a required client runtime/package-manager path when Bun can perform the task;
+- add a Next.js runtime server, BFF/proxy, or client Docker service during Phase 1 without an explicit architecture change.
 
 ---
 
@@ -574,12 +714,15 @@ Run from `server/` inside the project venv:
 ```bash
 python -m pip install -r requirements.txt -r tests/requirements.txt
 python -m tests.run
-docker compose --env-file .env -f docker-compose.yml up --build
+docker compose --env-file .env -f docker-compose.yml up --no-build
 docker compose --env-file .env -f docker-compose.yml ps
 ```
 
-- Local venv is the primary debugging loop.
-- Docker is authoritative for deployment-sensitive verification.
+- Reuse existing Docker images/containers by default. Rebuild only when backend image inputs change; never rebuild for client-only formatting/structure work.
+- Local venv is the primary backend debugging loop.
+- Docker is authoritative for backend deployment-sensitive verification.
+- PLAN_05 client commands must run through Bun. Once the client exists, prefer project scripts invoked with `bun run <script>` and use `bun install --frozen-lockfile` for reproducible installs.
+- Do not claim client lint/typecheck/build/test success unless those Bun-driven checks actually ran.
 
 ---
 

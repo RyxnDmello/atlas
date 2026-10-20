@@ -11,11 +11,12 @@ from app.core.constants import Constants, _values
 
 from app.schemas.constants import (
     AppConstants,
-    DoclingConstants,
-    EmbeddingConstants,
+    CorsConstants,
     GeminiConstants,
     LoggerConstants,
     QdrantConstants,
+    DoclingConstants,
+    EmbeddingConstants,
 )
 
 
@@ -25,18 +26,20 @@ class ConstantsTests(TestCase):
     def setUp(self) -> None:
         """Isolate configuration tests using only the safe example environment."""
         self.root = Path(__file__).resolve().parents[1]
-        self.values = {name: value for name, value in dotenv_values(self.root / ".env.example").items() if value is not None}
+        self.values = {name: value for name, value in dotenv_values(
+            self.root / ".env.example").items() if value is not None}
         scope = patch.dict(os.environ, self.values, clear=True)
         scope.start()
         self.addCleanup(scope.stop)
         self.schemas = {
-            "app": AppConstants, "logger": LoggerConstants, "docling": DoclingConstants,
+            "cors": CorsConstants, "app": AppConstants, "logger": LoggerConstants, "docling": DoclingConstants,
             "embedding": EmbeddingConstants, "qdrant": QdrantConstants, "gemini": GeminiConstants,
         }
 
     def test_every_group_accepts_environment_overrides(self) -> None:
         """Expose parsed environment values through every existing nested group."""
         overrides = {
+            "CORS_ORIGINS": ("http://localhost:3000", ["http://localhost:3000"]),
             "PORT": ("8091", 8091), "LOG_LEVEL": ("WARNING", "WARNING"),
             "DOCLING_MAX_CHUNK_TOKENS": ("123", 123),
             "DOCLING_MERGE_PEERS": ("false", False), "DOCLING_ALWAYS_EMIT_HEADINGS": ("false", False),
@@ -78,7 +81,8 @@ class ConstantsTests(TestCase):
                             os.environ[name] = value
 
                         config = Constants()
-                        self.assertEqual(getattr(getattr(config, group), name), field.get_default())
+                        self.assertEqual(
+                            getattr(getattr(config, group), name), field.get_default())
 
     def test_required_fields_remain_required(self) -> None:
         """Reject absent or blank required settings without inventing defaults."""
@@ -128,7 +132,8 @@ class ConstantsTests(TestCase):
 
     def test_environment_file_inventory_matches_constants(self) -> None:
         """Compare key names only, keeping development secrets out of test output."""
-        expected = {name for schema in self.schemas.values() for name in schema.model_fields}
+        expected = {name for schema in self.schemas.values()
+                    for name in schema.model_fields}
         self.assertEqual(set(self.values), expected)
         self.assertEqual(set(dotenv_values(self.root / ".env")), expected)
         placeholder = self.values["GEMINI_API_KEY"]
@@ -140,12 +145,15 @@ class ConstantsTests(TestCase):
     def test_compose_forwards_all_settings_without_defaults(self) -> None:
         """Verify source wiring without invoking Docker or expanding credentials."""
         text = (self.root / "docker-compose.yml").read_text(encoding="utf-8")
-        runtime = text.split("    environment:\n", 1)[1].split("    depends_on:\n", 1)[0]
-        pairs = dict(re.findall(r"^      ([A-Z][A-Z0-9_]*): \$\{([A-Z][A-Z0-9_]*)\}$", runtime, re.MULTILINE))
+        runtime = text.split("    environment:\n", 1)[
+            1].split("    depends_on:\n", 1)[0]
+        pairs = dict(re.findall(
+            r"^      ([A-Z][A-Z0-9_]*): \$\{([A-Z][A-Z0-9_]*)\}$", runtime, re.MULTILINE))
         self.assertEqual(pairs, {name: name for name in self.values})
         self.assertNotRegex(text, r"\$\{[^}]*:-")
 
     def test_unrelated_environment_values_are_not_loaded(self) -> None:
         """Read only a group's declared fields without collecting unrelated secrets."""
         os.environ["UNRELATED_SECRET"] = "private-sentinel"
-        self.assertEqual(set(_values(EmbeddingConstants)), set(EmbeddingConstants.model_fields))
+        self.assertEqual(set(_values(EmbeddingConstants)),
+                         set(EmbeddingConstants.model_fields))
