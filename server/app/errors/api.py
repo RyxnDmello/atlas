@@ -20,12 +20,15 @@ QdrantErrorCode = Literal[
     "QDRANT_COLLECTION_ERROR",
 ]
 
-ErrorCode = CommonErrorCode | FileErrorCode | QdrantErrorCode
+GenerationErrorCode = Literal["GENERATION_FAILED"]
+
+ErrorCode = CommonErrorCode | FileErrorCode | QdrantErrorCode | GenerationErrorCode
 
 STATUS_BY_CODE: dict[ErrorCode, int] = {
     "BAD_REQUEST": 400,
     "INVALID_FILE_TYPE": 400,
     "INVALID_FILE_SIZE": 400,
+    "GENERATION_FAILED": 502,
     "FILE_UPLOAD_FAILED": 400,
     "UNPROCESSABLE_ENTITY": 422,
     "INTERNAL_SERVER_ERROR": 500,

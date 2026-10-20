@@ -15,7 +15,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.http.models import CollectionStatus
 from qdrant_client.http.exceptions import ResponseHandlingException, UnexpectedResponse
 
-from tests.test_04_upload_storage import Provider
+from tests.test_05_upload_storage import Provider
 
 
 class DatabaseHealthTests(TestCase):

@@ -1,13 +1,34 @@
-from typing import Literal, TypeAlias
 from urllib.parse import urlparse
+from typing import Literal, TypeAlias
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, TypeAdapter, field_validator
 
 
 class AppConstants(BaseModel):
     """Validate application server settings."""
 
     PORT: int = Field(ge=1, le=65535)
+
+
+class GeminiConstants(BaseModel):
+    """Validate generation settings without displaying sensitive input values."""
+
+    model_config = ConfigDict(hide_input_in_errors=True)
+
+    GEMINI_API_KEY: SecretStr
+    GEMINI_MODEL: str = Field(min_length=1)
+    GEMINI_MAX_OUTPUT_TOKENS: int = Field(default=2048, gt=0)
+
+    @field_validator("GEMINI_API_KEY", "GEMINI_MODEL")
+    @classmethod
+    def validate_nonblank(cls, value: SecretStr | str) -> SecretStr | str:
+        """Reject whitespace-only credentials or model identifiers."""
+        text = value.get_secret_value() if isinstance(value, SecretStr) else value
+
+        if not text.strip():
+            raise ValueError("Gemini settings must be nonblank")
+
+        return value
 
 
 class LoggerConstants(BaseModel):
@@ -39,7 +60,7 @@ class LoggerConstants(BaseModel):
 class DoclingConstants(BaseModel):
     """Validate Docling extraction and chunking settings."""
 
-    DOCLING_MAX_CHUNK_TOKENS: int = Field(ge=1)
+    DOCLING_MAX_CHUNK_TOKENS: int = Field(default=500, ge=1)
     DOCLING_MERGE_PEERS: bool = True
     DOCLING_ALWAYS_EMIT_HEADINGS: bool = True
 
@@ -71,6 +92,12 @@ class QdrantConstants(BaseModel):
     QDRANT_HEALTHCHECK_TIMEOUT: int = Field(ge=1)
     QDRANT_HEALTHCHECK_INTERVAL: int = Field(ge=1)
     QDRANT_HEALTHCHECK_START_PERIOD: int = Field(ge=0)
+
+    @field_validator("QDRANT_WRITE_WAIT", mode="before")
+    @classmethod
+    def parse_wait(cls, value: object) -> bool:
+        """Parse an environment boolean before enforcing confirmed writes."""
+        return TypeAdapter(bool).validate_python(value)
 
     @field_validator("QDRANT_URL")
     @classmethod

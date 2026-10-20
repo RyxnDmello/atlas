@@ -13,19 +13,19 @@
 
 ## Plan status
 
-| Plan             | Status      | One-line Scope                                         |
-| ---------------- | ----------- | ------------------------------------------------------ |
-| PHASE_01_PLAN_01 | Verified    | Scaffolding, upload, Docling extraction/OCR, chunking  |
-| PHASE_01_PLAN_02 | Verified    | Qdrant setup, embedding, storage, database diagnostics |
-| PHASE_01_PLAN_03 | Verified    | Retrieval and upload ID handoff                        |
-| PHASE_01_PLAN_04 | Not Started | Generation, streaming, citation                        |
-| PHASE_01_PLAN_05 | Not Started | Minimal client UI                                      |
+| Plan             | Status            | One-line Scope                                         |
+| ---------------- | ----------------- | ------------------------------------------------------ |
+| PHASE_01_PLAN_01 | Verified          | Scaffolding, upload, Docling extraction/OCR, chunking  |
+| PHASE_01_PLAN_02 | Verified          | Qdrant setup, embedding, storage, database diagnostics |
+| PHASE_01_PLAN_03 | Verified          | Retrieval and upload ID handoff                        |
+| PHASE_01_PLAN_04 | Verified          | Grounded generation, native SSE ask API, trusted citations |
+| PHASE_01_PLAN_05 | Not Started       | Minimal client UI                                      |
 
 ---
 
 ## Pipeline by plan
 
-Legend: green stages through retrieval are verified, and gray stages are pending.
+Legend: green backend stages through trusted citations are verified; the gray client stage is pending.
 
 ```mermaid
 flowchart LR
@@ -40,8 +40,8 @@ flowchart LR
     Cite --> Client["PLAN_05: Client"]
     classDef built fill:#dcfce7,stroke:#166534,color:#111827,stroke-width:2px
     classDef pending fill:#e5e7eb,stroke:#4b5563,color:#111827,stroke-width:2px,stroke-dasharray:4
-    class Upload,Extract,Chunk,Embed,Store,Retrieve built
-    class Generate,Stream,Cite,Client pending
+    class Upload,Extract,Chunk,Embed,Store,Retrieve,Generate,Stream,Cite built
+    class Client pending
 ```
 
 ## PHASE_01_PLAN_01 — Scaffolding, Upload, Extraction, Chunking
@@ -125,14 +125,17 @@ flowchart LR
 
 - **Branch:** `phase-01/plan-04`
 
+- **Status:** Verified; Amendment 04 and the complete backend plan passed local, Docker, and live SDK/API acceptance performed by the agent under explicit user delegation. Client citation display remains PLAN_05 scope.
+
 - **Depends on:** PLAN_03 verified.
 
 - **Builds:**
 
 - `LLMProvider` interface + `GeminiFlashProvider` implementation.
-- Prompt assembly from retrieved chunks + question.
-- SSE (or WebSocket — confirm before writing this plan) streaming response.
-- Citation metadata format (inline markers vs. structured return) — must be decided and recorded before this plan's prompt is written.
+- Deterministic grounded prompt assembly from retrieved chunks + question and incremental internal clean-text streaming.
+- Native FastAPI SSE streaming response and `/files/{file_id}/ask` are implemented in Amendment 04. Amendment 03 aligned documentation structure.
+- Structured citations from trusted retrieval metadata; internal `[[cite:chunk_index]]` markers are validated and suppressed from answer text.
+- [CONTEXT](PLAN_04/PHASE_01_PLAN_04_CONTEXT.md) records provider/core verification and the reusable Docker baseline; [MANUAL](PLAN_04/PHASE_01_PLAN_04_MANUAL.md) covers repeatable acceptance.
 
 - **Explicitly excluded:** client UI — API-only, tested via curl/SSE client or script.
 

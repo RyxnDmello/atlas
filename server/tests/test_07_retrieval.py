@@ -20,7 +20,7 @@ from app.models.qdrant.chunk import Chunk
 
 from app.main import app
 
-from tests.test_04_upload_storage import Provider
+from tests.test_05_upload_storage import Provider
 
 
 class RetrievalTests(TestCase):
