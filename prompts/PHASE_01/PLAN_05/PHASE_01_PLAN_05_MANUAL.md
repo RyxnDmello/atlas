@@ -1,6 +1,6 @@
 # PHASE_01_PLAN_05 — Manual
 
-Current scope: foundation/upload plus Amendment 02 structure, naming, aliases, formatting, and Query environment API alignment. Whole PLAN_05 is not Verified; ask/stream/answer/citations remain unbuilt.
+Current scope: foundation/upload, frontend conventions, and Amendment 03 question/native POST-SSE answer streaming. Whole PLAN_05 remains Built, Unverified pending trusted citation rendering and final whole-client acceptance.
 
 ## Prerequisites
 
@@ -23,15 +23,15 @@ Current scope: foundation/upload plus Amendment 02 structure, naming, aliases, f
    ```
    Use only actual client origins, without trailing slash/path. For deployment replace these with exact hosted client origins. Blank/omitted defaults to no allowed origins. Do not use wildcard or cookies/auth credentials.
    - Expected: backend validates before startup. CORS is browser response access policy, not authentication.
-3. From `server/` start the backend:
+3. From `server/` start the existing backend/Qdrant containers. For this amendment, reuse existing images, containers, caches, and volumes; obtain explicit approval before any rebuild or recreation:
 
    ```powershell
-   docker compose --env-file .env -f docker-compose.yml up --no-build -d
+   docker compose --env-file .env -f docker-compose.yml start
    docker compose --env-file .env -f docker-compose.yml ps
    Invoke-RestMethod http://localhost:8080/system/health/databases
    ```
 
-   - Expected: Qdrant healthy, backend ready, database status reports success. Reuse the existing image by default. Rebuild only when backend image inputs change; client-only structure/tooling changes need no Docker rebuild. Compose stays in server; no client service exists.
+   - Expected: Qdrant healthy, backend ready, database status reports success. This command starts existing containers without building or recreating them. If they do not exist or a rebuild is necessary, stop and ask first; client-only changes need no Docker rebuild. Compose stays in server; no client service exists.
    - Alternative local loop: start Qdrant, set process `QDRANT_URL=http://localhost:6333`, and run `..\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8080` from server. Keep that override local to the process.
 
 ## Bun client checks and development
@@ -57,10 +57,10 @@ Current scope: foundation/upload plus Amendment 02 structure, naming, aliases, f
    ```
 
    - Expected: Prettier defaults apply to source/test TypeScript and root TypeScript config files. Generated next-env.d.ts/build output/lockfiles are excluded. This supplements lint and type checking.
-   - Structure: `components/Upload/UploadPanel.tsx`, lowercase shadcn `components/ui/`, `hooks/upload/useUpload.ts` without JSX, `config/environmentPublic.ts`, and `providers/query/queryProvider.tsx`. Other user-controlled multiword filenames use lowerCamelCase. Shared Axios stays in services/http; upload requests live in useUpload. Dedicated source-root aliases resolve with @/\* retained as fallback.
+   - Structure: `components/Upload/UploadPanel.tsx`, lowercase shadcn `components/ui/`, `hooks/upload/useUpload.ts` without JSX, `config/environmentPublic.ts`, `components/Rag/RagWorkspace.tsx`, `components/Ask/AskPanel.tsx`, `hooks/ask/useAsk.ts`, `schemas/ask/ask.ts`, `utils/stream/sseParser.ts`, and `providers/query/queryProvider.tsx`. The stream utilities resolve through @utils/\*; hooks contain no JSX. Other user-controlled multiword filenames use lowerCamelCase. Configured Axios/fetch clients live in services/http/axios.ts and fetch.ts; upload transport lives in services/upload/uploadFile.ts, request ownership in services/ask/askSession.ts, and protocol validation in utils/stream/answerStream.ts. Hooks own React orchestration and direct TanStack Query calls. Dedicated source-root aliases resolve with @/\* retained as fallback.
 
 2. Open `http://localhost:3000` in Chrome/Playwright.
-   - Expected: Atlas title and a simple upload card, no ask/citation widgets, no unhandled console errors.
+   - Expected: Atlas title, upload and Ask this file cards; question controls disabled before upload, no citation display, no unhandled page errors. A missing favicon resource diagnostic is distinct from an application exception.
 3. Submit without choosing a file.
    - Expected: inline required-file error and no upload request.
 4. Choose synthetic `policy.md` containing `# Policy` and `Keep records for seven years.` Click Upload once; also try repeated submit during processing.
@@ -71,6 +71,23 @@ Current scope: foundation/upload plus Amendment 02 structure, naming, aliases, f
    - Expected: structured backend 400 is shown explicitly. Previous successful File ID/filename remain; no false replacement scope. A failed-resource 400 console diagnostic is expected for this intentional HTTP failure; no unhandled runtime exception.
 7. Upload a second valid synthetic Markdown file.
    - Expected: success replaces active filename and File ID with the second exact response ID; earlier error clears. Reload clears local active scope because it is intentionally not persistent.
+
+## Question and streamed-answer acceptance
+
+1. With a successful synthetic upload active, submit an empty/whitespace-only question.
+   - Expected: required-question error and no `/ask` request. Ask is disabled during uploads.
+2. Ask a question answered by your synthetic file, such as “How long must records be kept?” for the policy fixture above. Inspect the browser network request.
+   - Expected: native browser `POST /files/{exact-visible-file-id}/ask`, `Content-Type: application/json`, body only `{"question":"<trimmed question>"}`; no top_k, auth headers, credentials, retries or reconnects. Response is `text/event-stream` (optional charset).
+3. Observe the request while active, including repeated submits.
+   - Expected: question/Ask and file/Upload controls disabled; one request. Answer text renders incrementally, remains provisional while streaming, then shows “Answer complete.” Provider chunk/event counts are variable. Internal `[[cite:N]]` never appears. No citation cards or raw source excerpts are rendered.
+4. Inspect application events without copying source, question, answer, excerpt, or raw SSE into documentation/logs.
+   - Expected: ordered answer events, exactly one validated citations event, then one `done` with status `completed`; clean EOF completes success. Citations are retained internally with exact backend values. Unknown/malformed/schema-invalid/out-of-order/duplicate terminal events, missing body/wrong media type, and premature EOF fail explicitly and clear partial text/citations. An error event is failure, never the canonical fallback.
+5. Ask “What is the annual revenue of the Lunar Cheese Corporation in 1842?” (absent from the fixture).
+   - Expected: final visible answer exactly `I don't have enough information in this file to answer that.`; valid citations event with empty list and done; successful completion, no citation UI.
+6. After completion, upload a second valid synthetic file and ask a question about its unique fact. Also check an unsupported replacement upload.
+   - Expected: successful upload changes exact active ID and clears prior answer/question; next ask uses new ID. Failed replacement retains prior ID. A new ask clears its previous result first. Reload clears ephemeral scope. Internal reset/scope change/unmount aborts the owned request; intentional abort does not show a generation failure.
+7. Check browser hygiene and failure handling, optionally using controlled synthetic responses rather than live provider failures.
+   - Expected: no unhandled page/runtime exceptions or application logs of questions, answers, sources, excerpts or raw SSE. Structured HTTP failures show validated public error text; network/unstructured failures show safe generic errors. Partial answer disappears on failure. Expected resource diagnostics for intentional HTTP failures are separate from runtime exceptions.
 
 ## Exported-static acceptance
 
@@ -90,12 +107,12 @@ Current scope: foundation/upload plus Amendment 02 structure, naming, aliases, f
 
    - Expected: localhost:3001 serves the already-built files. This command is an ephemeral local acceptance host, not a production Next runtime or new dependency.
 
-3. Open `http://localhost:3001`; repeat supported upload and unsupported replacement checks.
-   - Expected: exact port 3001 allowed origin; pending controls, ready filename, exact retained response ID, explicit error with previous scope preserved. Check a narrow mobile viewport for overflow. No ask calls.
+3. Open `http://localhost:3001`; repeat supported upload, supported question/POST-SSE completion, unsupported-question fallback, and unsupported replacement checks. Stop the Next dev process first to demonstrate that only the Bun static host is serving the client.
+   - Expected: exact port 3001 allowed origin; pending controls, ready filename, exact retained response ID, explicit error with previous scope preserved. Visible answer completes through citations/done using the exact returned ID, with no internal markers/citation display or unhandled page errors. Check a narrow mobile viewport for overflow. No Next runtime is involved.
 
 ## Backend regression and CORS checks
 
-1. From `server/`, using the project venv:
+1. Backend tests below are for backend/configuration changes. Amendment 03 changes client/tests/docs only, so do not rerun the backend suite solely for this work. From `server/`, using the project venv:
 
    ```powershell
    ..\.venv\Scripts\python.exe -m unittest tests.test_12_cors tests.test_01_constants
@@ -111,7 +128,7 @@ Current scope: foundation/upload plus Amendment 02 structure, naming, aliases, f
    ```
    Repeat with an unapproved origin (expect HTTP 400).
    - Expected: allowed origin receives exact ACAO; unapproved origin receives no ACAO. Structured upload errors retain status/body. CORS is not an access-control substitute for future authentication.
-3. If config/Compose/dependencies change, rebuild and verify packaged backend startup/health and regressions. After runtime checks, stop the backend so two real models need not remain resident. From `server/`:
+3. If a backend defect blocks this amendment, stop and report exact contract evidence before modifying backend code. For separately authorized config/Compose/dependency changes, ask before rebuilding/recreating, then verify packaged backend startup/health and regressions. After runtime checks, stop the backend so two real models need not remain resident. From `server/`:
    ```powershell
    docker compose stop server
    $tests = Join-Path (Get-Location).Path 'tests'
@@ -133,4 +150,15 @@ Current scope: foundation/upload plus Amendment 02 structure, naming, aliases, f
 
 ## Remaining acceptance boundary
 
-Do not call PLAN_05 complete/Verified after upload checks. Question submission, native browser fetch/ReadableStream POST-SSE ownership/parsing, incremental answers, trusted citations, and complete end-to-end client acceptance remain separate work.
+Do not call PLAN_05 complete/Verified after these upload/ask/stream checks. Trusted citation rendering and final whole-client acceptance remain outstanding. Citations are validated and retained internally but not displayed.
+
+## Frontend refactor and hydration regression checks
+
+1. Run the existing client format/lint/typecheck/test/build commands above from client/. HTTP tests exercise raw Response/stream ownership, JSON/default headers, caller overrides, AbortSignal forwarding, multipart preservation and exact IDs.
+   - Expected: every check passes; output remains static out/, with no rewrite/proxy/runtime server.
+2. Inspect Atlas components/hooks/providers: default function exports; exported props/hook interfaces; package imports first, internal imports grouped; multiline objects and blank lines between logical steps. Generated shadcn primitives retain their conventions.
+   - Expected: hook contracts stay beside hooks; transport/session ownership is extracted; handwritten unnecessary aria-\* attributes are absent; native form labels and visible Answer heading remain.
+3. In a clean development browser, reproduce upload -> ask with controlled responses, including incremental text, duplicate submits, terminal failure and successful/failed scope replacement. Repeat against the static export with Next dev stopped.
+   - Expected: exact returned ID is used, one active request, partial text is visible, errors clear it, failed replacement retains scope, successful replacement clears the answer/question.
+4. Inject Grammarly's data-new-gr-c-s-check-loaded and data-gr-ext-installed attributes on body before React hydrates (or enable that extension), then load the development page and inspect its console.
+   - Expected: the body attribute mismatch warning is absent. Only body has suppressHydrationWarning; descendant mismatches remain diagnosable. This suppresses React's warning for extension-owned body attributes; it does not remove those attributes.

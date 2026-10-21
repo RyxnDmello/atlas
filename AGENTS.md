@@ -52,6 +52,7 @@ Do not begin Phase 2+ work unless explicitly requested.
 | Retrieval                | Implemented & Verified |
 | Generation/streaming     | Implemented & Verified |
 | Client foundation/upload | Implemented & Verified |
+| Client question/answers  | Implemented & Verified |
 | Citation display         | Not Yet Built          |
 
 Status meanings:
@@ -64,7 +65,7 @@ Never treat `Implemented, Unverified` as `Implemented & Verified`.
 
 Generation includes the verified Gemini provider, internal grounding/citation core, and public ask/native SSE boundary. PLAN_04 acceptance was performed by the agent under explicit user delegation; citation display remains unbuilt.
 
-PLAN_05 foundation/upload implements the static Bun/Next client, direct upload/returned-ID handoff, and configured CORS. Amendment 02 aligns naming, hook-owned requests, aliases, Prettier, and the Query environment API. Foundation/upload acceptance passed; whole PLAN_05 remains Built, Unverified because question/stream/answer/citation UI remains unbuilt.
+PLAN_05 foundation/upload implements the static Bun/Next client, direct upload/returned-ID handoff, and configured CORS. Amendment 02 aligns naming, hook-owned requests, aliases, Prettier, and the Query environment API. Foundation/upload acceptance passed. Amendment 03 adds shared RagWorkspace composition, question submission, validated native POST-SSE streaming, provisional answer rendering, and internal citation retention. Development/static-export acceptance passed for that slice; whole PLAN_05 remains Built, Unverified pending trusted citation rendering and final whole-client acceptance.
 
 Current implementation evidence:
 
@@ -241,7 +242,7 @@ atlas/
 │   │
 │   └── tests/
 │
-├── client/                                           # Static client foundation/upload; full target structure below
+├── client/                                           # Static client upload/ask/answers; full target structure below
 │
 └── prompts/
     └── PHASE_01/
@@ -268,7 +269,7 @@ atlas/
 
 ### PLAN_05 client target structure — partially implemented
 
-This tree is the required destination for frontend code. Foundation/upload layers now exist; ask/citations and unused future folders remain unbuilt.
+This tree is the required destination for frontend code. Foundation/upload, Rag workflow, ask schemas/hooks, stream parser, and answer UI now exist; citation display and unused future folders remain unbuilt.
 
 ```text
 client/
@@ -281,6 +282,7 @@ client/
 │   ├── components/
 │   │   ├── ui/                           # shadcn/ui generated primitives only
 │   │   ├── Common/                       # app-wide reusable Atlas components
+│   │   ├── Rag/                          # shared upload/ask composition
 │   │   ├── Upload/                       # upload-specific components
 │   │   ├── Ask/                          # question/stream-specific components
 │   │   └── Citations/                    # citation-specific components
@@ -289,7 +291,9 @@ client/
 │   │   ├── upload/                       # upload hooks/mutations
 │   │   └── ask/                          # streamed ask lifecycle hooks
 │   ├── services/
-│   │   └── http/                         # shared Axios infrastructure; endpoints belong in hooks
+│   │   ├── http/                         # configured Axios and native fetch clients
+│   │   ├── upload/                       # upload transport and response validation
+│   │   └── ask/                          # request ownership and stream sessions
 │   ├── schemas/
 │   │   ├── upload/                       # upload form/response Zod schemas
 │   │   └── ask/                          # ask form/SSE event Zod schemas
@@ -330,8 +334,8 @@ client/
 - Hook domain folders stay lowercase; hook filenames use `use<Name>.ts` and contain no JSX.
 - Other user-controlled multiword filenames/directories use lowerCamelCase; single-word names may remain lowercase. Tests follow lowerCamelCase before `.test.ts` (or `.test.tsx` only for JSX). No hyphenated user-controlled filenames.
 - Export component/type symbols with PascalCase and variables/functions with camelCase.
-- Endpoint-specific request/response validation and React lifecycle belong in the domain hook module. Small request helpers may remain in that module for testing; do not add redundant endpoint services.
-- `services/http/client.ts` owns the shared configured Axios client and cross-cutting HTTP concerns/future approved interceptors; no auth interceptors in Phase 1.
+- Domain hooks own React orchestration. Extract substantial transport, response validation, and request sessions into services/<domain>/ when this gives them a clear single responsibility; avoid redundant pass-through layers.
+- `services/http/axios.ts` exports the configured Axios instance; `services/http/fetch.ts` exports the minimal native fetch client with base/get/post. Both resolve the validated API URL centrally. Preserve native Axios options and raw fetch Responses/streams; no auth interceptors in Phase 1.
 - Use dedicated aliases across source roots; short local relative imports are acceptable. Preserve `@/*` as fallback; add no speculative aliases.
 - Use Prettier defaults through Bun `format` and `format:check`; exclude generated/build artifacts. Keep lint/typecheck/test/build as separate checks.
 
@@ -345,13 +349,14 @@ Current alias map:
 - `@providers/*` -> `./src/providers/*`;
 - `@schemas/*` -> `./src/schemas/*`;
 - `@services/*` -> `./src/services/*`;
+- `@utils/*` -> `./src/utils/*`;
 - `@/*` -> `./src/*` (fallback).
 
 - `src/app/` owns Next.js routing, layouts, route composition, and route-level metadata only. Do not bury reusable components, hooks, services, schemas, or business logic inside route folders.
 - `components/ui/` is reserved for shadcn/ui primitives. Do not place Atlas feature/business logic there.
 - `components/Common/` is for genuinely app-wide reusable Atlas presentation components. Keep domain-owned components under `components/<domain>/`.
-- `hooks/<domain>/` owns endpoint-specific requests, response validation, and React orchestration. Pure reusable parsing helpers may live in utilities.
-- `services/http/` contains shared HTTP infrastructure such as the Axios instance. Endpoint-specific transport lives in domain hooks.
+- `hooks/<domain>/` owns React lifecycle, local state, and direct TanStack Query calls. Hook-specific interfaces stay in the hook file unless shared ownership warrants extraction. Pure parsing/protocol helpers live in utilities.
+- `services/http/` contains shared HTTP infrastructure; services/<domain>/ owns extracted endpoint transport, boundary validation, or request sessions. Do not wrap TanStack Query in a generic service/hook abstraction.
 - `schemas/<domain>/` contains Zod validation schemas for forms and untrusted external data. Prefer inferred TypeScript types from Zod rather than maintaining duplicate manual interfaces.
 - `types/<domain>/` is only for compile-time types that are not naturally derived from Zod schemas or external library types.
 - `providers/<domain>/` contains application provider wiring such as TanStack Query. Do not place ordinary hooks or feature components there.
@@ -495,8 +500,16 @@ Preserve dead ends/reversed decisions in chronological evidence rather than rewr
 - Keep TypeScript `strict` enabled; do not weaken compiler strictness to bypass errors.
 - Do not use `any` unless an external library boundary makes it unavoidable and the exception is narrowly documented; prefer `unknown` plus validation/narrowing.
 - Follow the frontend placement/naming rules above: PascalCase component groups/files, `use<Name>.ts` hooks, lowerCamelCase other multiword names, and documented framework/shadcn exceptions.
-- Components focus on presentation/composition; domain hooks own endpoint requests and React lifecycle; shared HTTP infrastructure stays in services/http.
+- Components focus on presentation/composition; hooks own React lifecycle; domain services own extracted transport/session concerns; shared HTTP infrastructure stays in services/http.
 - Validate untrusted HTTP/SSE payloads at runtime before treating them as typed application data.
+- Atlas components, providers, and hooks use `export default function Name(...) {}`. Arrow callbacks remain appropriate. Preserve generated shadcn primitive APIs/conventions.
+- Define named interfaces for component props and structural application contracts rather than inline object annotations. Prefer interfaces for object shapes; use type aliases for unions, callbacks, and Zod-inferred data. Primitive and existing library types can be used directly.
+- Colocate hook interfaces/types in the hook module by default. Extract shared contracts only when reuse/ownership warrants it; do not create speculative type folders. Export the types/interfaces consumers need and avoid unused exports.
+- Write nonempty object literals across multiple lines, one property per line, including nested options, state updates, and return objects.
+- Keep all package imports together immediately below directives. Group internal imports by category (hooks together, components together, services together, then other categories); use one blank line between groups and none within each group.
+- Leave one blank line between logical React steps and logical JSX sections. Formatting does not replace this manual readability convention.
+- Avoid handwritten aria-\* attributes unless necessary for functionality/accessibility; prefer native labels and visible status/error text. Retain generated primitive accessibility behavior.
+- Use configured HTTP clients for API-relative paths. Next.js rewrites are unavailable with static export; do not add a proxy or runtime server to imitate base-URL resolution.
 
 ### Comments and docstrings
 
@@ -505,7 +518,7 @@ Preserve dead ends/reversed decisions in chronological evidence rather than rewr
 
 ### Import grouping
 
-Order imports as:
+For backend Python, order imports as:
 
 1. standard library;
 2. third-party;
@@ -718,7 +731,7 @@ docker compose --env-file .env -f docker-compose.yml up --no-build
 docker compose --env-file .env -f docker-compose.yml ps
 ```
 
-- Reuse existing Docker images/containers by default. Rebuild only when backend image inputs change; never rebuild for client-only formatting/structure work.
+- Reuse existing Docker images/containers/volumes. For this amendment, never rebuild or recreate them; obtain explicit user approval first if a rebuild becomes absolutely necessary. Never rebuild for client-only formatting/structure work.
 - Local venv is the primary backend debugging loop.
 - Docker is authoritative for backend deployment-sensitive verification.
 - PLAN_05 client commands must run through Bun. Once the client exists, prefer project scripts invoked with `bun run <script>` and use `bun install --frozen-lockfile` for reproducible installs.

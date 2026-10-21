@@ -27,6 +27,7 @@
       "@lib/*": ["./src/lib/*"],
       "@app/*": ["./src/app/*"],
       "@hooks/*": ["./src/hooks/*"],
+      "@utils/*": ["./src/utils/*"],
       "@config/*": ["./src/config/*"],
       "@schemas/*": ["./src/schemas/*"],
       "@services/*": ["./src/services/*"],
@@ -36,12 +37,12 @@
   },
 
   "include": [
-    "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
+    "**/*.mts",
+    "next-env.d.ts",
     ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    ".next/dev/types/**/*.ts"
   ],
 
   "exclude": ["node_modules"]

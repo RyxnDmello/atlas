@@ -28,21 +28,39 @@ describe("upload boundaries", () => {
     for (const value of [
       null,
       {},
-      { ...response, id: "invented" },
-      { ...response, total: -1 },
-      { ...response, chunks: [{ text: "Policy", index: "0", count: 1 }] },
+      {
+        ...response,
+        id: "invented",
+      },
+      {
+        ...response,
+        total: -1,
+      },
+      {
+        ...response,
+        chunks: [
+          {
+            text: "Policy",
+            index: "0",
+            count: 1,
+          },
+        ],
+      },
     ]) {
       expect(uploadResponseSchema.safeParse(value).success).toBe(false);
     }
   });
   test("requires an actual file", () => {
     expect(uploadFormSchema.safeParse({}).success).toBe(false);
-    expect(uploadFormSchema.safeParse({ file: "policy.md" }).success).toBe(
-      false,
-    );
     expect(
-      uploadFormSchema.safeParse({ file: new File(["policy"], "policy.md") })
-        .success,
+      uploadFormSchema.safeParse({
+        file: "policy.md",
+      }).success,
+    ).toBe(false);
+    expect(
+      uploadFormSchema.safeParse({
+        file: new File(["policy"], "policy.md"),
+      }).success,
     ).toBe(true);
   });
   test("evaluates safely when File is unavailable during prerender", () => {
@@ -52,7 +70,11 @@ describe("upload boundaries", () => {
         value: undefined,
         configurable: true,
       });
-      expect(uploadFormSchema.safeParse({ file: {} }).success).toBe(false);
+      expect(
+        uploadFormSchema.safeParse({
+          file: {},
+        }).success,
+      ).toBe(false);
     } finally {
       if (original) Object.defineProperty(globalThis, "File", original);
     }

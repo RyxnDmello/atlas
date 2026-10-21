@@ -5,7 +5,7 @@
 
 - **Branch:** `phase-01/plan-05`
 - **Depends on:** PLAN_04, Verified.
-- **Status:** Built, Unverified — foundation/upload acceptance passed; ask/stream/answer/citation client capabilities remain unbuilt.
+- **Status:** Built, Unverified — foundation/upload and question/native SSE answer acceptance passed; trusted citation rendering and final whole-client acceptance remain pending.
 - **Pipeline stage:** client/browser presentation over the verified Phase 1 backend.
 - **Current implementation and evidence:** `PHASE_01_PLAN_05_CONTEXT.md`.
 - **Repeatable acceptance:** `PHASE_01_PLAN_05_MANUAL.md`.
@@ -132,8 +132,9 @@ Rules:
 ```mermaid
 flowchart TB
     UI["React components"] --> Hooks["Domain hooks"]
-    Hooks --> HTTP["Shared Axios client / native fetch"]
-    Hooks --> Validate["Zod network validation"]
+    Hooks --> Services["Domain transport / request sessions"]
+    Services --> HTTP["Configured Axios / native fetch clients"]
+    Services --> Validate["Zod network validation / pure stream protocol"]
     Hooks --> State["Local React state / TanStack mutation state"]
     State --> UI
 ```
@@ -141,8 +142,8 @@ flowchart TB
 Rules:
 
 - components render and compose;
-- domain hooks own endpoint requests, response validation, and React lifecycle;
-- services/http owns shared Axios infrastructure; pure parsing helpers may live in utils/stream;
+- domain hooks own React lifecycle and direct TanStack Query orchestration; domain services own extracted transport, validation, and request sessions;
+- services/http owns configured Axios and native fetch clients; pure parsing/protocol helpers live in utils/stream;
 - Zod schemas validate untrusted external data;
 - TanStack Query owns ordinary server-state mutation/query lifecycle;
 - local React state owns ephemeral workflow/display state;
@@ -169,6 +170,7 @@ Rules:
 - `@providers/*` -> `./src/providers/*`;
 - `@schemas/*` -> `./src/schemas/*`;
 - `@services/*` -> `./src/services/*`;
+- `@utils/*` -> `./src/utils/*`;
 - `@/*` -> `./src/*` (fallback).
 - Use TypeScript only.
 
@@ -269,7 +271,7 @@ Required boundary:
 - no auth interceptors in Phase 1;
 - no speculative refresh-token logic;
 - no API endpoint construction scattered through React components;
-- domain hook modules own endpoint calls and validate unknown response bodies before adopting Atlas-domain values.
+- domain transport services validate unknown response bodies before hooks adopt Atlas-domain values.
 
 TanStack Query v5 owns ordinary server-state lifecycle:
 
@@ -290,28 +292,32 @@ Reasons locked by architecture:
 - Atlas needs direct incremental byte/text consumption;
 - forcing the stream through Axios/TanStack Query would obscure rather than improve the transport boundary.
 
-The future ask hook request implementation:
+The ask session implementation:
 
-- lives under `hooks/ask/` and contains no JSX;
+- lives under `services/ask/` and contains no React logic;
 - may use pure reusable SSE parsing helpers under `utils/stream/`;
-- uses the hook-owned `AbortSignal`;
+- owns its request AbortController and forwards its signal through the configured fetch client;
 - performs the POST request;
 - validates non-SSE/pre-stream HTTP failures;
 - reads the response body incrementally;
 - parses logical SSE events;
 - runtime-validates event JSON;
-- applies typed domain events to the hook-owned lifecycle state;
+- applies validated domain events to subscribed session snapshots;
 - never trusts arbitrary event payloads.
 
 The same React-facing hook:
 
 - lives under `hooks/ask/`;
-- owns an `AbortController` for the active request;
-- aborts on teardown/reset where required;
+- subscribes to its request session;
+- resets/aborts that session on teardown or scope replacement;
 - prevents concurrent ask streams;
 - exposes typed streaming state to components.
 
 TanStack Query is not used as the transport owner for the streamed `/ask` response in Phase 1.
+
+The fetch client centralizes API URL joining, omitted credentials, GET/POST methods, JSON serialization and default JSON headers. base accepts native body/options without forcing JSON; caller headers/signals/options remain available. Responses are not parsed or consumed by this client. Next rewrites are unsupported by static export, so browser requests resolve directly to FastAPI through configured clients.
+
+Atlas React code follows root AGENTS conventions: default function exports, named props/hook interfaces, grouped imports, multiline objects and logical blank lines. Hook contracts stay local unless sharing warrants extraction; generated shadcn primitives retain their APIs. A body-only suppressHydrationWarning handles browser extension attributes without suppressing descendant mismatches.
 
 ---
 
@@ -331,7 +337,7 @@ Rules:
 - must not contain secrets;
 - is embedded into the static JavaScript bundle by Next.js;
 - changing the API base after build requires rebuilding the static client;
-- shared HTTP infrastructure and domain hooks consume centralized validated config rather than reading `process.env` throughout the app.
+- configured HTTP clients consume centralized validated config rather than reading `process.env` throughout the app.
 
 No other public environment setting should be added without a concrete need.
 
@@ -726,6 +732,7 @@ client/
 │   ├── components/
 │   │   ├── ui/
 │   │   ├── Common/
+│   │   ├── Rag/
 │   │   ├── Upload/
 │   │   ├── Ask/
 │   │   └── Citations/
@@ -734,7 +741,9 @@ client/
 │   │   ├── upload/
 │   │   └── ask/
 │   ├── services/
-│   │   └── http/
+│   │   ├── http/
+│   │   ├── upload/
+│   │   └── ask/
 │   ├── schemas/
 │   │   ├── common/
 │   │   ├── upload/
@@ -776,14 +785,14 @@ Rules:
 - Hook domain folders stay lowercase; hook filenames use `use<Name>.ts` and contain no JSX.
 - Other user-controlled multiword filenames/directories use lowerCamelCase; single-word names may remain lowercase. Tests follow lowerCamelCase before `.test.ts` (or `.test.tsx` only for JSX). No hyphenated user-controlled filenames.
 - Export component/type symbols with PascalCase and variables/functions with camelCase.
-- Endpoint-specific request/response validation and React lifecycle belong in the domain hook module. Small request helpers may remain in that module for testing; do not add redundant endpoint services.
-- `services/http/client.ts` owns the shared configured Axios client and cross-cutting HTTP concerns/future approved interceptors; no auth interceptors in Phase 1.
+- Domain hooks own React orchestration; domain services own extracted transport, validation, and request sessions. Avoid redundant pass-through layers.
+- `services/http/axios.ts` exports the configured Axios instance; `services/http/fetch.ts` exports base/get/post and returns native Responses without consuming streams. Both use validated API configuration; no auth interceptors in Phase 1.
 - Use dedicated aliases across source roots; short local relative imports are acceptable. Preserve `@/*` as fallback; add no speculative aliases.
 - Use Prettier defaults through Bun `format` and `format:check`; exclude generated/build artifacts. Keep lint/typecheck/test/build as separate checks.
 - `app/` is route/layout/composition only;
 - `components/ui/` is shadcn primitives only;
 - `components/Common/` is truly cross-domain;
-- `hooks/<domain>/` owns endpoint requests and React orchestration;
+- `hooks/<domain>/` owns React orchestration and direct TanStack Query calls;
 - `services/http/` owns common HTTP configuration;
 - `schemas/<domain>/` owns Zod validation;
 - `types/<domain>/` is only for types not naturally inferred from schemas/library types;
@@ -957,7 +966,7 @@ Do not add another HTTP client, form library, schema library, global state libra
 - Follow the repository `AGENTS.md` frontend placement contract.
 - Do not create empty symmetry folders.
 - Keep routing/composition in `app/`.
-- Keep endpoint requests and React orchestration in domain hooks; keep shared Axios infrastructure in services/http.
+- Keep React orchestration in domain hooks, extracted endpoint transport in domain services, and configured HTTP clients in services/http.
 - Keep UI primitives in `components/ui/`.
 - Keep domain UI under `components/<domain>/`.
 - Keep runtime schemas under `schemas/<domain>/`.
@@ -985,7 +994,7 @@ Do not add another HTTP client, form library, schema library, global state libra
 
 - Use React Hook Form + Zod.
 - Use TanStack `useMutation`.
-- Use the shared Axios client from the upload hook module.
+- Use the configured Axios instance from the upload transport service invoked by the hook mutation.
 - Use `FormData`.
 - Validate `UploadResponse` at runtime.
 - Retain the returned `id`.

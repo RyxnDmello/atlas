@@ -13,13 +13,13 @@
 
 ## Plan status
 
-| Plan             | Status            | One-line Scope                                                     |
-| ---------------- | ----------------- | ------------------------------------------------------------------ |
-| PHASE_01_PLAN_01 | Verified          | Scaffolding, upload, Docling extraction/OCR, chunking              |
-| PHASE_01_PLAN_02 | Verified          | Qdrant setup, embedding, storage, database diagnostics             |
-| PHASE_01_PLAN_03 | Verified          | Retrieval and upload ID handoff                                    |
-| PHASE_01_PLAN_04 | Verified          | Grounded generation, native SSE ask API, trusted citations         |
-| PHASE_01_PLAN_05 | Built, Unverified | Client foundation/upload implemented; ask/stream/citations pending |
+| Plan             | Status            | One-line Scope                                                                            |
+| ---------------- | ----------------- | ----------------------------------------------------------------------------------------- |
+| PHASE_01_PLAN_01 | Verified          | Scaffolding, upload, Docling extraction/OCR, chunking                                     |
+| PHASE_01_PLAN_02 | Verified          | Qdrant setup, embedding, storage, database diagnostics                                    |
+| PHASE_01_PLAN_03 | Verified          | Retrieval and upload ID handoff                                                           |
+| PHASE_01_PLAN_04 | Verified          | Grounded generation, native SSE ask API, trusted citations                                |
+| PHASE_01_PLAN_05 | Built, Unverified | Client upload/ask/streamed answers implemented; citation display/final acceptance pending |
 
 ---
 
@@ -147,7 +147,7 @@ flowchart LR
 
 ## PHASE_01_PLAN_05 — Minimal Client UI
 
-- **Current status:** Built, Unverified. Foundation/upload and explicit CORS acceptance passed; question submission, streamed answers and citations remain unbuilt. See PLAN_05 CONTEXT/MANUAL.
+- **Current status:** Built, Unverified. Foundation/upload, explicit CORS, and question/native SSE answer acceptance passed. Trusted citation display and final whole-client acceptance remain pending. See PLAN_05 CONTEXT/MANUAL.
 
 - **Branch:** `phase-01/plan-05`
 

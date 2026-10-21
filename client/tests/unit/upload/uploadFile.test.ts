@@ -3,8 +3,8 @@ import type { AxiosAdapter } from "axios";
 
 const previous = process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL;
 process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL = "http://localhost:8080";
-const { http } = await import("@services/http/client");
-const { uploadFile } = await import("@hooks/upload/useUpload");
+const { default: http } = await import("@services/http/axios");
+const { default: uploadFile } = await import("@services/upload/uploadFile");
 if (previous === undefined) delete process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL;
 else process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL = previous;
 
@@ -26,7 +26,13 @@ test("sends one file with browser-owned multipart encoding and validates the ret
       status: 200,
       statusText: "OK",
       headers: {},
-      data: { id, name: file.name, type: ".md", total: 0, chunks: [] },
+      data: {
+        id,
+        name: file.name,
+        type: ".md",
+        total: 0,
+        chunks: [],
+      },
     };
   };
   http.defaults.adapter = adapter;
@@ -39,7 +45,9 @@ test("rejects malformed 200 responses instead of adopting a false scope", async 
     status: 200,
     statusText: "OK",
     headers: {},
-    data: { id: "false" },
+    data: {
+      id: "false",
+    },
   });
   await expect(uploadFile(new File(["policy"], "policy.md"))).rejects.toThrow(
     "invalid upload response",

@@ -2,7 +2,9 @@ import axios from "axios";
 
 import { environment } from "@config/environmentPublic";
 
-export const http = axios.create({
+const client = axios.create({
   baseURL: environment.apiBaseUrl,
   withCredentials: false,
 });
+
+export default client;

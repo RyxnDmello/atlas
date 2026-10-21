@@ -26,7 +26,9 @@ export const environmentSchema = z.object({
 });
 
 export function parseEnvironment(value: unknown) {
-  const result = environmentSchema.safeParse({ apiBaseUrl: value });
+  const result = environmentSchema.safeParse({
+    apiBaseUrl: value,
+  });
   if (!result.success)
     throw new Error(
       "Set NEXT_PUBLIC_ATLAS_API_BASE_URL to an absolute HTTP(S) API URL without credentials, query, or fragment.",

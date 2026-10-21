@@ -3,9 +3,10 @@
 ## Current state
 
 - **Branch:** `phase-01/plan-05`.
-- **PLAN status:** Built, Unverified — partial client capability. Amendment 01 foundation/upload acceptance passed; whole-client ask/stream/answer/citation acceptance remains pending.
-- **Implemented:** static Next.js client, strict TypeScript, Bun tooling, default shadcn upload form, validated public API configuration, Query/Axios upload, exact returned-ID handoff, explicit backend CORS; Amendment 02 naming, hook-owned requests, dedicated aliases, Prettier, and supported Query environment API.
-- **Remaining:** question submission, native-fetch POST-SSE parser and stream lifecycle, answer rendering, trusted citation rendering, and final whole-client acceptance. No corresponding future folders were created.
+- **PLAN status:** Built, Unverified — foundation/upload and Amendment 03 question/native SSE answer acceptance passed; trusted citation rendering and final whole-client acceptance remain pending.
+- **Implemented:** static Next.js client, strict TypeScript, Bun tooling, default shadcn upload form, validated public API configuration, Query/Axios upload, exact returned-ID handoff, explicit backend CORS; Amendment 02 naming, hook-owned requests, dedicated aliases, Prettier, and supported Query environment API; Amendment 03 shared RagWorkspace, RHF/Zod questions, native fetch/ReadableStream, validated SSE/protocol, provisional answers and internal citations.
+- **Follow-up:** configured fetch/Axios clients, extracted upload/ask services and pure answer protocol, default function exports and named local hook/props interfaces, grouped imports/multiline objects/logical spacing, and body-only extension hydration suppression; focused development/static browser regressions passed.
+- **Remaining:** trusted citation rendering and final whole-client acceptance. No speculative citation/auth/history folders were created.
 - Existing backend upload/query/ask contracts remain unchanged. Citation display remains unbuilt. This Amendment cannot make PLAN_05 Verified.
 
 ## Amendment 01 — Client foundation and upload handoff — 2026-10-20
@@ -310,3 +311,155 @@ client/
 - Initial Bun install accidentally ran at repo root, failed on sandbox tempdir permission after creating empty package.json; inspected and removed that task-created empty file, installed correctly in client with normal escalation. No root dependency/lockfile remains; no automatic approval-review rejection.
 - A documentation script initially hit Windows cp1252 decoding on AGENTS before writing; reran with Python UTF-8 mode. No partial documentation write from failed attempt.
 - No blocking checks remain. Missing favicon resource diagnostic recorded. Remaining functional scope: question submission, native-fetch POST-SSE lifecycle/parsing, streamed answers, trusted citation display, final whole-client acceptance. PLAN_05 remains Built, Unverified.
+
+## Amendment 03 — Question submission and native SSE answer streaming — 2026-10-21
+
+### Scope and changed files
+
+Implemented the supplied Amendment 03 on `phase-01/plan-05`. Backend contracts, dependencies, configuration, Compose and Dockerfile are unchanged. The pre-existing untracked Amendment prompt was read and preserved, not rewritten. No additional dependency was installed.
+
+| File                                           | Responsibility                                                                                                                                                                                                |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `client/src/app/page.tsx`                      | Thin page composes RagWorkspace.                                                                                                                                                                              |
+| `client/src/components/Rag/RagWorkspace.tsx`   | Owns useUpload/useAsk coordination and synchronous cross-flow submission lock; composes the panels.                                                                                                           |
+| `client/src/components/Upload/UploadPanel.tsx` | Existing form now receives upload state/actions and ask blocking; upload semantics unchanged.                                                                                                                 |
+| `client/src/components/Ask/AskPanel.tsx`       | RHF/Zod question form, disabled/pending/error/success presentation, plain incremental answer region; no citation UI.                                                                                          |
+| `client/src/hooks/ask/useAsk.ts`               | Native request, response validation, stream/protocol, provisional state, exact citations and controller lifecycle. Exported createAskSession is the same lifecycle implementation used by the hook and tests. |
+| `client/src/schemas/ask/ask.ts`                | Question/public error/answer/citation/citations/done schemas with inferred types.                                                                                                                             |
+| `client/src/utils/stream/sseParser.ts`         | Pure incremental byte decoder and SSE framing with push/finish.                                                                                                                                               |
+| `client/tsconfig.json`                         | Adds materialized @utils/\* alias; preserves all aliases and strict settings.                                                                                                                                 |
+| `client/tests/unit/stream/sseParser.test.ts`   | Byte/framing/UTF-8/EOF tests.                                                                                                                                                                                 |
+| `client/tests/unit/ask/useAsk.test.ts`         | Request, validation, protocol, trust, abort/reset/stale ownership tests.                                                                                                                                      |
+| `client/AGENTS.md`                             | Standard installed Next dev guidance automatically regenerated; read installed static-export and TypeScript docs, no custom guidance added.                                                                   |
+| `AGENTS.md`                                    | Current question/answer maturity, Rag/ask/stream structure and @utils alias; whole PLAN status remains unverified.                                                                                            |
+| `prompts/PHASE_01/PHASE_01.md`                 | Current PLAN_05 capability/status wording only.                                                                                                                                                               |
+| `PHASE_01_PLAN_05.md`                          | Current status/evidence, Rag destination and actual alias reconciliation only; destination contracts preserved.                                                                                               |
+| `PHASE_01_PLAN_05_CONTEXT.md`                  | Current state and this chronological evidence; earlier entries preserved.                                                                                                                                     |
+| `PHASE_01_PLAN_05_MANUAL.md`                   | Reproducible questions/stream/fallback/static acceptance and strengthened container-reuse instructions.                                                                                                       |
+
+The three PLAN_05 document paths in the table are relative to `prompts/PHASE_01/PLAN_05/`.
+
+### Composition, request and ownership
+
+- Composition: `page -> RagWorkspace -> UploadPanel / AskPanel`. Components contain no network or SSE parsing. useUpload remains Axios/TanStack Query for multipart upload; ordinary shared HTTP infrastructure stays in services/http.
+- Only validated upload response `id` becomes `active.fileId`; RagWorkspace passes that exact string to useAsk. No generated identifier or `/query` preflight is introduced.
+- Native `fetch(`${apiBaseUrl}/files/${fileId}/ask`, ...)`: POST, header `Content-Type: application/json`, body only `{"question":"<trimmed question>"}`, `credentials: "omit"`, owned AbortSignal. No top_k/auth/cookies/retry/reconnect/EventSource or Next boundary.
+- Native fetch/ReadableStream exposes the POST response bytes directly; Axios and TanStack Query remain ordinary request/mutation tools, rather than live stream ownership.
+- Hook API: status (`idle`, `streaming`, `success`, `error`), answer, internal citations, optional safe error, and submit(question). No Response, reader or parser buffer reaches components.
+- Session API is a narrow test seam in the hook module: subscribe/getSnapshot, setScope, reset, submit. useSyncExternalStore connects its snapshots to React; layout-effect scope setup/reset prevents old results painting under a replacement file. Cleanup calls reset on scope change/unmount.
+- Synchronous session guard prevents duplicate asks before rerender. RagWorkspace adds a shared synchronous guard for upload/ask conflicts, including programmatic duplicate submissions. Controls disable appropriately while upload or ask is active.
+- Every new ask clears previous result first. Successful replacement resets question (keyed panel) and answer/citations; failed replacement preserves previous scope/result. No browser persistence/history/global state.
+- One AbortController belongs to each request. Scope/reset/unmount invalidates ownership and aborts. Every callback checks controller identity and signal; late old responses cannot overwrite newer results. Failed/incomplete readers cancel and release; finally clears ownership. Intentional reset stays idle without a false generation error.
+
+### Decoder, schemas, protocol and trust
+
+- Pure parser `createSseParser().push(Uint8Array) -> SseRecord[]`, `finish() -> SseRecord[]`. Fatal streaming TextDecoder preserves split UTF-8; retains only unfinished line/record state, emits completed records immediately. Supports LF/CRLF, arbitrary byte/JSON/record splits, multiple records per read, multiline data, comment/keepalive records, actual event/data fields. No React, fetch, form, file scope, dependency or full-answer parsing buffer.
+- finish flushes decoder and rejects incomplete bytes/lines/records. JSON parsing and application event interpretation remain in useAsk.
+- Exact payload validation: answer `{text:string}`; citations `{citations: Citation[]}`; done `{status:"completed"}`; structured errors `{error:nonempty string,code:nonempty string}`. Citation: nonnegative integer index, required nullable integer page (no invented positivity constraint), required nullable string heading/section, string excerpt (empty allowed). Values are retained, never reconstructed from generated prose.
+- Success order is `answer* -> citations (exactly once) -> done (exactly once) -> clean EOF`. Answer after citations, early/duplicate done, duplicate citations, unknown application events and any event after a terminal fail. Error is failure-terminal and clears output; EOF cannot turn it into success.
+- Malformed JSON, schema failures, premature EOF, invalid UTF-8, bad order, network errors, HTTP errors, wrong/missing SSE content type or missing body all fail explicitly. Successful media type accepts charset/case variations. Non-OK HTTP validates the public Atlas shape before displaying its error; unstructured/HTML/provider failures show generic safe text. No raw exception or unvalidated body is displayed.
+- Valid answer deltas publish incrementally but stay provisional. Citations stay private to request accumulation until successful completion. After done the reader continues to EOF so trailing invalid events cannot be hidden by an early success commit.
+- A small possible internal-marker suffix is withheld across answer-event boundaries. Complete reserved `[[cite:N]]` syntax fails before it can render, including split markers. Ordinary text is plain React text, not HTML/Markdown execution.
+- Any non-abort failure clears provisional answer and citations, leaving an explicit safe error. Operational failure never becomes the canonical insufficient-context answer. The exact canonical fallback with empty citations and done is normal success.
+- Trusted citations are validated/retained internally; citation rendering/navigation remains absent. No source/excerpt/question/answer/raw-SSE debug logging or unsafe provider event forwarding was introduced.
+
+### Client verification
+
+All commands below ran from client with Bun 1.4.3 unless otherwise stated:
+
+| Check                                          | Actual result                                                                                                                                                                                                                                                                                |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bun install --frozen-lockfile`                | Passed; 612 installs across 670 packages, no changes, 337 ms.                                                                                                                                                                                                                                |
+| `bun run format`                               | Passed; final pass only reformatted the added test cases; existing code remained clean.                                                                                                                                                                                                      |
+| `bun run format:check`                         | Passed; all matched files use Prettier style.                                                                                                                                                                                                                                                |
+| `bun run lint`                                 | Passed without diagnostics.                                                                                                                                                                                                                                                                  |
+| `bun run typecheck`                            | Passed without diagnostics; strict/aliases preserved.                                                                                                                                                                                                                                        |
+| `bun test tests/unit/stream/sseParser.test.ts` | 9 passed, 0 failed, 357 assertions, 13 ms.                                                                                                                                                                                                                                                   |
+| `bun test tests/unit/ask/useAsk.test.ts`       | Final focused run: 35 passed, 0 failed, 122 assertions, 47 ms.                                                                                                                                                                                                                               |
+| `bun test tests/unit/upload`                   | 7 passed, 0 failed, 27 assertions, 115 ms; existing upload tests unchanged.                                                                                                                                                                                                                  |
+| `bun run test`                                 | Final full run: 51 passed, 0 failed, 506 assertions across 4 files, 116 ms. Earlier 48-case run preceded three additional lifecycle/contract tests.                                                                                                                                          |
+| `bun run build`                                | Passed; final application build compiled 1539 ms, TypeScript 3.1 s, static generation 340 ms; `/` and `/_not-found`, out/index.html emitted. Three subsequent test-only additions also passed strict typecheck.                                                                              |
+| Structural inventory                           | Passed using Bun/TypeScript AST: 23 source/test files, zero case-insensitive duplicate paths, zero explicit any, zero hook JSX. Required paths present; names/alias roots/strict/sole bun.lock/static export checked. No duplicate ask service, API route, auth or citation-renderer folder. |
+| `git diff --check`                             | Passed after final documentation reconciliation.                                                                                                                                                                                                                                             |
+
+Coverage includes every UTF-8/transport split offset in a multibyte fixture, LF/CRLF, keepalives, multiple records, JSON/framing/UTF-8 EOF, ordered deltas, actual citation values, malformed/schema-invalid/unknown events, all terminal failures, split marker boundaries, canonical fallback, no-file/blank guard, exact request, duplicate submit, provisional clearing, reset during pending fetch and live reads, new-scope stale callbacks, and withheld success until clean EOF. Tests make no provider/network calls and add no mounting framework. Teardown tests exercise the same reset function registered as React cleanup; browser checks additionally cover rendered state.
+
+### Development browser acceptance
+
+- Bun/Next dev at localhost:3000 against the existing packaged backend. Initial Ask disabled; real synthetic Markdown upload HTTP 200, exact returned UUID equals active scope, Ask enabled afterward.
+- Supported question: native POST HTTP 200, `text/event-stream; charset=utf-8`, only question body key, exact uploaded ID in request path. A recorded run completed in 3111 ms with 1 answer, 1 citations, 1 done; nonblank visible answer matched the synthetic fact, no internal marker, upload/question disabled while streaming, zero page exceptions. Event count is an observation, not a provider contract.
+- Unsupported question: HTTP 200, exact canonical fallback, 2 answer events, 1 citations, 1 done, zero citations. No citation presentation.
+- Successful second synthetic upload changed scope, cleared old answer/question; next real ask used replacement ID and produced visible successful answer. Unsupported ZIP HTTP 400 preserved previous scope.
+- Controlled browser-native ReadableStream test (no backend point addition): simultaneous form submits made exactly one ask request; upload disabled, first delta visibly rendered, terminal error cleared the partial answer and showed safe failure. Zero page exceptions.
+- No source, answer, question, excerpt or raw SSE is copied into this evidence; only safe booleans/counts/timings. No raw application debug logs.
+
+### Static-export acceptance
+
+- Served built out/ with the existing dependency-free Bun static host at localhost:3001. Stopped Next dev before this acceptance; no Next production runtime/server/BFF exists.
+- Initial Ask disabled; real synthetic upload HTTP 200 followed by supported POST-SSE HTTP 200 using exact response UUID. Nonblank visible answer matched the synthetic fact; no marker/citation UI. Recorded stream: 1 answer, 1 citations, 1 done; 4731 ms to completed UI. Zero page exceptions; 390x844 viewport had no horizontal overflow.
+- Closed browser and stopped temporary dev/static processes after acceptance.
+
+### Docker reuse and persistent data
+
+- Initial runtime: server-server-1 and server-qdrant-1 both stopped. Used only `docker start server-qdrant-1 server-server-1`, then health/read-only inspection. No build, recreation, new container, image/cache prune, volume/collection deletion, backend suite or backend change.
+- Backend image unchanged before/after: `sha256:82742a2426a8712b2eb292baf0498f78536e20a85ce0f567dc6a222dcfc06a7f`; container ID unchanged: `06e72095a6310cc774cef7067e29db5398c7035d403c48e49e90931f6f47a25f`.
+- Qdrant image unchanged before/after: `sha256:b7b0444c4c351c970b98e90a6f89c2ee4287c65b44e52b4cb503fa5b2aa927ad`; container ID unchanged: `cd368a56ddde13cfe0b7ef076df43a0374b6e168634f3e895fb65129257cad1b`.
+- Qdrant health Healthy 1.19.2, collection atlas-chunks green. Safe count before uploads **8**, after **11**: three synthetic successful uploads, one independent point each. Failed ZIP and intercepted stream add no points. No data cleanup/reset attempted.
+- `docker stop server-server-1 server-qdrant-1` restored both to original stopped state after acceptance; image/container/cache/named-volume state preserved apart from expected synthetic data additions.
+
+### Documentation, deviations, warnings and remaining scope
+
+- Updated CONTEXT current state and appended this entry; Amendment 01/02 history remains unchanged. MANUAL now includes ask/stream/fallback/static POST-SSE checks and retains upload/CORS/Bun rules.
+- MANUAL startup corrected from `up --no-build -d` to `start` because user explicitly requires reuse without recreation; real acceptance proved existing stopped containers work. Any rebuild/recreation requires prior user approval. Backend-only commands remain conditional guidance, not checks run for this amendment.
+- Root AGENTS, PHASE overview and PLAN current status/tree/aliases reconciled to actual files. PLAN destination and historical evidence remain intact. Standard generated client/AGENTS retained after Next dev; installed-version docs read.
+- First script invocation accidentally used repository root: format resolved to an unrelated system command which failed on sandbox access to the IDE configuration; typecheck/test scripts were absent. No successful root task mutation was made. Corrected working directory to client and all required scripts passed. No dependency manifest/lockfile appeared at root.
+- First parser-test file write failed because test directories did not yet exist; created the intended directories and wrote tests. Initial installed TypeScript guide path was absent; found and read actual `03-api-reference/05-config/02-typescript.md`. One browser harness assumed globals persisted between tool invocations; corrected to local per-call evidence and reran supported acceptance. These were harness/workflow corrections, not backend defects.
+- Resource diagnostics: pre-existing missing favicon is 404 in dev; the existing minimal Bun host reports 500 for missing favicon and a Chrome DevTools probe. Stopping dev while its page remained open briefly produced expected HMR connection-refused diagnostics. Intentional unsupported ZIP produced expected 400. These are distinct from zero unhandled page exceptions; no unrelated favicon/host feature was added.
+- No automatic approval review rejection or blocking required check remains. No commit/push/branch creation/switch/delete/merge/rebase/history rewrite/destructive Git occurred. No destructive Docker/Qdrant operation or rebuild occurred.
+- **PLAN_05 remains Built, Unverified. Exact remaining capability: trusted citation rendering + final whole-client acceptance.** PHASE_01 is not marked Verified.
+
+## Amendment 03 follow-up — HTTP clients, React conventions and hydration — 2026-10-21
+
+### Approved scope and implementation
+
+- Applied the user's final correction: Atlas components/providers/hooks use default function declarations, not arrow components. Props use exported named interfaces. UseAskResult/UseUploadResult and ActiveFile stay in their hook files; shared session/protocol contracts stay with their non-React owners. Primitive/library types and Zod inference remain appropriate; no speculative types directory/barrel was added.
+- Package imports form the first group; internal imports group hooks, components, services and other categories. Nonempty authored object literals are multiline, including nested options and test fixtures. React logic/JSX retain blank lines between logical steps/sections. Generated shadcn primitives are unchanged.
+- Removed handwritten aria-\* attributes from feature panels while retaining native labels, visible error/status text and generated primitive behavior. Answer now has a visible heading and data-testid="answer".
+- services/http/axios.ts replaces client.ts with the default configured Axios instance; standard Axios methods/options remain native. No multipart Content-Type override/interceptors/retries were added.
+- services/http/fetch.ts provides default base/get/post. Validated environment URL resolution, omitted credentials, methods, JSON serialization and default JSON Content-Type are centralized. Caller Headers/tuples/records, AbortSignal, credentials and other native options are preserved; base accepts raw bodies without forcing JSON. Raw Response/status/body streams remain untouched; domain code handles failures/validation.
+- TanStack useMutation remains directly imported in useUpload, with retry:false/gcTime:0 and synchronous duplicate protection. services/upload/uploadFile.ts owns multipart transport and response/error validation.
+- services/ask/askSession.ts owns subscriptions, snapshots, file scope, request identity, AbortController and reader cleanup. useAsk only subscribes/synchronizes scope/teardown. utils/stream/answerStream.ts validates event order/payloads, withholds internal markers and commits citations only after done plus clean EOF; sseParser remains byte/framing-only.
+- Preserved exact backend-returned file IDs, question-only request bodies, incremental provisional text, malformed/order/EOF failure behavior, safe errors, failed replacement retention, successful replacement reset and stale request protection.
+- Root body alone has suppressHydrationWarning for extension-injected attributes. This suppresses that boundary's warning; it does not remove attributes or suppress descendant mismatches.
+- Updated AGENTS current placement/style rules, PLAN responsibility diagram/contracts/tree, and MANUAL paths/regression checks. Previous hook-owned transport rules were explicitly superseded because the user requested single responsibility extraction. Historical Amendment 01/02/03 evidence above is preserved.
+
+### Research and constraints
+
+- Before implementation, reread root/client AGENTS and installed Next 16.4.2 static-export docs. Earlier planning checked installed environment/rewrites docs, official Next/TanStack documentation and Context7. Rewrites proxy requests through a Next server and are unsupported with output:export; configured clients resolve API-relative paths directly to FastAPI instead. No proxy/BFF, dependency, lockfile, backend, model, Docker or persistent-data change.
+- No rebuild/recreation/start/stop of Docker images, containers or volumes was needed or attempted. No provider calls or backend acceptance rerun for this frontend refactor.
+
+### Verification actually performed
+
+| Check                         | Result                                                                                                                                                                                                                                                                                     |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| bun run format + format:check | Passed. A parser spacing edit initially needed one additional targeted Prettier pass; final check clean.                                                                                                                                                                                   |
+| bun run lint                  | Passed without diagnostics.                                                                                                                                                                                                                                                                |
+| bun run typecheck             | Passed with strict settings.                                                                                                                                                                                                                                                               |
+| bun run test                  | 56 passed, zero failures, 551 assertions across 5 files; final full run 125 ms.                                                                                                                                                                                                            |
+| bun run build                 | Passed: compilation 2.1 s, TypeScript 3.5 s, static generation 393 ms; / and /\_not-found exported. Later parser edit was whitespace only and passed format check.                                                                                                                         |
+| TypeScript AST/source audit   | 28 source/test files; zero explicit any, flat nonempty authored objects, inline structural type literals or hook JSX. Atlas components/providers/hooks have default function declarations; no encoding corruption remains. Generated primitives excluded from authored convention changes. |
+| git diff --check              | Passed.                                                                                                                                                                                                                                                                                    |
+
+- Retargeted existing session/upload tests to askSession.test.ts and uploadFile.test.ts. Added five meaningful fetch-client tests covering URL/method/default credentials, options/signal forwarding, JSON body, all native header forms, caller overrides, raw multipart preservation, HTTP response passthrough, untouched response streams and abort failure propagation. Existing parser/protocol/request lifecycle coverage remains passing.
+- Controlled development browser: successful synthetic upload, exact returned ID, simultaneous duplicate submits produce one ask, visible partial text, clean completion, visible Answer heading, subsequent error clears partial output, successful replacement resets question/result, next ask uses new ID, failed replacement preserves ID/answer. Three ask calls total; zero page exceptions.
+- Controlled static-export browser: same regression flow passed on a temporary Bun file host at localhost:3001, 390x844 viewport, no horizontal overflow. All script/style resources came from the static origin. The pre-existing user dev server on port 3000 remained running; the static artifact did not depend on it.
+- Hydration regression: addInitScript MutationObserver injected both Grammarly body attributes before React attached, verified that ordering, and retained both attributes after hydration. Development and static checks each reported zero hydration mismatch console errors and zero page exceptions.
+- Temporary browser/static host closed/stopped after verification; the existing dev process was not stopped. Missing favicon 404 remains a pre-existing resource diagnostic; deliberate rejected upload produces expected 400. Neither is a hydration error or unhandled page exception.
+
+### Workflow corrections and remaining scope
+
+- One attempted dev start found port 3000 occupied; reused the existing Atlas dev server. Read-only Get-NetTCPConnection was denied by the OS, so verified availability through HTTP/browser instead; no permission escalation or process termination was needed.
+- An initial browser harness clicked before hydration; a subsequent attempt buffering/replacing development HTML left form handlers unavailable. Corrected the harness to inject attributes through an early DOM observer and explicitly wait for React form handlers. The complete controlled regressions then passed in development and static export. No application workaround was added for the harness.
+- A Windows default-encoding file read briefly changed existing ellipsis characters during edits; restored UTF-8 and audited source encoding before browser/build verification.
+- No automatic approval rejection, Git mutation, commit/push/branch operation, backend change or Docker operation occurred. Source changes are ready for review.
+- Remaining product capability is unchanged: trusted citation rendering and final whole-client acceptance. PLAN_05 remains Built, Unverified; this follow-up does not mark it Verified.
