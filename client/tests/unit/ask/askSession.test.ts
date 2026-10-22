@@ -124,6 +124,7 @@ const invalid: [string, string][] = [
   ["answer after citations", citations + answer + done],
   ["answer after done", citations + done + answer],
   ["error", answer + error],
+  ["error after staged citations", answer + citations + error],
   ["done after error", answer + error + done],
   ["duplicate error", error + error],
   ["EOF", answer],
@@ -329,15 +330,18 @@ test("new request clears successful answer before reading; partial failures clea
   );
   const pending = ask.submit("Two");
   expect(ask.getSnapshot().answer).toBe("");
+  expect(ask.getSnapshot().citations).toEqual([]);
   await Promise.resolve();
-  controller.enqueue(encoder.encode(answer));
+  controller.enqueue(encoder.encode(answer + citations));
   await Bun.sleep(1);
   expect(ask.getSnapshot().answer).toBe("Hello world");
+  expect(ask.getSnapshot().citations).toEqual([]);
   controller.enqueue(encoder.encode(error));
   controller.close();
   await pending;
   expect(ask.getSnapshot().answer).toBe("");
   expect(ask.getSnapshot().status).toBe("error");
+  expect(ask.getSnapshot().citations).toEqual([]);
 });
 
 test("done remains provisional until clean EOF and trailing events invalidate it", async () => {
@@ -401,9 +405,10 @@ test("teardown reset aborts a live reader, clears partial text and permits a new
   const ask = session();
   const pending = ask.submit("Question");
   await Promise.resolve();
-  controller.enqueue(encoder.encode(answer));
+  controller.enqueue(encoder.encode(answer + citations));
   await Bun.sleep(1);
   expect(ask.getSnapshot().answer).toBe("Hello world");
+  expect(ask.getSnapshot().citations).toEqual([]);
   ask.reset();
   await pending;
   expect(signal?.aborted).toBe(true);
@@ -438,5 +443,30 @@ test("preserves backend citation nullable and integer semantics, including empty
     status: "success",
     answer: "",
     citations: [value],
+  });
+});
+
+test("scope change and reset clear a completed cited result", async () => {
+  mock(async () => response(answer + citations + done));
+  const ask = session();
+
+  await ask.submit("First");
+  expect(ask.getSnapshot().citations).toEqual([citation]);
+
+  ask.setScope("replacement");
+  expect(ask.getSnapshot()).toEqual({
+    status: "idle",
+    answer: "",
+    citations: [],
+  });
+
+  await ask.submit("Second");
+  expect(ask.getSnapshot().citations).toEqual([citation]);
+
+  ask.reset();
+  expect(ask.getSnapshot()).toEqual({
+    status: "idle",
+    answer: "",
+    citations: [],
   });
 });

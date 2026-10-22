@@ -5,7 +5,7 @@
 
 - **Branch:** `phase-01/plan-05`
 - **Depends on:** PLAN_04, Verified.
-- **Status:** Built, Unverified — foundation/upload and question/native SSE answer acceptance passed; trusted citation rendering and final whole-client acceptance remain pending.
+- **Status:** Verified — complete upload/question/native SSE/trusted citation workflow passed development-browser and static-export acceptance over the existing verified backend.
 - **Pipeline stage:** client/browser presentation over the verified Phase 1 backend.
 - **Current implementation and evidence:** `PHASE_01_PLAN_05_CONTEXT.md`.
 - **Repeatable acceptance:** `PHASE_01_PLAN_05_MANUAL.md`.
@@ -317,7 +317,7 @@ TanStack Query is not used as the transport owner for the streamed `/ask` respon
 
 The fetch client centralizes API URL joining, omitted credentials, GET/POST methods, JSON serialization and default JSON headers. base accepts native body/options without forcing JSON; caller headers/signals/options remain available. Responses are not parsed or consumed by this client. Next rewrites are unsupported by static export, so browser requests resolve directly to FastAPI through configured clients.
 
-Atlas React code follows root AGENTS conventions: default function exports, named props/hook interfaces, grouped imports, multiline objects and logical blank lines. Hook contracts stay local unless sharing warrants extraction; generated shadcn primitives retain their APIs. A body-only suppressHydrationWarning handles browser extension attributes without suppressing descendant mismatches.
+Atlas React code follows client AGENTS conventions under the inherited root policy: default function exports, named props/hook interfaces, grouped imports, multiline objects and logical blank lines. Hook contracts stay local unless sharing warrants extraction; generated shadcn primitives retain their APIs. A body-only suppressHydrationWarning handles browser extension attributes without suppressing descendant mismatches.
 
 ---
 
@@ -717,7 +717,7 @@ Not required:
 
 ## Frontend folder placement
 
-The repository-wide `AGENTS.md` folder contract is authoritative. PLAN_05 must follow the same model.
+The frontend folder contract in [client/AGENTS.md](../../../client/AGENTS.md), inheriting [root AGENTS.md](../../../AGENTS.md), is authoritative. PLAN_05 must follow the same model. Work under `server/**` additionally follows [server/AGENTS.md](../../../server/AGENTS.md); detailed RAG contracts remain in the [RAG skill](../../../.agents/skills/rag/SKILL.md).
 
 Target structure:
 
@@ -963,7 +963,7 @@ Do not add another HTTP client, form library, schema library, global state libra
 
 ### Folder structure
 
-- Follow the repository `AGENTS.md` frontend placement contract.
+- Follow the `client/AGENTS.md` frontend placement contract under inherited root `AGENTS.md` policy.
 - Do not create empty symmetry folders.
 - Keep routing/composition in `app/`.
 - Keep React orchestration in domain hooks, extracted endpoint transport in domain services, and configured HTTP clients in services/http.

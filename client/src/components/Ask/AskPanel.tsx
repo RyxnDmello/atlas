@@ -16,6 +16,8 @@ import { Label } from "@components/ui/label";
 import { Input } from "@components/ui/input";
 import { Button } from "@components/ui/button";
 
+import CitationList from "@components/Citations/CitationList";
+
 import { askFormSchema, type AskForm } from "@schemas/ask/ask";
 
 export interface AskPanelProps {
@@ -105,6 +107,8 @@ export default function AskPanel({ ask, disabled }: AskPanelProps) {
             </div>
           </section>
         )}
+
+        {ask.status === "success" && <CitationList citations={ask.citations} />}
       </CardContent>
     </Card>
   );

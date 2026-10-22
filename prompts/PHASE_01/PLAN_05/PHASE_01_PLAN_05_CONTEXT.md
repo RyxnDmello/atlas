@@ -3,11 +3,14 @@
 ## Current state
 
 - **Branch:** `phase-01/plan-05`.
-- **PLAN status:** Built, Unverified — foundation/upload and Amendment 03 question/native SSE answer acceptance passed; trusted citation rendering and final whole-client acceptance remain pending.
-- **Implemented:** static Next.js client, strict TypeScript, Bun tooling, default shadcn upload form, validated public API configuration, Query/Axios upload, exact returned-ID handoff, explicit backend CORS; Amendment 02 naming, hook-owned requests, dedicated aliases, Prettier, and supported Query environment API; Amendment 03 shared RagWorkspace, RHF/Zod questions, native fetch/ReadableStream, validated SSE/protocol, provisional answers and internal citations.
+- **PLAN status:** Verified — complete development-browser and static-export acceptance passed for upload -> exact returned-ID scope -> native POST-SSE answer -> trusted citations.
+- **Implemented:** static Next.js client, strict TypeScript, Bun tooling, default shadcn upload form, validated public API configuration, Query/Axios upload, exact returned-ID handoff, explicit backend CORS; established naming, hook ownership, aliases, Prettier and Query environment API; shared RagWorkspace, RHF/Zod questions, native fetch/ReadableStream, validated SSE/protocol, provisional answers and trusted completed citation presentation.
 - **Follow-up:** configured fetch/Axios clients, extracted upload/ask services and pure answer protocol, default function exports and named local hook/props interfaces, grouped imports/multiline objects/logical spacing, and body-only extension hydration suppression; focused development/static browser regressions passed.
-- **Remaining:** trusted citation rendering and final whole-client acceptance. No speculative citation/auth/history folders were created.
-- Existing backend upload/query/ask contracts remain unchanged. Citation display remains unbuilt. This Amendment cannot make PLAN_05 Verified.
+- **Citation presentation:** CitationList consumes the existing validated Citation DTO in backend order, preserves exact values, omits null metadata, and renders no Sources section for an empty successful list.
+- **Lifecycle:** done plus clean EOF commits success; staged citations stay hidden, failures clear partial results, new asks/successful file replacements/reset clear prior results, and failed replacements preserve valid scope/result.
+- **Configuration:** the user requested future-only 127.0.0.1 CORS origins alongside localhost in local/example server env files. Existing containers were reused without recreation; acceptance used localhost.
+- **Remaining:** no required PLAN_05 acceptance gap. Phase 1 MVP Core RAG is Verified; no Phase 2 work started. Earlier plans retain their documented extraction limitations.
+- Backend application/API/RAG contracts, dependencies, Compose and images remain unchanged. Verification services were restored to their initial stopped state.
 
 ## Amendment 01 — Client foundation and upload handoff — 2026-10-20
 
@@ -463,3 +466,188 @@ Coverage includes every UTF-8/transport split offset in a multibyte fixture, LF/
 - A Windows default-encoding file read briefly changed existing ellipsis characters during edits; restored UTF-8 and audited source encoding before browser/build verification.
 - No automatic approval rejection, Git mutation, commit/push/branch operation, backend change or Docker operation occurred. Source changes are ready for review.
 - Remaining product capability is unchanged: trusted citation rendering and final whole-client acceptance. PLAN_05 remains Built, Unverified; this follow-up does not mark it Verified.
+
+## Amendment 04 — Scoped AGENTS hierarchy and documentation reference alignment
+
+### Date, scope and authority
+
+- Date: 2026-10-21. Documentation-only review on `phase-01/plan-05`; no application implementation was inspected or changed.
+- Reviewed the human-supplied root/client/server AGENTS files as one hierarchy, compared them with the committed root contract, and reviewed the RAG skill for authority separation. The existing local hierarchy changes were preserved.
+- Both scoped files explicitly inherit every repository-wide rule and require reading root first. Root directs agents launched at the repository root to explicitly read applicable child instructions.
+- Implementation tasks select root + applicable scoped file(s) + relevant PLAN + required skill + targeted current source/tests. Documentation-only tasks retain their stated reading boundary; no entire-repository reading requirement was added.
+
+| Rule family  | Owner and preserved boundary                                                                                                                                                                                           |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Global       | Root AGENTS: purpose/phase/maturity, shared stack and locked cross-boundary architecture, vocabulary/scope, documentation design, secrets/trust, human decisions, Git, proportional verification, explain-back.        |
+| Frontend     | Client AGENTS: Bun/static Next/direct FastAPI, Axios/Query/native fetch, RHF/Zod, placement/aliases/naming, named interfaces/default functions/imports/multiline objects/spacing, shadcn accessibility, client checks. |
+| Backend      | Server AGENTS: FastAPI wiring, routers/core/schemas/models/pipeline, dotenv/Pydantic separation, structured errors, Python style, runtime/lifespan ownership, Docker/Compose, safe diagnostics and backend checks.     |
+| Detailed RAG | Existing RAG skill: exact providers/chunking/Qdrant/retrieval/grounding/citation/transport contracts. Server retains navigation-level selections only; the skill was not modified.                                     |
+
+### Discrepancies and non-material corrections
+
+| Classification             | Finding and disposition                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| REFERENCE ISSUE            | PLAN_05 still assigned React conventions and frontend placement to root AGENTS at three locations. Corrected to client AGENTS under inherited root policy; added scoped server/skill pointers at the placement boundary.                                                                                                                                                                                                  |
+| REFERENCE ISSUE            | README linked only root instructions. Added client/server/skill navigation. MANUAL lacked scoped reading guidance for its cross-boundary workflow; added a prerequisite paragraph without changing numbered acceptance steps or commands.                                                                                                                                                                                 |
+| REFERENCE ISSUE            | Server architecture section used a repository-root skill path inside a child document. Replaced it with a resolving child-relative link; converted introduction authority pointers to clickable relative links.                                                                                                                                                                                                           |
+| REFERENCE ISSUE            | The external prompt-authoring guide does not exist and was intended for a different workflow. The human explicitly requested removing all mentions, including older prompts. Removed the eight current Amendment 04 mentions/dependent requirements and one line each from PLAN_04 Amendment 01 and PLAN_05 Amendment 01. Root now owns the scoped instruction-selection clarification; no replacement guide was created. |
+| WORDING DRIFT              | The split omitted the existing project size/latency constraint and explicit configurable-chunk-size prohibition, and softened required pipeline diagnostics into optional safe examples. Restored the existing requirements in server AGENTS from committed root guidance, without changing technical contracts or logging/security policy.                                                                               |
+| STRUCTURAL DUPLICATION     | Reviewed shared stack/scope/security summaries across root and children. Retained only useful authority/cross-boundary summaries; domain mechanics remain scoped, and exact RAG contracts remain delegated. No additional duplication reduction was needed.                                                                                                                                                               |
+| MATERIAL CONTRACT CONFLICT | None found. No human-owned architecture, behavior, status, API, lifecycle, security, or provider/retrieval decision was selected or changed.                                                                                                                                                                                                                                                                              |
+
+- Rule preservation was checked by family against committed root guidance, all three supplied AGENTS files, and the relevant skill/PLAN/CONTEXT evidence. Frontend conventions, backend ownership, global Git/security/verification rules, locked selections, and maturity boundaries remain represented by their proper authority.
+- Structured titles, numbered major sections, subtitles, rationale, tables, folder trees, and useful diagrams were retained. No permanent review-matrix file or new application scaffolding was created.
+
+### Documentation files changed and history preserved
+
+| File                                                                                     | Documentation change                                                                                                                                             |
+| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AGENTS.md`                                                                              | Preserved the supplied global/scoped hierarchy; linked child instructions and clarified minimal PLAN/skill/source selection and the documentation-only boundary. |
+| `client/AGENTS.md`                                                                       | Preserved the supplied frontend specialization; made root/server/skill introduction pointers clickable.                                                          |
+| `server/AGENTS.md`                                                                       | Preserved the supplied backend specialization; corrected skill navigation and restored the three existing requirements identified above.                         |
+| `README.md`                                                                              | Added scoped AGENTS and RAG-authority navigation to the build-plan reference section.                                                                            |
+| `PLAN_05/PHASE_01_PLAN_05.md`                                                            | Corrected the three frontend authority references, preserving the destination, requirements, acceptance behavior and status.                                     |
+| `PLAN_05/PHASE_01_PLAN_05_MANUAL.md`                                                     | Added instruction-reading guidance only; numbered steps, commands and Expected lines are unchanged.                                                              |
+| `PLAN_05/AMENDMENTS/04_SCOPED_AGENTS_HIERARCHY_AND_DOCUMENTATION_REFERENCE_ALIGNMENT.md` | Removed nonexistent-guide dependencies, aligned loading requirements with root AGENTS, and recorded the human-authorized historical-reference exception.         |
+| `PLAN_04/AMENDMENTS/01_GEMINI_PROVIDER_FOUNDATION.md`                                    | Removed only its nonexistent-guide reading-list item, as explicitly requested.                                                                                   |
+| `PLAN_05/AMENDMENTS/01_CLIENT_FOUNDATION_AND_UPLOAD_HANDOFF.md`                          | Removed only its nonexistent-guide reading-list item, as explicitly requested.                                                                                   |
+| `PLAN_05/PHASE_01_PLAN_05_CONTEXT.md`                                                    | Appended this documentation-only evidence; previous contents remain intact.                                                                                      |
+
+- All historical AGENTS-loading references, historical CONTEXT entries and explain-back/test records were retained. The two explicitly authorized reading-list removals are the only older-Amendment changes.
+- PHASE_01's existing proportional-verification reference correctly points to root policy and needs no change. PLAN_01's frozen original specification remains historical, including its superseded instruction references; it was not rewritten. No general documentation cleanup was performed.
+- Current PHASE/PLAN maturity is unchanged: PLAN_05 remains **Built, Unverified**; PHASE_01 is not marked Verified. Trusted citation rendering remains unbuilt and final whole-client acceptance remains outstanding.
+
+### Documentation verification
+
+- Initial documentation pass: nine edited documents, 28 relative Markdown links resolved, zero unbalanced fences, and AGENTS Mermaid counts root/client/server = 3/2/1. Search across all 50 repository Markdown files found zero remaining external-guide mentions.
+- Final inline Python documentation audit and Git inspection passed:
+  - All three AGENTS files exist; root-to-child, child-to-root inheritance and server-to-skill pointers resolve. Root describes task-specific instruction selection.
+  - Ten edited documents contain 70 balanced fence pairs, including Markdown-level Mermaid fencing; zero unclosed fences. AGENTS Mermaid counts remain root/client/server = 3/2/1, within the guideline. No renderer was run and no rendered Mermaid validation is claimed.
+  - All 28 relative Markdown links outside fenced examples in the ten edited documents resolve to existing targets. External URLs and fenced examples were excluded; no external-link availability claim.
+  - The reference inventory covered all 50 repository Markdown files. Zero obsolete external-guide mentions remain. Current AGENTS/README/PLAN_05/MANUAL loading guidance is aligned; PHASE's root-policy reference is already correct, and frozen/historical references are intentionally retained.
+  - Historical Amendment comparison permits only the two authorized reading-list removals. Every byte of the pre-existing PLAN CONTEXT files is preserved, including all prior PLAN_05 entries. The RAG skill and PHASE overview are byte-for-byte unchanged.
+  - MANUAL comparison confirms that only the new instruction-selection paragraph differs; acceptance commands/numbered steps/Expected lines are unchanged.
+  - Git tracked/untracked inventory contains only Markdown changes. Current branch and HEAD are unchanged.
+  - `git diff --check` passed, exit 0. Git emitted only its existing LF-to-CRLF conversion notices; no whitespace-error diagnostics.
+- No application code, test code, package manifest, lockfile, executable script, Dockerfile, Compose file, environment file or runtime configuration changed. No RAG skill change.
+- No Bun formatting/lint/typecheck/test/build, Python tests, browser/Playwright acceptance, Docker/Compose operations, Gemini calls, or Qdrant inspection/mutation/acceptance were run or claimed. Inline Python was used only for documentation inventory, preservation, link/fence and scope checks.
+- No commit, push, branch creation/switch/deletion, merge, rebase, history rewrite or destructive Git operation occurred.
+
+## Amendment 05 — Trusted citation rendering and final acceptance — 2026-10-22
+
+### Scope, files and ownership
+
+- Implemented the approved amendment on `phase-01/plan-05`; preserved the existing Amendment 04 documentation changes and human-authored prompts.
+- One presentation component was sufficient because each source has the same small field set. No citation hook, service, provider, schema, global state, dependency, navigation or viewer was added.
+- Backend application/API/RAG code, tests, requirements, Dockerfile and Compose are unchanged.
+- Explicit user-directed exception to the amendment's configuration freeze: added future-use loopback IP origins in the two server env files, without applying them to existing containers. Testing remained on localhost; no recreation or rebuild was requested or performed.
+
+| Changed file                                       | Responsibility                                                                                       |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `client/src/components/Citations/CitationList.tsx` | Pure semantic Sources section/list with named props interface and default function export.           |
+| `client/src/components/Ask/AskPanel.tsx`           | Passes existing successful `ask.citations` to CitationList below the answer.                         |
+| `client/tests/unit/ask/citationList.test.tsx`      | Installed React DOM server renderer tests exact presentation and the parent success gate.            |
+| `client/tests/unit/ask/askSession.test.ts`         | Adds staged-error and completed-result reset coverage; strengthens hidden/reset citation assertions. |
+| `server/.env.example`                              | Safe example allow-list includes localhost and 127.0.0.1 on ports 3000/3001.                         |
+| `server/.env` (ignored local file)                 | Same narrowly authorized CORS addition; all other settings retained.                                 |
+| `AGENTS.md`                                        | Current citation/client/Phase 1 maturity and flow updated to verified facts.                         |
+| `client/AGENTS.md`                                 | Current maturity and CitationList presentation ownership.                                            |
+| `PHASE_01_PLAN_05.md`                              | Current status promoted to Verified; specification contracts retained.                               |
+| `PHASE_01_PLAN_05_CONTEXT.md`                      | Current state and this chronological evidence entry.                                                 |
+| `PHASE_01_PLAN_05_MANUAL.md`                       | Final trusted-source checks, lifecycle expectations and future env activation note.                  |
+| `../PHASE_01.md`                                   | PLAN_05 and complete Phase 1 maturity promoted to Verified.                                          |
+
+### Trust, presentation and lifecycle
+
+- Existing Zod-inferred Citation data flows through the unchanged SSE/schema/session boundary into `useAsk`, then AskPanel and CitationList. Presentation creates no alternative trust boundary.
+- Fields displayed are exactly `index`, `excerpt`, and non-null `page`, `heading`, `section`:
+  - `Source {index}` uses the backend index without renumbering; map order preserves backend order and duplicate indexes are not deduplicated.
+  - Excerpts use React escaped text with whitespace preservation and wrapping. HTML/Markdown is not interpreted.
+  - Nullable fields use explicit `!== null`, preserving page zero, negative integer pages and empty strings. No unknown-source placeholders or inferred metadata.
+  - No score, confidence, percentage, link, raw file ID or Qdrant field is added to source presentation. The existing active-file ID remains visible in the separate upload status.
+  - Empty successful citations return null and produce no Sources section/cards. Canonical insufficient-context output remains success.
+- AskPanel mounts sources only when status is `success`. The unchanged session stages validated citations internally, requires valid done plus clean EOF, and rejects trailing events before publishing success.
+- Lifecycle boundaries verified:
+  - staged citations followed by error/missing done/invalid trailing event never become completed sources;
+  - a new ask clears previous answer/citations before reading;
+  - successful replacement changes scope and clears question/answer/citations;
+  - failed replacement preserves the last successful scope, answer and citations;
+  - reset/scope change/unmount abort owned reads and clear state; stale callbacks cannot restore an earlier result;
+  - reload clears ephemeral state. No persistence, reconnect, retry or user-facing Cancel added.
+
+### Client checks and inventory
+
+All commands ran from `client/` under Bun 1.4.3; all completed with exit 0:
+
+| Command                              | Actual result                                                                                                                                     |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bun install --frozen-lockfile`      | 612 installs across 670 packages checked, no changes, 282 ms.                                                                                     |
+| `bun run format`                     | Completed; final production component formatting retained.                                                                                        |
+| `bun run format:check`               | All matched files use Prettier style.                                                                                                             |
+| `bun run lint`                       | Passed.                                                                                                                                           |
+| `bun run typecheck`                  | Strict TypeScript passed.                                                                                                                         |
+| `bun test tests/unit/ask`            | Final focused run: 40 pass, 0 fail, 150 assertions, 2 files, 131 ms.                                                                              |
+| `bun run test`                       | Final full run: 61 pass, 0 fail, 579 assertions, 6 files, 181 ms.                                                                                 |
+| `bun run build`                      | Static build passed; compilation 1999 ms, TypeScript 3.1 s, static generation 346 ms; `/` and `/_not-found` prerendered. `out/index.html` exists. |
+| `git diff --check` (repository root) | Passed; only routine LF/CRLF notices.                                                                                                             |
+
+- Initial focused/full runs passed 39/60 tests; the final extra reset test and strengthened teardown assertion motivated rerunning formatting/lint/typecheck/focused/full tests. After build/browser acceptance, the only production edit was one logical JSX blank line: final `bun run format:check` passed and Bun transpilation before/after was byte-identical.
+- Presentation tests cover exact source order/indexes, excerpt whitespace/escaping, null omission, zero/negative pages, empty strings/excerpts, empty list, absent invented fields and the AskPanel gate for idle/streaming/error/success.
+- Existing upload, exact-ID HTTP, fetch raw response/options, split UTF-8/SSE framing, protocol validation, canonical fallback, duplicate-submit, abort/reset and partial-failure regressions all pass.
+- Focused structure inspection passed:
+  - PascalCase `components/Citations/CitationList.tsx`; one citation presentation file, no network/parser logic;
+  - one existing Citation schema; unchanged ask transport/hook ownership, `useAsk.ts` remains without JSX;
+  - strict/allowJs settings, package manifest, lockfile and static Next config unchanged; `bun.lock` remains the sole package-manager lockfile;
+  - no explicit any, user-controlled hyphenated source filenames, barrels, speculative folders or unnecessary citation layers introduced;
+  - generated lowercase shadcn primitives unchanged; import groups, named props, default function export, multiline objects and logical JSX spacing retained.
+
+### Development-browser acceptance
+
+- Used harmless in-memory synthetic Markdown files with heading/section structure and different retention facts. Actual uploads and asks went directly to the existing backend.
+- Initial page: upload present, Ask disabled, no Sources. Empty upload/question validation made no intended API call. Controlled repeated upload submits produced exactly one request with file/Upload/Ask disabled. Repeated ask submit produced exactly one POST with question/file controls disabled.
+- First real upload: HTTP 200, exact returned ID matched active scope, one stored chunk. Supported question: HTTP 200 native POST-SSE to that exact ID; provisional text observed; no internal marker or staged Sources observed.
+- Successful trusted result: **1 citation, indexes `[0]`**, page absent, heading/section present. In-memory DOM comparison passed for count, source labels/order, exact excerpt and every nullable field. Terminal done and clean EOF reached completed success. No source/answer text copied to evidence.
+- Replacement checks:
+  - deliberate unsupported upload: HTTP 400; previous exact scope, answer and citation count preserved;
+  - second real Markdown upload: HTTP 200, new exact returned ID; question/answer/Sources cleared;
+  - next supported ask used the second exact ID and completed with **1 citation, indexes `[0]`**, page absent, heading/section present; DOM field comparisons passed.
+- Real unsupported question: HTTP 200; exact canonical fallback comparison true, terminal done, empty backend citations, zero Sources/cards, completed success. The empty Next route-announcer alert is not an error; no generation-failure presentation occurred.
+- Controlled browser-only native Response/ReadableStream seam:
+  - partial answer + staged citations stayed source-free; subsequent error cleared answer/sources and produced safe generation failure without completion;
+  - a separate valid staged citations/done stream stayed provisional until explicit EOF, then committed Sources;
+  - next ask immediately cleared prior sources; reload during provisional output reset file/answer/citations and disabled Ask.
+- Zero unhandled application exceptions in acceptance; no citation hydration mismatch or sensitive application logging. Captured console checks compare content only in memory and return categories/booleans.
+
+### Static-export acceptance
+
+- Served the built `out/` with the MANUAL's dependency-free Bun static host on localhost:3001. Stopped the owned Next dev process; port 3000 was confirmed closed. No Next production runtime or new dependency.
+- All **8 script/style resources** came from localhost:3001. Initial no-file state passed. Real upload returned HTTP 200 and exact active ID; supported native POST-SSE reached completed success with provisional text observed.
+- Successful trusted result: **1 citation, indexes `[0]`**, page absent, heading/section present. In-memory DOM comparisons passed for count/index/order/excerpt/null fields; no internal marker or provisional sources. At 375 x 812 viewport, no horizontal overflow.
+- Deliberate unsupported replacement: HTTP 400; active ID, completed answer and sources preserved. Its existing upload error is distinct from ask generation failure.
+- Real unsupported ask: HTTP 200, canonical equality true, empty backend citations, zero Sources/cards, valid done and completed success.
+- Repeated the controlled staged-error, held-done-until-EOF, success commit, new-ask clear and reload-reset checks; all passed, zero unhandled application exceptions.
+- Controlled upload guard check passed: exactly one request after repeated form submits, with file/Upload/Ask disabled during processing. It used a synthetic response only and added no backend data.
+- Diagnostics distinguished from app failures: existing missing favicon resource, deliberate upload HTTP 400s, and dev WebSocket diagnostics after stopping Next. No hydration mismatch or content-bearing app logs observed. The temporary Bun host reported missing favicon ENOENT; required script/style resources and the application workflow succeeded.
+- Two browser harness waits initially used outdated text selectors (the safe generation-error wording and the pending Upload button caption). Corrected the harness expectations and reran those checks successfully; no production change was needed.
+
+### Runtime, configuration and safety
+
+- Initial Docker services were both stopped. Used `docker compose --env-file .env -f docker-compose.yml start` from server, then health/real browser checks; existing backend/Qdrant container creation metadata predates this session.
+- Existing images/containers/model caches/volumes reused. No build, pull, up/recreation, new container, reset, prune, collection deletion or volume operation.
+- Qdrant health remained healthy, collection green. Safe point count **57 -> 60 (+3)** matches the three successful synthetic uploads; no pre-existing data deletion. Final database health passed before shutdown.
+- Live preflights: localhost:3000 and localhost:3001 each HTTP 200 with exact ACAO; unrelated origin HTTP 400 with no ACAO.
+- Both local/example CORS values were parsed by the existing CorsConstants; each exactly matched the four requested origins. Isolated FastAPI/Starlette TestClient preflights accepted all four with exact ACAO. This is config/preflight evidence, not a claim that the running containers acquired the new origins.
+- No backend full model-backed suite rerun solely for frontend citation work. No backend behavior/dependency/source changed. The future-only env example/local change was covered by isolated parsing/preflight checks and existing localhost runtime integration.
+- Existing TestClient emitted its httpx deprecation warning; no dependency changed for that warning.
+- Safely scanned client/static artifacts against locally configured secret values without printing them; zero matches. Env files remain ignored; only the browser-public API base is embedded intentionally.
+- Stopped the owned static host and restored both existing Docker services to stopped state with Compose stop; preserved images, containers, caches, collection and named volume.
+
+### Documentation and final decision
+
+- MANUAL commands remain intact. Corrected stale Expected lines that previously prohibited completed citation display, added exact/null/order/empty/error/reset comparisons, clarified static-origin independence, and replaced the pending acceptance boundary with final acceptance requirements. Updated its safe CORS example and explicitly documented future activation without recreation now.
+- Current root/client AGENTS, PLAN_05 and PHASE_01 maturity now reflect completed acceptance. Earlier Amendment 01–04 evidence remains historical and intact; no broad documentation refactor.
+- Final documentation audit passed: all six changed current-state/evidence documents have balanced fences, relative Markdown links resolve, and root/client/PLAN Mermaid counts remain within the three-diagram guideline. No rendered Mermaid validation is claimed. The pre-existing tracked CONTEXT history is preserved as an unchanged prefix beneath Current state; Amendment 05 follows Amendment 04 chronologically.
+- Final safe scan covered 63 tracked client/static files, with zero configured-secret matches. Final Git inventory/diff checks show no dependency/compiler/static-config/backend-source changes and preserve the pre-existing documentation work.
+- **PLAN_05: Verified. Citation display: Implemented & Verified. PHASE_01 MVP Core RAG: Verified.** Required client/tooling/development/static integration checks passed over the existing verified backend. No remaining required acceptance blocker; future 127.0.0.1 container activation is explicitly deferred by the user and is not a blocker.
+- Earlier extraction/OCR limitations remain accepted as documented in previous plans; acceptance is not a claim of lossless extraction or arbitrary-source model correctness.
+- No Phase 2 work or next PLAN creation. No commit, push, branch creation/switch/deletion, merge, rebase, history rewrite, destructive Git, Docker or Qdrant operation.

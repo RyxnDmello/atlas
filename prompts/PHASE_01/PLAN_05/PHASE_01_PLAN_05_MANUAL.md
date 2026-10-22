@@ -1,8 +1,10 @@
 # PHASE_01_PLAN_05 — Manual
 
-Current scope: foundation/upload, frontend conventions, and Amendment 03 question/native POST-SSE answer streaming. Whole PLAN_05 remains Built, Unverified pending trusted citation rendering and final whole-client acceptance.
+Current scope: the Verified Phase 1 static client, including upload, exact returned-ID handoff, native POST-SSE answers and trusted completed citations. Development-browser and exported-static whole-client acceptance passed; repeat the checks below when changing behavior.
 
 ## Prerequisites
+
+Read [root AGENTS.md](../../../AGENTS.md) and the scoped instructions for the work: [client AGENTS](../../../client/AGENTS.md) for frontend work, [server AGENTS](../../../server/AGENTS.md) for backend work, or both for cross-boundary work. RAG pipeline changes additionally require the [RAG skill](../../../.agents/skills/rag/SKILL.md). This instruction selection does not change the acceptance commands below.
 
 1. Use branch `phase-01/plan-05`, Bun 1.4.3 or compatible, project Python venv/dependencies, Docker Desktop Linux engine, and the existing model caches where available.
    - Expected: Bun can install/run the client; Docker can run existing server/Qdrant services. Node/npm/npx are not required client commands.
@@ -19,10 +21,11 @@ Current scope: foundation/upload, frontend conventions, and Amendment 03 questio
    - Expected: env.local is ignored; the example is tracked. Invalid/missing config fails at dev/build startup.
 2. In ignored `server/.env`, preserve all existing settings and configure:
    ```dotenv
-   CORS_ORIGINS=http://localhost:3000,http://localhost:3001
+   CORS_ORIGINS=http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001
    ```
    Use only actual client origins, without trailing slash/path. For deployment replace these with exact hosted client origins. Blank/omitted defaults to no allowed origins. Do not use wildcard or cookies/auth credentials.
    - Expected: backend validates before startup. CORS is browser response access policy, not authentication.
+   - The 127.0.0.1 entries are a user-requested future configuration addition. Existing containers retain their creation-time environment; `start` does not apply changed Compose environment values. Amendment 05 acceptance uses the existing localhost origins without recreation. Apply the additional origins only during a separately authorized future container recreation; no image rebuild is inherently needed for this env change.
 3. From `server/` start the existing backend/Qdrant containers. For this amendment, reuse existing images, containers, caches, and volumes; obtain explicit approval before any rebuild or recreation:
 
    ```powershell
@@ -79,15 +82,16 @@ Current scope: foundation/upload, frontend conventions, and Amendment 03 questio
 2. Ask a question answered by your synthetic file, such as “How long must records be kept?” for the policy fixture above. Inspect the browser network request.
    - Expected: native browser `POST /files/{exact-visible-file-id}/ask`, `Content-Type: application/json`, body only `{"question":"<trimmed question>"}`; no top_k, auth headers, credentials, retries or reconnects. Response is `text/event-stream` (optional charset).
 3. Observe the request while active, including repeated submits.
-   - Expected: question/Ask and file/Upload controls disabled; one request. Answer text renders incrementally, remains provisional while streaming, then shows “Answer complete.” Provider chunk/event counts are variable. Internal `[[cite:N]]` never appears. No citation cards or raw source excerpts are rendered.
+   - Expected: question/Ask and file/Upload controls disabled; one request. Answer text renders incrementally, remains provisional while streaming, then shows “Answer complete.” Provider chunk/event counts are variable. Internal `[[cite:N]]` never appears. Sources remain hidden while provisional; after valid done and clean EOF, nonempty trusted citations appear below the answer.
 4. Inspect application events without copying source, question, answer, excerpt, or raw SSE into documentation/logs.
-   - Expected: ordered answer events, exactly one validated citations event, then one `done` with status `completed`; clean EOF completes success. Citations are retained internally with exact backend values. Unknown/malformed/schema-invalid/out-of-order/duplicate terminal events, missing body/wrong media type, and premature EOF fail explicitly and clear partial text/citations. An error event is failure, never the canonical fallback.
+   - Expected: ordered answer events, exactly one validated citations event, then one `done` with status `completed`; clean EOF completes success. Compare displayed source count, indexes/order, excerpt text and metadata with the successful backend Citation objects in browser memory. Each label is `Source {index}` without renumbering. Excerpts preserve whitespace and render as escaped text. Page/heading/section appear only when non-null; zero, negative integer pages and empty strings are preserved without placeholders. No inferred provenance, score, confidence, file ID or Qdrant fields appear in source cards. Record only counts/indexes/metadata-presence categories and comparison booleans.
+   - Expected: unknown/malformed/schema-invalid/out-of-order/duplicate terminal events, missing body/wrong media type, and premature EOF fail explicitly and clear partial text/citations. Staged citations followed by error, missing done or trailing invalid events never become visible successful sources. An error event is failure, never the canonical fallback.
 5. Ask “What is the annual revenue of the Lunar Cheese Corporation in 1842?” (absent from the fixture).
    - Expected: final visible answer exactly `I don't have enough information in this file to answer that.`; valid citations event with empty list and done; successful completion, no citation UI.
 6. After completion, upload a second valid synthetic file and ask a question about its unique fact. Also check an unsupported replacement upload.
-   - Expected: successful upload changes exact active ID and clears prior answer/question; next ask uses new ID. Failed replacement retains prior ID. A new ask clears its previous result first. Reload clears ephemeral scope. Internal reset/scope change/unmount aborts the owned request; intentional abort does not show a generation failure.
+   - Expected: successful upload changes exact active ID and clears prior answer/question/citations; next ask uses the new ID and only its completed citation result. Failed replacement retains prior ID, answer and citations. A new ask clears its previous result first. Reload clears ephemeral scope. Internal reset/scope change/unmount aborts the owned request and clears citations; intentional abort does not show a generation failure.
 7. Check browser hygiene and failure handling, optionally using controlled synthetic responses rather than live provider failures.
-   - Expected: no unhandled page/runtime exceptions or application logs of questions, answers, sources, excerpts or raw SSE. Structured HTTP failures show validated public error text; network/unstructured failures show safe generic errors. Partial answer disappears on failure. Expected resource diagnostics for intentional HTTP failures are separate from runtime exceptions.
+   - Expected: no unhandled page/runtime exceptions or application logs of questions, answers, sources, excerpts or raw SSE. Structured HTTP failures show validated public error text; network/unstructured failures show safe generic errors. Partial answer and staged/prior citations disappear on failure, with no completed state. Expected resource diagnostics for intentional HTTP failures are separate from runtime exceptions.
 
 ## Exported-static acceptance
 
@@ -108,11 +112,11 @@ Current scope: foundation/upload, frontend conventions, and Amendment 03 questio
    - Expected: localhost:3001 serves the already-built files. This command is an ephemeral local acceptance host, not a production Next runtime or new dependency.
 
 3. Open `http://localhost:3001`; repeat supported upload, supported question/POST-SSE completion, unsupported-question fallback, and unsupported replacement checks. Stop the Next dev process first to demonstrate that only the Bun static host is serving the client.
-   - Expected: exact port 3001 allowed origin; pending controls, ready filename, exact retained response ID, explicit error with previous scope preserved. Visible answer completes through citations/done using the exact returned ID, with no internal markers/citation display or unhandled page errors. Check a narrow mobile viewport for overflow. No Next runtime is involved.
+   - Expected: exact port 3001 allowed origin; pending controls, ready filename, exact retained response ID, explicit error with previous scope/result preserved. Visible answer completes through citations/done and clean EOF using the exact returned ID; trusted sources match backend count/index/order/excerpt/null metadata. Unsupported success has the canonical fallback and no Sources section. Controlled failure/reset clears answer/citations. No internal markers or unhandled page errors. Check a narrow mobile viewport for overflow. Script/style resources must all use the static artifact origin; localhost:3000 is stopped. No Next runtime is involved. A missing favicon diagnostic remains separate from application exceptions.
 
 ## Backend regression and CORS checks
 
-1. Backend tests below are for backend/configuration changes. Amendment 03 changes client/tests/docs only, so do not rerun the backend suite solely for this work. From `server/`, using the project venv:
+1. Backend tests below are for backend application/configuration behavior changes. Amendment 05 changes client presentation/tests/docs plus the explicitly requested future-only env allow-list entries; backend source, tests, dependencies, Compose and active container configuration remain unchanged. Isolated origin-parser/preflight checks cover the added env entries; do not rerun the full model-backed backend suite solely for citation UI. From `server/`, using the project venv when backend regressions are required:
 
    ```powershell
    ..\.venv\Scripts\python.exe -m unittest tests.test_12_cors tests.test_01_constants
@@ -148,9 +152,9 @@ Current scope: foundation/upload, frontend conventions, and Amendment 03 questio
 
    - Expected: no whitespace errors; no env/dependency/build output staged/tracked, no unintended lockfile or branch change. Stop only verification services started for the session when restoring prior state; preserve named volumes.
 
-## Remaining acceptance boundary
+## Final acceptance boundary
 
-Do not call PLAN_05 complete/Verified after these upload/ask/stream checks. Trusted citation rendering and final whole-client acceptance remain outstanding. Citations are validated and retained internally but not displayed.
+PLAN_05 is Verified after complete upload/ask/stream/citation acceptance in both development and static export, as recorded in CONTEXT. Keep later behavior changes Built, Unverified until their required checks pass. A tool-only or unit-only pass cannot establish whole-client acceptance. Phase 1 is Verified because PLAN_01 through PLAN_05 are Verified; no later-phase implementation is implied.
 
 ## Frontend refactor and hydration regression checks
 

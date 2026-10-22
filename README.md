@@ -17,13 +17,13 @@ starts. No shortcuts, no unexplained logic.
 
 ## 📍 Status
 
-| Stage                              | State                         |
-| ---------------------------------- | ----------------------------- |
+| Stage                               | State                                                         |
+| ----------------------------------- | ------------------------------------------------------------- |
 | Upload · text extraction · chunking | Local tests and live fixtures pass; extraction gap documented |
-| Embedding · vector storage (Qdrant) | Verified locally and with Docker uploads |
-| Retrieval                          | ⬜ Not started                |
-| Generation · streaming · citation  | ⬜ Not started                |
-| Client UI                          | ⬜ Not started                |
+| Embedding · vector storage (Qdrant) | Verified locally and with Docker uploads                      |
+| Retrieval                           | ⬜ Not started                                                |
+| Generation · streaming · citation   | ⬜ Not started                                                |
+| Client UI                           | ⬜ Not started                                                |
 
 Only what's marked implemented above actually exists — this is a build log, not
 a roadmap dressed up as a feature list.
@@ -118,4 +118,8 @@ For beginner-friendly setup and live point/payload checks, see the
 ## 🗺️ Build plans
 
 Full architecture decisions, phase/plan breakdowns, and Codex prompts
-live in [`prompts/`](./prompts) and [`AGENTS.md`](./AGENTS.md).
+live in [`prompts/`](./prompts). Repository-wide instructions live in
+[`AGENTS.md`](./AGENTS.md), with inherited frontend rules in
+[`client/AGENTS.md`](./client/AGENTS.md) and backend rules in
+[`server/AGENTS.md`](./server/AGENTS.md). Read root instructions and each applicable
+scoped file; detailed RAG contracts remain in the [RAG skill](./.agents/skills/rag/SKILL.md).

@@ -31,7 +31,6 @@ Read before coding:
 - prompts/PHASE_01/PLAN_05/PHASE_01_PLAN_05.md
 - .agents/skills/rag/SKILL.md only for the verified upload/file-ID/RAG contracts
   that the client must consume without redesign
-- PROMPT_ARCHITECTURE.md only as needed for implementation/reporting discipline
 
 Read PLAN_04 CONTEXT/MANUAL only when needed to confirm a backend contract or
 preserved verification boundary. Do not re-audit the whole backend.
