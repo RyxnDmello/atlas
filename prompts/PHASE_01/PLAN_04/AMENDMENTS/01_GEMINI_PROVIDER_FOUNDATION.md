@@ -16,7 +16,6 @@ Read before coding:
 - .agents/skills/rag/SKILL.md
 - prompts/PHASE_01/PHASE_01.md
 - prompts/PHASE_01/PLAN_04/PHASE_01_PLAN_04.md
-- PROMPT_ARCHITECTURE.md only as needed for implementation/prompt discipline
 
 Then inspect only the relevant current repository surfaces:
 - server/requirements.txt and server/tests/requirements.txt

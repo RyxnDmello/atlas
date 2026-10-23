@@ -2,7 +2,42 @@
 
 - Auto-loaded from the repository root each session; read fully before writing code.
 - This file is the repository-wide operating contract.
-- Detailed RAG pipeline contracts live in `.agents/skills/rag/SKILL.md`; do not duplicate or silently override them here.
+- [client/AGENTS.md](client/AGENTS.md) contains additional frontend-specific rules for `client/**`.
+- [server/AGENTS.md](server/AGENTS.md) contains additional backend-specific rules for `server/**`.
+- Detailed RAG pipeline contracts live in `.agents/skills/rag/SKILL.md`; do not duplicate or silently override them here or in a scoped AGENTS file.
+- Scoped AGENTS files specialize this repository-wide contract for their subtree. They do not silently weaken or supersede LOCKED repository architecture.
+
+### Instruction hierarchy
+
+Use the smallest complete instruction set for the task:
+
+```text
+Repository-wide task
+-> AGENTS.md
+
+Client task
+-> AGENTS.md
+-> client/AGENTS.md
+
+Server non-RAG task
+-> AGENTS.md
+-> server/AGENTS.md
+
+Server RAG task
+-> AGENTS.md
+-> server/AGENTS.md
+-> .agents/skills/rag/SKILL.md
+
+Cross-boundary task
+-> AGENTS.md
+-> client/AGENTS.md
+-> server/AGENTS.md
+-> relevant skill/PLAN
+```
+
+When Codex is launched from the repository root, explicitly read the applicable scoped AGENTS file before changing files in that subtree.
+
+For implementation tasks, also read the relevant PLAN and targeted current source/tests; read applicable skills when required. Cross-boundary tasks need each applicable scoped file, not unrelated instructions or the entire repository. Documentation-only tasks follow their stated documentation-reading boundary.
 
 ---
 
@@ -43,15 +78,17 @@ Do not begin Phase 2+ work unless explicitly requested.
 
 ## 2. Current component maturity
 
-| Component               | Status                 |
-| ----------------------- | ---------------------- |
-| Upload endpoint         | Implemented & Verified |
-| Extraction & chunking   | Implemented & Verified |
-| Embedding               | Implemented & Verified |
-| Vector storage (Qdrant) | Implemented & Verified |
-| Retrieval               | Implemented & Verified |
-| Generation/streaming    | Implemented & Verified |
-| Citation display        | Not Yet Built          |
+| Component                | Status                 |
+| ------------------------ | ---------------------- |
+| Upload endpoint          | Implemented & Verified |
+| Extraction & chunking    | Implemented & Verified |
+| Embedding                | Implemented & Verified |
+| Vector storage (Qdrant)  | Implemented & Verified |
+| Retrieval                | Implemented & Verified |
+| Generation/streaming     | Implemented & Verified |
+| Client foundation/upload | Implemented & Verified |
+| Client question/answers  | Implemented & Verified |
+| Citation display         | Implemented & Verified |
 
 Status meanings:
 
@@ -61,7 +98,9 @@ Status meanings:
 
 Never treat `Implemented, Unverified` as `Implemented & Verified`.
 
-Generation includes the verified Gemini provider, internal grounding/citation core, and public ask/native SSE boundary. PLAN_04 acceptance was performed by the agent under explicit user delegation; citation display remains unbuilt.
+Generation includes the verified Gemini provider, internal grounding/citation core, and public ask/native SSE boundary. PLAN_04 acceptance was performed by the agent under explicit user delegation. Trusted client citation display is verified.
+
+PLAN_05 is Verified: the static Bun/Next client supports direct upload/returned-ID handoff, question submission, validated native POST-SSE streaming, provisional answers, and trusted completed citations. Whole-client development and static-export acceptance passed over the existing verified backend. Phase 1 MVP Core RAG is Verified; later phases remain outside the current scope.
 
 Current implementation evidence:
 
@@ -69,10 +108,11 @@ Current implementation evidence:
 - [PLAN_02 CONTEXT](prompts/PHASE_01/PLAN_02/PHASE_01_PLAN_02_CONTEXT.md)
 - [PLAN_03 CONTEXT](prompts/PHASE_01/PLAN_03/PHASE_01_PLAN_03_CONTEXT.md)
 - [PLAN_04 CONTEXT](prompts/PHASE_01/PLAN_04/PHASE_01_PLAN_04_CONTEXT.md)
+- [PLAN_05 CONTEXT](prompts/PHASE_01/PLAN_05/PHASE_01_PLAN_05_CONTEXT.md)
 
 ### Phase 1 maturity flow
 
-Legend: backend stages through public streaming are verified; citation display remains pending.
+Legend: all Phase 1 backend and static-client stages, including trusted citation display, are verified.
 
 ```mermaid
 flowchart LR
@@ -82,86 +122,44 @@ flowchart LR
     Store --> Retrieve["Retrieve<br/>Verified"]
     Retrieve --> Generate["Generate/Ground<br/>Verified"]
     Generate --> Stream["Public Ask/SSE<br/>Verified"]
-    Stream --> Cite["Citation Display<br/>Pending"]
+    Stream --> Client["Client Ask/Answer<br/>Verified"]
+    Client --> Cite["Citation Display<br/>Verified"]
 ```
 
 ---
 
-## 3. Fixed stack and locked Phase 1 decisions
+## 3. Repository-wide stack and locked Phase 1 decisions
 
 ### Stack
 
-- Backend: FastAPI
-- Frontend: React/Next.js
-- Vector database: self-hosted Qdrant in Docker
-- PostgreSQL: introduced from Phase 3 for canonical application state
-- Redis: introduced only when caching becomes relevant; not part of Phase 1
-- Deployment/runtime: Docker Compose
+- Backend: FastAPI.
+- Frontend: latest stable Next.js used by PLAN_05, App Router, TypeScript only.
+- Client runtime/package manager/script runner: Bun only; do not introduce Node.js as a required client runtime.
+- Client rendering/deployment model: static export (`output: "export"`); no Next.js runtime server and no client Docker service in Phase 1.
+- Client styling: Tailwind CSS + shadcn/ui.
+- Client ordinary HTTP: Axios.
+- Client server-state orchestration: TanStack Query v5.
+- Client streamed `/ask` transport: native browser `fetch()` + `ReadableStream`.
+- Client forms/runtime validation: React Hook Form + Zod.
+- Vector database: self-hosted Qdrant in Docker.
+- PostgreSQL: introduced from Phase 3 for canonical application state.
+- Redis: introduced only when caching becomes relevant; not part of Phase 1.
+- Backend/Qdrant deployment: Docker Compose under `server/`.
 
-### Extraction and chunking
+Detailed client mechanics belong in `client/AGENTS.md`.
+Detailed backend mechanics belong in `server/AGENTS.md`.
+Detailed RAG mechanics belong in `.agents/skills/rag/SKILL.md`.
 
-- Use Docling: `DocumentConverter` + `HybridChunker`.
-- Standard Docling pipeline + RapidOCR.
-- No VLM tier.
-- `pdfplumber`/`tiktoken` are superseded.
-- Chunk tokenizer: `BAAI/bge-m3`.
-- `DOCLING_MAX_CHUNK_TOKENS` controls chunk size; default `500`.
-- `merge_peers=True`.
-- Do not hardcode the configurable chunk size.
+### Cross-boundary Phase 1 decisions
 
-Supported formats:
-
-- `.pdf`
-- `.docx`
-- `.pptx`
-- `.xlsx`
-- `.md`
-- `.txt`
-- `.html`
-- `.csv`
-- `.png`
-- `.jpg`
-- `.jpeg`
-- `.tiff`
-- `.bmp`
-- `.webp`
-
-Deferred formats:
-
-- audio/video;
-- EPUB;
-- AsciiDoc;
-- LaTeX;
-- XML schemas.
-
-Flag additions before implementing them.
-
-### Embedding
-
-- `EmbeddingProvider` boundary.
-- `BAAI/bge-m3`.
-- FlagEmbedding `BGEM3FlagModel`.
-- Dense-only MVP.
-- Hybrid dense+sparse remains deferred.
-- Stored vectors currently contain dense output only.
-- Size/latency is explicitly not a constraint for the project.
-- Detailed embedding/vector contracts live in the RAG skill.
-
-### Generation
-
-- Gemini Flash through official `google-genai`.
-- Must remain behind `LLMProvider`.
-- Verify the current model identifier before use because Gemini model names/deprecations can change.
-- Never hardcode an unverified model string.
-- Detailed provider/grounding/citation contracts live in the RAG skill.
-
-### Configuration
-
-- `.env` loading: `python-dotenv` in `core/constants.py`.
-- Validation: Pydantic models in `schemas/constants.py`.
-- Configuration groups remain 1:1 across those layers.
-- Do not use `pydantic-settings`.
-- Loading and validation remain separate concerns.
+- Browser client communicates directly with FastAPI; do not insert a Next.js BFF/proxy in Phase 1.
+- FastAPI uses an explicit configured CORS allow-list for client origins; permissive wildcard CORS is not the default.
+- Qdrant is the retrieval index, not canonical application state.
+- PostgreSQL remains deferred until the approved later phase.
+- Redis remains deferred until a concrete caching need exists.
+- Authentication/session/user scoping remains outside Phase 1.
+- Do not add folders, multi-file retrieval, folder/tree/drive retrieval, or canonical file metadata before their approved phase.
+- Material architecture decisions remain human-controlled.
 
 ---
 
@@ -177,41 +175,21 @@ atlas/
 │           └── SKILL.md
 │
 ├── server/
-│   ├── .env                                          # Local secrets/runtime configuration; ignored
-│   ├── .env.example                                  # Safe reproducible configuration template
-│   ├── docker-compose.yml                            # Server + Qdrant Compose definition
-│   ├── Dockerfile                                    # Backend runtime image
-│   │
+│   ├── AGENTS.md
+│   ├── .env
+│   ├── .env.example
+│   ├── docker-compose.yml
+│   ├── Dockerfile
 │   ├── app/
-│   │   ├── main.py                                   # Wiring only
-│   │   ├── routers/                                  # Public HTTP boundaries, including system routes
-│   │   ├── errors/                                   # Structured API/Qdrant/generation error categories
-│   │   ├── core/
-│   │   │   ├── constants.py                          # dotenv loading + validated Constants construction
-│   │   │   ├── lifespan.py                           # Startup/shutdown ownership
-│   │   │   └── runtime.py                            # Access to startup-prepared resources
-│   │   ├── schemas/
-│   │   │   ├── constants.py                          # 1:1 configuration groups
-│   │   │   ├── pipeline.py                           # Chunk DTO
-│   │   │   ├── documents.py                          # Upload/public document-route DTOs
-│   │   │   ├── retrieval.py                          # Retrieval DTOs
-│   │   │   ├── generation.py                         # Generation/citation DTOs where required
-│   │   │   └── system.py                             # Health response validation
-│   │   ├── models/
-│   │   │   ├── qdrant/
-│   │   │   │   └── chunk.py                          # Stored payload
-│   │   │   └── postgres/                             # Planned from Phase 3
-│   │   ├── pipeline/
-│   │   │   ├── chunking.py
-│   │   │   ├── embeddings/
-│   │   │   ├── storage.py
-│   │   │   ├── retrieval.py                          # File-scoped dense retrieval
-│   │   │   └── generation/                           # Provider, grounding, citations; consumed by public ask/SSE
-│   │   └── db/                                       # Qdrant; Postgres from Phase 3
-│   │
 │   └── tests/
 │
-├── client/                                           # Placeholder; Next.js in PLAN_05
+├── client/
+│   ├── AGENTS.md
+│   ├── public/
+│   ├── src/
+│   ├── tests/
+│   ├── package.json
+│   └── bun.lock
 │
 └── prompts/
     └── PHASE_01/
@@ -219,21 +197,18 @@ atlas/
         ├── PLAN_01/
         ├── PLAN_02/
         ├── PLAN_03/
-        └── PLAN_04/
+        ├── PLAN_04/
+        └── PLAN_05/
 ```
 
-### Placement rules
+### Placement ownership
 
-- `server/` is backend; `client/` is frontend.
-- HTTP handlers live in `routers/`, not `api/`.
-- `main.py` wires the application only; no implementation logic.
-- Startup/shutdown implementation belongs in `core/`, imported into `main.py`.
-- `models/` contains storage-mapped entities only, split by backing datastore.
-- One stored class per file; complex PostgreSQL entities may use a folder such as `models/postgres/user/`.
-- `schemas/` contains validation, API shapes, and pipeline DTOs.
-- Group schemas by cohesive concern; one class per file unless tightly coupled with no independent use.
-- `core/constants.py` loads environment values and validates them through `schemas/constants.py`.
-- Compose remains beside `.env` for automatic loading; reconsider the repo-root location when `client/` becomes a real service.
+- `server/` is the backend subtree. Read `server/AGENTS.md` before modifying it.
+- `client/` is the frontend subtree. Read `client/AGENTS.md` before modifying it.
+- `.agents/skills/rag/SKILL.md` is the detailed RAG technical authority.
+- `prompts/` contains PHASE/PLAN/AMENDMENT/CONTEXT/MANUAL project artifacts.
+- Backend Compose remains under `server/`; the static client is not a Compose service in Phase 1.
+- Do not create ad hoc cross-repository folders when an existing ownership boundary fits.
 
 ---
 
@@ -337,7 +312,9 @@ Preserve dead ends/reversed decisions in chronological evidence rather than rewr
 - Each Mermaid diagram should have a short explanatory legend/context.
 - Folder trees remain plain text.
 - Preserve stable referenced headings when practical.
-- Agent-facing files remain current and navigable; detailed RAG contracts belong in the RAG skill.
+- Agent-facing files remain current and navigable.
+- Root AGENTS owns global rules; scoped AGENTS own subtree-specific rules; detailed RAG contracts remain in the RAG skill.
+- Do not duplicate a rule across documents unless a short summary is necessary to establish authority or a cross-boundary invariant.
 
 ---
 
@@ -350,131 +327,59 @@ Preserve dead ends/reversed decisions in chronological evidence rather than rewr
 - Commit `.env.example` with placeholders/safe examples only.
 - Never log or copy real API keys into tracked files, test fixtures, prompts, CONTEXT, or MANUAL.
 - Do not expose secrets through Docker build args/history or diagnostic commands that print full environment configuration.
+- Never place secrets in browser-public configuration.
+- Apply the more specific environment rules in the scoped AGENTS file for the subtree being modified.
 
 ---
 
-## 8. Code style and naming
+## 8. Repository-wide code principles
 
 ### Naming
 
 - Prefer single-word variable/function/parameter names where clear.
 - Use multiple words only when necessary to avoid ambiguity.
+- Follow the language/framework-specific naming rules in the applicable scoped AGENTS file.
 
-### Comments and docstrings
+### Comments and documentation
 
 - Do not scatter inline comments explaining individual code lines.
-- Use function/method docstrings to describe behavior, parameters, and return values.
+- Use function/method documentation where it materially clarifies behavior, parameters, returns, lifecycle, or non-obvious contracts.
+- New files mirror the latest established file in the same ownership area unless a documented convention intentionally supersedes it.
 
-### Import grouping
+### Trust boundaries
 
-Order imports as:
-
-1. standard library;
-2. third-party;
-3. internal `app.*`.
-
-Within internal imports, group by top-level subpackage:
-
-- `app.core`
-- `app.db`
-- `app.pipeline`
-- `app.routers`
-- `app.schemas`
-- `app.models`
-- `app.errors`
-
-Use one blank line between groups and no blank line within a group.
-
-### Entry points
-
-`server/app/main.py`:
-
-- creates the FastAPI app;
-- includes routers;
-- registers exception handlers;
-- sets lifespan;
-- contains no implementation logic.
-
-### Vertical spacing
-
-For new/edited code:
-
-- no blank line between a function/method docstring and its first statement;
-- one blank line between logical steps such as guard, try/except, logging, construction, return;
-- no blank lines inside one tight logical step.
-
-Apply this manually; formatter output does not replace the convention.
-
-Example:
-
-```python
-def load(path: str) -> list[str]:
-    """Read non-empty lines from a file."""
-    if not path:
-        raise ValueError("path required")
-
-    try:
-        with open(path) as handle:
-            lines = handle.readlines()
-    except OSError:
-        logger.exception("Read failed: path=%s", path)
-
-        raise
-
-    logger.info("Read file: lines=%d", len(lines))
-
-    return [line for line in lines if line.strip()]
-```
-
-New files mirror the latest established file in the same folder unless this documented convention intentionally supersedes it.
+- Treat uploads and network/provider responses as untrusted at their trust boundary.
+- Validate untrusted external data before treating it as application state.
+- Preserve structured error behavior.
+- Do not silently hide dependency failures behind success/fallback behavior unless an approved contract explicitly defines that fallback.
 
 ---
 
-## 9. Error handling
-
-`server/app/errors/` uses one structured FastAPI-native pattern.
-
-Requirements:
-
-- one category-specific string error-code set per error category;
-- one mapping from error code to HTTP status;
-- base exception such as `ApiError` carrying message + code;
-- consistent serialization such as:
-
-```json
-{ "error": "...", "code": "..." }
-```
-
-- one FastAPI exception handler registered in `main.py`;
-- routers raise the structured application error rather than constructing ad hoc `HTTPException` responses.
-
-The pattern is adapted from the human-provided TypeScript/Hono reference; preserve the pattern, not the original framework-specific implementation.
-
----
-
-## 10. Architecture and scope boundaries
+## 9. Architecture and scope boundaries
 
 ### Always do without asking
 
-- Implement within already-decided architecture in AGENTS.md + the RAG skill.
-- Log enough at each pipeline stage to debug retrieval quality later:
-  - chunk count;
-  - embedding dimension;
-  - retrieval top-k scores;
-  - generation token usage.
+- Implement within already-decided architecture in root AGENTS + applicable scoped AGENTS + relevant skill/PLAN.
+- Reuse established abstractions and ownership boundaries.
 - Surface failures explicitly.
-- No silent fallback if chunking, embedding, retrieval, or generation fails.
-- Reuse established naming, config, and error patterns.
+- Preserve security and scope boundaries.
+- Keep implementation proportional to the current PLAN.
+- Update current documentation only as implementation facts actually land.
 
 ### Ask first
 
 Do not choose silently:
 
 - a new third-party library/service/API outside the fixed stack;
+- a new frontend state/form/network/component library;
+- a new backend framework/service boundary;
 - chunk-size/overlap policy;
 - embedding model;
 - similarity metric;
+- retrieval policy;
 - LLM provider;
+- auth/cache/queue/storage architecture;
+- public API shape;
 - material architecture not already resolved in AGENTS/skill/PLAN.
 
 ### Never do
@@ -482,11 +387,15 @@ Do not choose silently:
 - pull Phase 2+ scope forward unless explicitly requested, including multi-document, auth, teams, or portfolio-style scope;
 - add auth/session/user scoping before Phase 3 is explicitly requested;
 - use Gemini File Search or managed RAG-as-a-service;
-- commit `.env` or any file containing real secrets.
+- commit `.env` or any file containing real secrets;
+- introduce Node.js, npm, npx, pnpm, or Yarn as a required client runtime/package-manager path when Bun can perform the task;
+- add a Next.js runtime server, BFF/proxy, or client Docker service during Phase 1 without an explicit architecture change;
+- silently weaken server-side retrieval scope or trust model;
+- rewrite historical evidence to make the chronology appear cleaner.
 
 ---
 
-## 11. Git and branch discipline
+## 10. Git and branch discipline
 
 At the start of every session, perform read-only Git reconnaissance:
 
@@ -494,7 +403,7 @@ At the start of every session, perform read-only Git reconnaissance:
 - relevant local/remote branches;
 - recent commit history as needed.
 
-Use that information to avoid conflicting with existing work. This reconnaissance is context gathering and does not need verbose reporting back unless something relevant is discovered.
+Use that information to avoid conflicting with existing work. This reconnaissance is context gathering and does not need verbose reporting unless something relevant is discovered.
 
 Unless explicitly instructed in that session:
 
@@ -525,7 +434,7 @@ Behavior/pipeline/contract changes demote `Verified` to `Built, Unverified` unti
 
 ---
 
-## 12. Verification model
+## 11. Verification model
 
 Verification effort must match change risk.
 
@@ -567,30 +476,36 @@ Never claim a test/build passed unless it actually ran.
 
 ---
 
-## 13. Common commands
+## 12. Common repository workflows
 
-Run from `server/` inside the project venv:
+### Client
 
-```bash
-python -m pip install -r requirements.txt -r tests/requirements.txt
-python -m tests.run
-docker compose --env-file .env -f docker-compose.yml up --build
-docker compose --env-file .env -f docker-compose.yml ps
+Read `client/AGENTS.md` and use its Bun-driven commands.
+
+### Server
+
+Read `server/AGENTS.md` and use its Python/Docker commands.
+
+### RAG
+
+For extraction, chunking, embeddings, Qdrant retrieval, grounding, generation, citations, or RAG transport work, additionally read:
+
+```text
+.agents/skills/rag/SKILL.md
 ```
 
-- Local venv is the primary debugging loop.
-- Docker is authoritative for deployment-sensitive verification.
+Do not infer current exact commands or implementation details from historical Amendments when the repository or scoped AGENTS file provides current instructions.
 
 ---
 
-## 14. Explain-back requirement
+## 13. Explain-back requirement
 
 Every non-trivial task ends with a short explain-back covering:
 
 - what changed;
-- relevant pipeline stage;
+- relevant pipeline stage or subsystem;
 - meaningful implementation choices;
-- relevant failure boundaries such as empty/oversized input or API timeout;
+- relevant failure boundaries;
 - verification actually performed;
 - remaining unverified scope.
 

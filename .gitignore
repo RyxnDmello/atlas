@@ -25,3 +25,10 @@ server/tests/fixtures/valid-long.md
 server/tests/fixtures/unsupported.zip
 server/tests/fixtures/valid-multipage.pdf
 server/tests/fixtures/blank-middle-page.pdf
+
+# CLIENT BUILDS / LOCAL VERIFICATION
+
+client/out/
+client/.next/
+.playwright-mcp/
+client/*.tsbuildinfo

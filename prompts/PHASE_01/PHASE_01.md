@@ -13,19 +13,21 @@
 
 ## Plan status
 
-| Plan             | Status            | One-line Scope                                         |
-| ---------------- | ----------------- | ------------------------------------------------------ |
-| PHASE_01_PLAN_01 | Verified          | Scaffolding, upload, Docling extraction/OCR, chunking  |
-| PHASE_01_PLAN_02 | Verified          | Qdrant setup, embedding, storage, database diagnostics |
-| PHASE_01_PLAN_03 | Verified          | Retrieval and upload ID handoff                        |
-| PHASE_01_PLAN_04 | Verified          | Grounded generation, native SSE ask API, trusted citations |
-| PHASE_01_PLAN_05 | Not Started       | Minimal client UI                                      |
+| Plan             | Status   | One-line Scope                                                                   |
+| ---------------- | -------- | -------------------------------------------------------------------------------- |
+| PHASE_01_PLAN_01 | Verified | Scaffolding, upload, Docling extraction/OCR, chunking                            |
+| PHASE_01_PLAN_02 | Verified | Qdrant setup, embedding, storage, database diagnostics                           |
+| PHASE_01_PLAN_03 | Verified | Retrieval and upload ID handoff                                                  |
+| PHASE_01_PLAN_04 | Verified | Grounded generation, native SSE ask API, trusted citations                       |
+| PHASE_01_PLAN_05 | Verified | Static client upload, questions, streamed answers, trusted citation presentation |
 
 ---
 
 ## Pipeline by plan
 
-Legend: green backend stages through trusted citations are verified; the gray client stage is pending.
+Phase 1 MVP Core RAG is Verified: PLAN_01 through PLAN_05 have passed their required acceptance. This does not start Phase 2.
+
+Legend: all green backend and static-client stages are verified.
 
 ```mermaid
 flowchart LR
@@ -39,9 +41,8 @@ flowchart LR
     Stream --> Cite["PLAN_04: Cite"]
     Cite --> Client["PLAN_05: Client"]
     classDef built fill:#dcfce7,stroke:#166534,color:#111827,stroke-width:2px
-    classDef pending fill:#e5e7eb,stroke:#4b5563,color:#111827,stroke-width:2px,stroke-dasharray:4
     class Upload,Extract,Chunk,Embed,Store,Retrieve,Generate,Stream,Cite built
-    class Client pending
+    class Client built
 ```
 
 ## PHASE_01_PLAN_01 — Scaffolding, Upload, Extraction, Chunking
@@ -146,6 +147,8 @@ flowchart LR
 ---
 
 ## PHASE_01_PLAN_05 — Minimal Client UI
+
+- **Current status:** Verified. Static upload, exact returned-ID scope, native POST-SSE answers, trusted citations and final development/static whole-client acceptance passed. See PLAN_05 CONTEXT/MANUAL.
 
 - **Branch:** `phase-01/plan-05`
 

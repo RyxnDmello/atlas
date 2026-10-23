@@ -6,6 +6,7 @@ from pydantic import BaseModel, SecretStr, ValidationError
 
 from app.schemas.constants import (
     AppConstants,
+    CorsConstants,
     LoggerConstants,
     QdrantConstants,
     GeminiConstants,
@@ -49,6 +50,7 @@ class Constants:
     def __init__(self) -> None:
         """Load and validate settings before exposing the nested configuration groups."""
         app = AppConstants.model_validate(_values(AppConstants))
+        cors = CorsConstants.model_validate(_values(CorsConstants))
         logger = LoggerConstants.model_validate(_values(LoggerConstants))
         docling = DoclingConstants.model_validate(_values(DoclingConstants))
         embedding = EmbeddingConstants.model_validate(
@@ -56,6 +58,7 @@ class Constants:
         qdrant = QdrantConstants.model_validate(_values(QdrantConstants))
 
         self.app = _App(app.PORT)
+        self.cors = _Cors(cors.CORS_ORIGINS)
         self.logger = _Logger(logger.LOG_LEVEL)
         self.docling = _Docling(
             docling.DOCLING_MAX_CHUNK_TOKENS,
@@ -92,6 +95,14 @@ class _Gemini:
         self.GEMINI_API_KEY: SecretStr = config.GEMINI_API_KEY
         self.GEMINI_MODEL = config.GEMINI_MODEL
         self.GEMINI_MAX_OUTPUT_TOKENS = config.GEMINI_MAX_OUTPUT_TOKENS
+
+
+class _Cors:
+    """Expose validated browser origins under the cors group."""
+
+    def __init__(self, origins: list[str]) -> None:
+        """Expose the explicit CORS allow-list."""
+        self.CORS_ORIGINS = origins
 
 
 class _App:
