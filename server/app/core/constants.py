@@ -6,12 +6,14 @@ from pydantic import BaseModel, SecretStr, ValidationError
 
 from app.schemas.constants import (
     AppConstants,
+    AuthConstants,
     CorsConstants,
     LoggerConstants,
     QdrantConstants,
     GeminiConstants,
     DoclingConstants,
     EmbeddingDenseKey,
+    PostgresConstants,
     EmbeddingConstants,
 )
 
@@ -37,6 +39,15 @@ class Constants:
     """Expose validated settings through the established nested API."""
 
     @property
+    def auth(self) -> AuthConstants:
+        """Keep access-token configuration optional until explicitly consumed."""
+        try:
+            return AuthConstants.model_validate(_values(AuthConstants))
+        except ValidationError:
+            raise ValueError(
+                "Invalid access-token configuration: signing secret and positive TTL required") from None
+
+    @property
     def gemini(self) -> "_Gemini":
         """Validate optional generation settings only when generation is prepared."""
         try:
@@ -56,6 +67,7 @@ class Constants:
         embedding = EmbeddingConstants.model_validate(
             _values(EmbeddingConstants))
         qdrant = QdrantConstants.model_validate(_values(QdrantConstants))
+        postgres = PostgresConstants.model_validate(_values(PostgresConstants))
 
         self.app = _App(app.PORT)
         self.cors = _Cors(cors.CORS_ORIGINS)
@@ -74,17 +86,20 @@ class Constants:
             embedding.EMBEDDING_RETURN_COLBERT_VECS,
             embedding.EMBEDDING_DENSE_KEY,
         )
-        self.qdrant = _Qdrant(
-            qdrant.QDRANT_URL,
-            qdrant.QDRANT_DISTANCE,
-            qdrant.QDRANT_HEALTHCHECK_RETRIES,
-            qdrant.QDRANT_HEALTHCHECK_TIMEOUT,
-            qdrant.QDRANT_HEALTHCHECK_INTERVAL,
-            qdrant.QDRANT_HEALTHCHECK_START_PERIOD,
-            qdrant.QDRANT_COLLECTION,
-            qdrant.QDRANT_CLIENT_TIMEOUT,
-            qdrant.QDRANT_WRITE_WAIT,
-        )
+        self.qdrant = _Qdrant(qdrant)
+        self.postgres = _Postgres(postgres)
+
+
+class _Postgres:
+    """Expose validated PostgreSQL settings and retain the secret wrapper."""
+
+    def __init__(self, config: PostgresConstants) -> None:
+        """Expose the PostgreSQL application connection settings."""
+        self.POSTGRES_HOST = config.POSTGRES_HOST
+        self.POSTGRES_PORT = config.POSTGRES_PORT
+        self.POSTGRES_DB = config.POSTGRES_DB
+        self.POSTGRES_USER = config.POSTGRES_USER
+        self.POSTGRES_PASSWORD = config.POSTGRES_PASSWORD
 
 
 class _Gemini:
@@ -157,28 +172,13 @@ class _Embedding:
 class _Qdrant:
     """Expose Qdrant settings under the qdrant group."""
 
-    def __init__(
-        self,
-        url: str,
-        distance: str,
-        retries: int,
-        timeout: int,
-        interval: int,
-        start_period: int,
-        collection: str,
-        client_timeout: int,
-        wait: bool,
-    ) -> None:
-        """Expose the validated endpoint, collection, health, and write settings."""
-        self.QDRANT_URL = url
-        self.QDRANT_DISTANCE = distance
-        self.QDRANT_HEALTHCHECK_RETRIES = retries
-        self.QDRANT_HEALTHCHECK_TIMEOUT = timeout
-        self.QDRANT_HEALTHCHECK_INTERVAL = interval
-        self.QDRANT_HEALTHCHECK_START_PERIOD = start_period
-        self.QDRANT_COLLECTION = collection
-        self.QDRANT_CLIENT_TIMEOUT = client_timeout
-        self.QDRANT_WRITE_WAIT = wait
+    def __init__(self, config: QdrantConstants) -> None:
+        """Expose the validated application endpoint, collection, and write settings."""
+        self.QDRANT_URL = config.QDRANT_URL
+        self.QDRANT_DISTANCE = config.QDRANT_DISTANCE
+        self.QDRANT_COLLECTION = config.QDRANT_COLLECTION
+        self.QDRANT_CLIENT_TIMEOUT = config.QDRANT_CLIENT_TIMEOUT
+        self.QDRANT_WRITE_WAIT = config.QDRANT_WRITE_WAIT
 
 
 constants = Constants()

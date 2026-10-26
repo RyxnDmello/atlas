@@ -23,9 +23,8 @@ from app.pipeline.generation.gemini import GeminiFlashProvider
 
 from app.routers.files import ask, prepare
 
-from app.schemas.generation import AskRequest
-
 from app.models.qdrant.chunk import Chunk
+from app.schemas.generation import AskRequest
 
 from app.errors.api import ApiError
 from app.errors.generation import GenerationError
@@ -33,6 +32,7 @@ from app.errors.generation import GenerationError
 from app.main import app
 
 from tests.smoke_ask import serve
+from tests.postgres import database
 from tests.test_05_upload_storage import Provider as Embedder
 from tests.test_08_generation import completed, delta, start
 from tests.test_09_grounded_generation import Provider, source
@@ -519,6 +519,7 @@ class AskIsolationTests(TestCase):
         with (
             patch("app.core.lifespan.get_bge_m3_embedder", return_value=embedder),
             patch("app.core.lifespan.create_client", return_value=client),
+            patch("app.core.lifespan.prepare", return_value=database()),
             TestClient(app) as http,
         ):
             payloads = [

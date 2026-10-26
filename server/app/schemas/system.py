@@ -33,7 +33,17 @@ class QdrantHealth(BaseModel):
     code: ErrorCode | None = None
 
 
+class PostgresHealth(BaseModel):
+    """Report minimal PostgreSQL connectivity without connection details."""
+
+    status: Literal["PostgreSQL Healthy", "PostgreSQL Unhealthy"]
+    version: str | None = None
+    error: str | None = None
+    code: ErrorCode | None = None
+
+
 class DatabaseHealth(BaseModel):
-    """Represent the Qdrant-only database diagnostic response."""
+    """Represent independent Qdrant and PostgreSQL diagnostics."""
 
     qdrant: QdrantHealth
+    postgres: PostgresHealth

@@ -51,56 +51,106 @@ Ask File -> Ask Folder -> Ask Drive
 
 Current engineering goal:
 
-- build a hands-on, interview-defensible RAG/embeddings/vector-database system;
-- prove the core single-file pipeline before pulling forward folders, file metadata, auth, or multi-scope retrieval;
+- preserve the verified single-file RAG baseline as the foundation for later drive capabilities;
+- build the current approved phase without silently pulling forward later retrieval, sharing, or infrastructure scope;
+- keep authentication, ownership, retrieval scope, and provenance enforcement server-side;
 - preserve user control over material architecture decisions;
 - prefer a measurable baseline before adding retrieval/generation complexity.
 
-### Current phase
+### Phase roadmap
 
-**Phase 1 — MVP Core RAG pipeline**
+Atlas phase state is cumulative: a later phase may extend or deliberately supersede a verified earlier contract, but it must not rewrite the earlier implementation/verification record.
+
+| Phase                                   | Objective                                                                                                                                                             | Status                  |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| PHASE_01 — MVP Core RAG                 | Prove single-file upload -> retrieval -> grounded generation -> streaming -> trusted citations with a static browser client                                           | IMPLEMENTED & VERIFIED  |
+| PHASE_02 — Authenticated Personal Drive | Add canonical PostgreSQL state, authentication/sessions, recursive folders, file metadata/lifecycle, owner-authorized single-file RAG, and an authenticated dashboard | IMPLEMENTED, UNVERIFIED |
+
+### Verified Phase 1 baseline
 
 ```text
-upload -> chunk -> embed -> store -> retrieve -> generate -> stream -> cite
+upload
+-> parse/chunk
+-> embed
+-> Qdrant
+-> exact file-scoped retrieve
+-> grounded Gemini generation
+-> native SSE
+-> trusted citations
+-> static Next.js client
 ```
 
-Phase 1 is:
+Phase 1 remains:
 
-- single-file;
+- single-file RAG;
 - unauthenticated;
 - single-user;
-- no folders or drive-wide retrieval;
-- no canonical user-facing file metadata system.
+- without folders or canonical application metadata;
+- the verified retrieval/generation baseline that Phase 2 must reuse unless an approved contract explicitly supersedes part of it.
 
-Do not begin Phase 2+ work unless explicitly requested.
+### Current Phase 2 objective
+
+```text
+authenticate user
+-> PostgreSQL canonical state
+-> navigate recursive folders
+-> manage file metadata
+-> authorize owned file
+-> reuse verified single-file RAG
+-> authenticated static-client workflow
+```
+
+Approved Phase 2 direction:
+
+- user registration, OTP verification, login, logout, access-token refresh, and current-user resolution;
+- PostgreSQL canonical application state for users, verifications, sessions, folders, and files;
+- recursive folder creation and folder rename;
+- direct-child drive browsing at root or within a selected folder;
+- transient file upload bytes for the existing parse/chunk/embed/index pipeline, with no persistent original-file storage;
+- canonical file metadata in PostgreSQL;
+- permanent file deletion from PostgreSQL and Qdrant;
+- owner authorization in PostgreSQL before file-scoped Qdrant retrieval;
+- an authenticated static Next.js dashboard built only after the relevant server contract is implemented and verified.
+
+Still outside Phase 2 unless explicitly approved:
+
+- multi-file, folder/tree, or drive-wide RAG;
+- hybrid retrieval or reranking;
+- sharing, teams, roles, or ACLs beyond owner-only access;
+- persistent original-file storage, downloads, previews, or reprocessing from stored originals;
+- folder deletion or movement, file movement, trash/recovery, or file versioning;
+- email delivery, password-reset/forgot-password product flows, OAuth;
+- Redis, background queues/workers, or speculative infrastructure.
 
 ---
 
 ## 2. Current component maturity
 
+### Phase 1 verified maturity
+
 | Component                | Status                 |
 | ------------------------ | ---------------------- |
-| Upload endpoint          | Implemented & Verified |
-| Extraction & chunking    | Implemented & Verified |
-| Embedding                | Implemented & Verified |
-| Vector storage (Qdrant)  | Implemented & Verified |
-| Retrieval                | Implemented & Verified |
-| Generation/streaming     | Implemented & Verified |
-| Client foundation/upload | Implemented & Verified |
-| Client question/answers  | Implemented & Verified |
-| Citation display         | Implemented & Verified |
+| Upload endpoint          | IMPLEMENTED & VERIFIED |
+| Extraction & chunking    | IMPLEMENTED & VERIFIED |
+| Embedding                | IMPLEMENTED & VERIFIED |
+| Vector storage (Qdrant)  | IMPLEMENTED & VERIFIED |
+| Retrieval                | IMPLEMENTED & VERIFIED |
+| Generation/streaming     | IMPLEMENTED & VERIFIED |
+| Client foundation/upload | IMPLEMENTED & VERIFIED |
+| Client question/answers  | IMPLEMENTED & VERIFIED |
+| Citation display         | IMPLEMENTED & VERIFIED |
 
 Status meanings:
 
-- `Not Yet Built`
-- `Implemented, Unverified` — code exists, but the relevant complete acceptance state is not yet verified
-- `Implemented & Verified`
+- `NOT YET BUILT`
+- `IMPLEMENTED, UNVERIFIED` — code exists, but the relevant complete acceptance state is not yet verified
+- `IMPLEMENTED & VERIFIED`
 
-Never treat `Implemented, Unverified` as `Implemented & Verified`.
+Never treat `IMPLEMENTED, UNVERIFIED` as `IMPLEMENTED & VERIFIED`.
 
 Generation includes the verified Gemini provider, internal grounding/citation core, and public ask/native SSE boundary. PLAN_04 acceptance was performed by the agent under explicit user delegation. Trusted client citation display is verified.
 
-PLAN_05 is Verified: the static Bun/Next client supports direct upload/returned-ID handoff, question submission, validated native POST-SSE streaming, provisional answers, and trusted completed citations. Whole-client development and static-export acceptance passed over the existing verified backend. Phase 1 MVP Core RAG is Verified; later phases remain outside the current scope.
+PLAN_05 is verified: the static Bun/Next client supports direct upload/returned-ID handoff, question submission, validated native POST-SSE streaming, provisional answers, and trusted completed citations. Whole-client development and static-export acceptance passed over the existing verified backend. Phase 1 MVP Core RAG is therefore IMPLEMENTED & VERIFIED.
 
 Current implementation evidence:
 
@@ -109,6 +159,22 @@ Current implementation evidence:
 - [PLAN_03 CONTEXT](prompts/PHASE_01/PLAN_03/PHASE_01_PLAN_03_CONTEXT.md)
 - [PLAN_04 CONTEXT](prompts/PHASE_01/PLAN_04/PHASE_01_PLAN_04_CONTEXT.md)
 - [PLAN_05 CONTEXT](prompts/PHASE_01/PLAN_05/PHASE_01_PLAN_05_CONTEXT.md)
+
+### Phase 2 maturity
+
+Approved Phase 2 scope is not implemented merely because it is described in AGENTS or future PHASE/PLAN artifacts.
+
+| Phase 2 capability                      | Status                  |
+| --------------------------------------- | ----------------------- |
+| PostgreSQL canonical application state  | IMPLEMENTED, UNVERIFIED |
+| Registration / OTP verification         | NOT YET BUILT           |
+| Access + refresh session authentication | NOT YET BUILT           |
+| Recursive folder hierarchy              | NOT YET BUILT           |
+| Canonical file metadata / lifecycle     | NOT YET BUILT           |
+| Owner-authorized single-file RAG        | NOT YET BUILT           |
+| Authenticated drive dashboard           | NOT YET BUILT           |
+
+PostgreSQL identity persistence and transport-independent credential primitives are implemented and verified; Amendments 01 and 02 are complete. Public authentication/session workflows, canonical folder/file state, and drive capabilities remain unbuilt, so the broader Phase 2 capabilities remain incomplete.
 
 ### Phase 1 maturity flow
 
@@ -128,37 +194,39 @@ flowchart LR
 
 ---
 
-## 3. Repository-wide stack and locked Phase 1 decisions
+## 3. Repository-wide stack and locked architecture
 
 ### Stack
 
 - Backend: FastAPI.
 - Frontend: latest stable Next.js used by PLAN_05, App Router, TypeScript only.
 - Client runtime/package manager/script runner: Bun only; do not introduce Node.js as a required client runtime.
-- Client rendering/deployment model: static export (`output: "export"`); no Next.js runtime server and no client Docker service in Phase 1.
+- Client rendering/deployment model: static export (`output: "export"`); no Next.js runtime server and no client Docker service unless a later approved architecture decision supersedes this model.
 - Client styling: Tailwind CSS + shadcn/ui.
 - Client ordinary HTTP: Axios.
 - Client server-state orchestration: TanStack Query v5.
 - Client streamed `/ask` transport: native browser `fetch()` + `ReadableStream`.
 - Client forms/runtime validation: React Hook Form + Zod.
 - Vector database: self-hosted Qdrant in Docker.
-- PostgreSQL: introduced from Phase 3 for canonical application state.
-- Redis: introduced only when caching becomes relevant; not part of Phase 1.
-- Backend/Qdrant deployment: Docker Compose under `server/`.
+- PostgreSQL: introduced in Phase 2 as canonical application state.
+- Redis: introduced only when a concrete caching need is approved; not part of Phase 2.
+- Backend datastore/services deployment remains under `server/` Docker Compose unless an approved PLAN changes topology.
 
 Detailed client mechanics belong in `client/AGENTS.md`.
 Detailed backend mechanics belong in `server/AGENTS.md`.
 Detailed RAG mechanics belong in `.agents/skills/rag/SKILL.md`.
 
-### Cross-boundary Phase 1 decisions
+### Cross-boundary decisions
 
-- Browser client communicates directly with FastAPI; do not insert a Next.js BFF/proxy in Phase 1.
+- Browser client communicates directly with FastAPI; do not insert a Next.js BFF/proxy without an approved architecture change.
 - FastAPI uses an explicit configured CORS allow-list for client origins; permissive wildcard CORS is not the default.
-- Qdrant is the retrieval index, not canonical application state.
-- PostgreSQL remains deferred until the approved later phase.
+- PostgreSQL is canonical application state in Phase 2 for users, verifications, sessions, folders, and files.
+- Qdrant remains the derived retrieval index, not canonical application state.
+- Phase 2 authorization is owner-based: derive the authenticated user from validated server-side auth, establish file/folder ownership in PostgreSQL, then apply exact `file_id` scope in Qdrant before generation.
+- Never retrieve broadly from Qdrant and post-filter ownership afterward.
+- Phase 2 original upload bytes are transient ingestion input only; persistent filesystem/S3/object storage is not part of the approved phase.
+- Phase 2 refresh credentials are server-controlled single-use sessions; detailed backend/client handling belongs in the scoped AGENTS files and current PLAN.
 - Redis remains deferred until a concrete caching need exists.
-- Authentication/session/user scoping remains outside Phase 1.
-- Do not add folders, multi-file retrieval, folder/tree/drive retrieval, or canonical file metadata before their approved phase.
 - Material architecture decisions remain human-controlled.
 
 ---
@@ -207,7 +275,7 @@ atlas/
 - `client/` is the frontend subtree. Read `client/AGENTS.md` before modifying it.
 - `.agents/skills/rag/SKILL.md` is the detailed RAG technical authority.
 - `prompts/` contains PHASE/PLAN/AMENDMENT/CONTEXT/MANUAL project artifacts.
-- Backend Compose remains under `server/`; the static client is not a Compose service in Phase 1.
+- Backend Compose remains under `server/`; the static client is not a Compose service under the current architecture.
 - Do not create ad hoc cross-repository folders when an existing ownership boundary fits.
 
 ---
@@ -221,15 +289,22 @@ Use:
 - `file`
 - `file_id`
 
-Do not introduce new `document_id` vocabulary. `/documents/upload` remains a legacy route name from the earlier product framing.
+Do not introduce new `document_id` vocabulary. `/documents/upload` is a legacy Phase 1 route name from the earlier product framing; a current PLAN may deliberately supersede the route while preserving `file`/`file_id` vocabulary.
 
 ### Resolved scope decisions — do not re-ask
 
-- File metadata such as custom name, description, and tags is deferred until PostgreSQL.
-- Folder-scoped filename uniqueness is deferred until folders/PostgreSQL exist.
+- Phase 2 introduces canonical file metadata for at least user-facing name and description in PostgreSQL.
+- Phase 2 introduces recursively nested folders through a self-referencing parent relationship.
+- Folder rename is approved; folder deletion and folder movement are not.
+- File metadata update does not imply content replacement or re-embedding.
+- Permanent file deletion removes canonical PostgreSQL metadata and the file's derived Qdrant points.
+- Persistent original-file storage is excluded from Phase 2; uploads are transient input to the existing indexing pipeline.
+- Phase 2 does not add content/file deduplication unless a later approved contract explicitly does so.
+- Filename/folder-name uniqueness semantics are not implicitly decided by the existence of folders; do not invent them.
+- Verification records support typed OTP purpose values including `auth`, `reset`, and `forgot`; Phase 2 implements the `auth` product flow only.
+- Successful/expired verification and session records use application-driven deletion when encountered; no cron/TTL background cleanup service is required in Phase 2.
 - Redis is deferred until caching is actually needed.
-- `/system/health/databases` currently checks Qdrant only and returns HTTP 200 with dependency status in the body.
-- No deduplication in Phase 1; every upload is independent.
+- `/system/health/databases` currently reflects the verified Phase 1 implementation; any PostgreSQL health-contract change must be defined and verified by the Phase 2 server PLAN rather than assumed.
 
 ---
 
@@ -366,6 +441,18 @@ Preserve dead ends/reversed decisions in chronological evidence rather than rewr
 - Keep implementation proportional to the current PLAN.
 - Update current documentation only as implementation facts actually land.
 
+### Cross-boundary implementation sequencing
+
+For a capability that spans server and client:
+
+1. define/confirm the server contract in the applicable PLAN;
+2. implement the server-side data/domain/API behavior first;
+3. verify the server contract at the appropriate level;
+4. only then implement the client against that established contract;
+5. run cross-boundary acceptance after both sides exist.
+
+Exceptions require an explicit PLAN/task reason. Do not use speculative frontend mocks, DTOs, endpoints, or storage/auth behavior to silently decide backend architecture.
+
 ### Ask first
 
 Do not choose silently:
@@ -378,19 +465,19 @@ Do not choose silently:
 - similarity metric;
 - retrieval policy;
 - LLM provider;
-- auth/cache/queue/storage architecture;
+- changes to the approved auth/session/cache/queue/storage architecture;
 - public API shape;
 - material architecture not already resolved in AGENTS/skill/PLAN.
 
 ### Never do
 
-- pull Phase 2+ scope forward unless explicitly requested, including multi-document, auth, teams, or portfolio-style scope;
-- add auth/session/user scoping before Phase 3 is explicitly requested;
+- pull scope beyond the currently approved PHASE/PLAN without explicit approval;
+- introduce multi-file/folder/tree/drive RAG, sharing/teams/ACLs, persistent original-file storage, folder deletion/movement, or other excluded Phase 2 capabilities without approval;
 - use Gemini File Search or managed RAG-as-a-service;
 - commit `.env` or any file containing real secrets;
 - introduce Node.js, npm, npx, pnpm, or Yarn as a required client runtime/package-manager path when Bun can perform the task;
-- add a Next.js runtime server, BFF/proxy, or client Docker service during Phase 1 without an explicit architecture change;
-- silently weaken server-side retrieval scope or trust model;
+- add a Next.js runtime server, BFF/proxy, or client Docker service without an explicit architecture change;
+- silently weaken server-side authentication, ownership, retrieval scope, or trust boundaries;
 - rewrite historical evidence to make the chronology appear cleaner.
 
 ---
@@ -430,7 +517,7 @@ phase-<NN>/plan-<NN>
 
 A genuinely new pipeline stage gets a new PLAN/branch. Cleanup, refactors, conventions, fixes, and documentation alignment remain on the current PLAN branch.
 
-Behavior/pipeline/contract changes demote `Verified` to `Built, Unverified` until reverified. Documentation-only or cosmetic work follows proportional verification.
+Behavior/pipeline/contract changes demote `IMPLEMENTED & VERIFIED` to `IMPLEMENTED, UNVERIFIED` until reverified. Documentation-only or cosmetic work follows proportional verification.
 
 ---
 
@@ -445,7 +532,7 @@ flowchart TD
     Docs -- No --> Cosmetic{"Whitespace/docstrings/comments only?"}
     Cosmetic -- Yes --> AST["AST comparison or local suite"]
     Cosmetic -- No --> Behavior{"Behavior/pipeline/contract?"}
-    Behavior -- Yes --> Full["Full verification<br/>Built, Unverified until reverified"]
+    Behavior -- Yes --> Full["Full verification<br/>IMPLEMENTED, UNVERIFIED until reverified"]
     Behavior -- No --> Focused["Local tests + focused touched-path check"]
 
     Full --> Docker{"Docker/dependency/config/startup affected?"}
@@ -459,7 +546,7 @@ flowchart TD
 | Documentation only                  | Documentation checks; no tests or Docker     | Unchanged                                  |
 | Whitespace/docstrings/comments only | AST comparison or local suite; no Docker     | Unchanged                                  |
 | Caller-visible cosmetics            | Local tests + one focused touched-path check | Change only if acceptance behavior changes |
-| Behavior/pipeline/contract          | Full verification                            | Built, Unverified until reverified         |
+| Behavior/pipeline/contract          | Full verification                            | IMPLEMENTED, UNVERIFIED until reverified   |
 
 Docker verification is specifically required when changes affect:
 

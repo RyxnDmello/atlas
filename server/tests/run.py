@@ -3,8 +3,8 @@ import unittest
 from time import perf_counter
 from unittest.mock import patch
 
-from fastapi.testclient import TestClient
 from qdrant_client import QdrantClient
+from fastapi.testclient import TestClient
 
 from app.core.runtime import storage
 
@@ -12,13 +12,15 @@ from app.pipeline.embeddings.bge_m3 import get_bge_m3_embedder
 
 from app.main import app
 
+from tests.postgres import database
+
 
 def run() -> bool:
     """Run unchanged upload tests inside a real-model, in-memory lifespan."""
     client = QdrantClient(":memory:", force_disable_check_same_thread=True)
 
     started = perf_counter()
-    with patch("app.core.lifespan.create_client", return_value=client), patch(
+    with patch("app.core.lifespan.prepare", return_value=database()), patch("app.core.lifespan.create_client", return_value=client), patch(
         "app.core.lifespan.get_bge_m3_embedder", wraps=get_bge_m3_embedder
     ) as constructor:
         with TestClient(app) as http:
@@ -37,7 +39,8 @@ def run() -> bool:
 
             with patch.object(provider, "embed", side_effect=embed):
                 for index in range(2):
-                    before = client.count(services.collection, exact=True).count
+                    before = client.count(
+                        services.collection, exact=True).count
                     entered = perf_counter()
                     response = http.post(
                         "/documents/upload",
@@ -53,7 +56,8 @@ def run() -> bool:
 
                     assert response.status_code == 200, response.text
                     total = response.json()["total"]
-                    assert client.count(services.collection, exact=True).count == before + total
+                    assert client.count(services.collection,
+                                        exact=True).count == before + total
                     assert services.ready <= entered <= calls[-1]
 
                     print(

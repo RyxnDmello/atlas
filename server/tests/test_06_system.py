@@ -15,6 +15,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.http.models import CollectionStatus
 from qdrant_client.http.exceptions import ResponseHandlingException, UnexpectedResponse
 
+from tests.postgres import database
 from tests.test_05_upload_storage import Provider
 
 
@@ -25,6 +26,9 @@ class DatabaseHealthTests(TestCase):
         """Prepare the real lifespan with deterministic embeddings and local Qdrant."""
         self.scope = ExitStack()
         self.addCleanup(self.scope.close)
+        self.database = database()
+        self.scope.enter_context(
+            patch("app.core.lifespan.prepare", return_value=self.database))
 
         self.provider = Provider()
         self.client = QdrantClient(
@@ -82,7 +86,7 @@ class DatabaseHealthTests(TestCase):
                 self.assertEqual(list(response.json()["qdrant"]["collection"]), [
                     "status", "name", "points",
                 ])
-                self.assertEqual(response.json(), {"qdrant": {
+                self.assertEqual(response.json(), {"postgres": {"status": "PostgreSQL Healthy", "version": "18.6"}, "qdrant": {
                     "status": "Qdrant Healthy", "version": "1.19.2",
                     "started": "2026-01-01, 00:00:00", "uptime": "Running For 120.25s",
                     "collection": {"name": self.collection, "status": "green", "points": 0},
@@ -120,7 +124,7 @@ class DatabaseHealthTests(TestCase):
             self.telemetry.assert_not_called()
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"qdrant": {
+        self.assertEqual(response.json(), {"postgres": {"status": "PostgreSQL Healthy", "version": "18.6"}, "qdrant": {
             "status": "unhealthy",
             "error": "Qdrant collection is unavailable",
             "code": "QDRANT_COLLECTION_ERROR",
@@ -144,7 +148,7 @@ class DatabaseHealthTests(TestCase):
                 response = self.http.get("/system/health/databases")
 
             self.assertEqual(response.status_code, 200)
-            self.assertEqual(response.json(), {"qdrant": {
+            self.assertEqual(response.json(), {"postgres": {"status": "PostgreSQL Healthy", "version": "18.6"}, "qdrant": {
                 "status": "unhealthy",
                 "error": "Unable to inspect Qdrant collection",
                 "code": "QDRANT_CONNECTION_FAILED",
@@ -174,7 +178,7 @@ class DatabaseHealthTests(TestCase):
             self.telemetry.assert_not_called()
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"qdrant": {
+        self.assertEqual(response.json(), {"postgres": {"status": "PostgreSQL Healthy", "version": "18.6"}, "qdrant": {
             "status": "unhealthy",
             "error": "Upload storage is not initialized",
             "code": "INTERNAL_SERVER_ERROR",

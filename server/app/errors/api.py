@@ -21,8 +21,10 @@ QdrantErrorCode = Literal[
 ]
 
 GenerationErrorCode = Literal["GENERATION_FAILED"]
+PostgresErrorCode = Literal["POSTGRES_CONNECTION_FAILED"]
+AuthErrorCode = Literal["INVALID_ACCESS_TOKEN"]
 
-ErrorCode = CommonErrorCode | FileErrorCode | QdrantErrorCode | GenerationErrorCode
+ErrorCode = CommonErrorCode | FileErrorCode | QdrantErrorCode | GenerationErrorCode | PostgresErrorCode | AuthErrorCode
 
 STATUS_BY_CODE: dict[ErrorCode, int] = {
     "BAD_REQUEST": 400,
@@ -34,6 +36,8 @@ STATUS_BY_CODE: dict[ErrorCode, int] = {
     "INTERNAL_SERVER_ERROR": 500,
     "QDRANT_COLLECTION_ERROR": 500,
     "QDRANT_CONNECTION_FAILED": 503,
+    "POSTGRES_CONNECTION_FAILED": 503,
+    "INVALID_ACCESS_TOKEN": 401,
 }
 
 

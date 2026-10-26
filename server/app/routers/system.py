@@ -3,11 +3,11 @@ import time
 from fastapi import APIRouter
 
 from app.core.logging import logger
-from app.core.runtime import storage
+from app.core.runtime import postgres, storage
 
 from app.db.qdrant import check, details
 
-from app.schemas.system import DatabaseHealth, DiagnosticError, QdrantHealth
+from app.schemas.system import DatabaseHealth, DiagnosticError, PostgresHealth, QdrantHealth
 
 from app.errors.api import ApiError
 
@@ -18,7 +18,25 @@ TIME = time.monotonic()
 
 @router.get("/health/databases", response_model=DatabaseHealth, response_model_exclude_unset=True)
 def databases() -> DatabaseHealth:
-    """Report collection access and minimal metadata with startup resources and HTTP 200."""
+    """Report required databases independently using prepared resources and HTTP 200."""
+    qdrant = qdrant_health()
+
+    try:
+        version = postgres().check()
+        result = PostgresHealth(status="PostgreSQL Healthy", version=version)
+    except ApiError:
+        logger.warning(
+            "PostgreSQL health check: status=unhealthy code=POSTGRES_CONNECTION_FAILED")
+        result = PostgresHealth(
+            status="PostgreSQL Unhealthy", error="Unable to connect to PostgreSQL",
+            code="POSTGRES_CONNECTION_FAILED",
+        )
+
+    return DatabaseHealth(qdrant=qdrant, postgres=result)
+
+
+def qdrant_health() -> QdrantHealth:
+    """Retain the existing collection and supplementary telemetry diagnostic behavior."""
     try:
         services = storage()
         collection = check(services.client, services.collection)
@@ -26,7 +44,7 @@ def databases() -> DatabaseHealth:
         logger.exception(
             "Qdrant health check: status=unhealthy code=%s", error.code)
 
-        return DatabaseHealth(qdrant=QdrantHealth(status="unhealthy", error=error.message, code=error.code))
+        return QdrantHealth(status="unhealthy", error=error.message, code=error.code)
 
     try:
         version, started, uptime = details(services.client)
@@ -51,7 +69,7 @@ def databases() -> DatabaseHealth:
     logger.info("Qdrant health check: status=healthy collection=%s",
                 services.collection)
 
-    return DatabaseHealth(qdrant=result)
+    return result
 
 
 @router.get("/health")

@@ -27,6 +27,9 @@ from app.schemas.constants import QdrantConstants
 from app.main import app
 
 
+from tests.postgres import database
+
+
 class Provider:
     """Record timing and input text while providing deterministic test vectors."""
 
@@ -56,6 +59,9 @@ class UploadStorageTests(TestCase):
         """Prepare an injected provider, in-memory Qdrant, and a real upload client."""
         self.scope = ExitStack()
         self.addCleanup(self.scope.close)
+        self.database = database()
+        self.scope.enter_context(
+            patch("app.core.lifespan.prepare", return_value=self.database))
 
         self.provider = Provider()
         self.client = QdrantClient(
@@ -188,7 +194,8 @@ class UploadStorageTests(TestCase):
 
         self.assertEqual(len(identifiers), 2)
         self.assertNotEqual(first.json()["id"], second.json()["id"])
-        self.assertEqual(identifiers, {first.json()["id"], second.json()["id"]})
+        self.assertEqual(identifiers, {first.json()[
+                         "id"], second.json()["id"]})
 
         for response in (first, second):
             file_id = response.json()["id"]
@@ -211,7 +218,8 @@ class UploadStorageTests(TestCase):
         self.assertNotEqual(responses[0]["id"], responses[1]["id"])
 
         total = sum(body["total"] for body in responses)
-        points, cursor = self.client.scroll(self.collection, limit=total, with_vectors=True)
+        points, cursor = self.client.scroll(
+            self.collection, limit=total, with_vectors=True)
         self.assertIsNone(cursor)
         before = sorted((point.model_dump(mode="json") for point in points),
                         key=lambda point: str(point["id"]))
@@ -241,9 +249,11 @@ class UploadStorageTests(TestCase):
                     self.assertEqual({key: value for key, value in result.items() if key != "score"},
                                      chunks[result["index"]])
 
-        after, cursor = self.client.scroll(self.collection, limit=total, with_vectors=True)
+        after, cursor = self.client.scroll(
+            self.collection, limit=total, with_vectors=True)
         self.assertIsNone(cursor)
-        self.assertEqual(self.client.count(self.collection, exact=True).count, total)
+        self.assertEqual(self.client.count(
+            self.collection, exact=True).count, total)
         self.assertEqual(sorted((point.model_dump(mode="json") for point in after),
                                 key=lambda point: str(point["id"])), before)
 
@@ -313,6 +323,12 @@ class UploadStorageTests(TestCase):
 
 class StartupTests(TestCase):
     """Verify startup failure, shutdown cleanup, and idempotent restart."""
+
+    def setUp(self) -> None:
+        """Isolate existing Qdrant lifecycle tests from external PostgreSQL."""
+        scope = patch("app.core.lifespan.prepare", return_value=database())
+        scope.start()
+        self.addCleanup(scope.stop)
 
     def test_unreachable_qdrant_aborts_startup_and_closes_client(self) -> None:
         """Abort startup and close the client when Qdrant cannot be reached."""
@@ -401,10 +417,6 @@ class StartupTests(TestCase):
         """Verify optional collection defaults and reject invalid overrides."""
         values = {
             "QDRANT_URL": "http://localhost:6333",
-            "QDRANT_HEALTHCHECK_RETRIES": 1,
-            "QDRANT_HEALTHCHECK_TIMEOUT": 1,
-            "QDRANT_HEALTHCHECK_INTERVAL": 1,
-            "QDRANT_HEALTHCHECK_START_PERIOD": 0,
         }
 
         config = QdrantConstants.model_validate(values)

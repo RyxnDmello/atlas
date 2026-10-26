@@ -22,6 +22,8 @@ from app.main import app
 
 from tests.test_05_upload_storage import Provider
 
+from tests.postgres import database
+
 
 class RetrievalTests(TestCase):
     """Prove the HTTP contract, competitive file isolation, and failure boundaries."""
@@ -30,6 +32,9 @@ class RetrievalTests(TestCase):
         """Bind existing lifespan injection patterns to deterministic dense points."""
         self.scope = ExitStack()
         self.addCleanup(self.scope.close)
+        self.database = database()
+        self.scope.enter_context(
+            patch("app.core.lifespan.prepare", return_value=self.database))
         self.provider = Provider()
         self.client = QdrantClient(
             ":memory:", force_disable_check_same_thread=True)

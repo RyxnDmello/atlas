@@ -1,18 +1,19 @@
+from time import perf_counter
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from time import perf_counter
 
 from fastapi import FastAPI
 from starlette.concurrency import run_in_threadpool
 
-from app.core.constants import constants
 from app.core.logging import logger
 from app.core.runtime import activate
+from app.core.constants import constants
 
+from app.db.postgres import prepare
 from app.db.qdrant import create_client, ensure_collection
 
-from app.pipeline.embeddings.bge_m3 import get_bge_m3_embedder
 from app.pipeline.storage import Storage
+from app.pipeline.embeddings.bge_m3 import get_bge_m3_embedder
 
 
 def initialize() -> Storage:
@@ -40,11 +41,16 @@ def initialize() -> Storage:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Prepare upload services before requests and close Qdrant on shutdown."""
-    storage = await run_in_threadpool(initialize)
+    """Prepare required databases off-loop and release all owned resources."""
+    postgres = await run_in_threadpool(prepare)
 
     try:
-        with activate(storage):
-            yield
+        storage = await run_in_threadpool(initialize)
+
+        try:
+            with activate(storage, postgres):
+                yield
+        finally:
+            await run_in_threadpool(storage.client.close)
     finally:
-        await run_in_threadpool(storage.client.close)
+        await run_in_threadpool(postgres.close)
