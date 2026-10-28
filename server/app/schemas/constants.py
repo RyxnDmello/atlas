@@ -86,6 +86,23 @@ class AuthConstants(BaseModel):
         return value
 
 
+class OtpConstants(BaseModel):
+    """Validate verification lifetime independently of access credentials."""
+
+    model_config = ConfigDict(hide_input_in_errors=True, frozen=True)
+
+    AUTH_OTP_TTL_SECONDS: int = Field(default=600, gt=0)
+
+
+class RefreshConstants(BaseModel):
+    """Validate initial refresh-session lifetime and cookie transport policy."""
+
+    model_config = ConfigDict(hide_input_in_errors=True, frozen=True)
+
+    AUTH_REFRESH_TOKEN_TTL_SECONDS: int = Field(default=604800, gt=0)
+    AUTH_COOKIE_SECURE: bool
+
+
 class PostgresConstants(BaseModel):
     """Validate required PostgreSQL settings without displaying sensitive input."""
 

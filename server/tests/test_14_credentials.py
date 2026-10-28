@@ -38,6 +38,7 @@ class AuthConfigurationTests(unittest.TestCase):
     def setUp(self) -> None:
         values = {name: value for name, value in dotenv_values(
             Path(__file__).resolve().parents[1] / ".env.example").items() if value is not None}
+        values["AUTH_ACCESS_TOKEN_SECRET"] = secrets.token_urlsafe(48)
         scope = patch.dict(os.environ, values, clear=True)
         scope.start()
         self.addCleanup(scope.stop)

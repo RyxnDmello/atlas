@@ -4,7 +4,7 @@
 - Chronological implementation history belongs in the Codex-owned `CONTEXT` and focused implementation prompts live under `AMENDMENTS/`. This PLAN defines capabilities and contracts without preassigning future Amendment numbering.
 - **Branch:** `phase-02/plan-01`
 - **Depends on:** PHASE_01 `IMPLEMENTED & VERIFIED`.
-- **Status:** `IMPLEMENTED, UNVERIFIED` — Identity persistence and credential primitives are complete and verified through their local/Docker acceptance. Public authentication/session workflows remain unbuilt.
+- **Status:** `IMPLEMENTED, UNVERIFIED` — Identity persistence, credential primitives, registration, verification/resend, and initial session/access issuance are verified. Amendments 01–04 are complete; other public authentication/session workflows remain unbuilt.
 - **Subsystem:** PostgreSQL identity persistence + server authentication/session foundation.
 - **Implementation evidence:** `PHASE_02_PLAN_01_CONTEXT.md` — Codex-owned; created/maintained only when implementation work begins.
 - **Repeatable acceptance:** `PHASE_02_PLAN_01_MANUAL.md` — Codex-owned; created/maintained only by Codex CLI.

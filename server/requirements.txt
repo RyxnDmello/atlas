@@ -3,6 +3,7 @@ fastapi
 uvicorn
 pydantic
 python-dotenv
+email-validator
 python-multipart
 
 # EXTRACTION & OCR

@@ -6,11 +6,13 @@ from pydantic import BaseModel, SecretStr, ValidationError
 
 from app.schemas.constants import (
     AppConstants,
+    OtpConstants,
     AuthConstants,
     CorsConstants,
     LoggerConstants,
     QdrantConstants,
     GeminiConstants,
+    RefreshConstants,
     DoclingConstants,
     EmbeddingDenseKey,
     PostgresConstants,
@@ -39,6 +41,15 @@ class Constants:
     """Expose validated settings through the established nested API."""
 
     @property
+    def otp(self) -> OtpConstants:
+        """Validate registration lifetime without consuming access settings."""
+        try:
+            return OtpConstants.model_validate(_values(OtpConstants))
+        except ValidationError:
+            raise ValueError(
+                "Invalid OTP configuration: positive TTL required") from None
+
+    @property
     def auth(self) -> AuthConstants:
         """Keep access-token configuration optional until explicitly consumed."""
         try:
@@ -46,6 +57,15 @@ class Constants:
         except ValidationError:
             raise ValueError(
                 "Invalid access-token configuration: signing secret and positive TTL required") from None
+
+    @property
+    def refresh(self) -> RefreshConstants:
+        """Validate refresh lifetime and the explicitly configured Secure flag."""
+        try:
+            return RefreshConstants.model_validate(_values(RefreshConstants))
+        except ValidationError:
+            raise ValueError(
+                "Invalid refresh configuration: positive TTL and explicit cookie Secure flag required") from None
 
     @property
     def gemini(self) -> "_Gemini":

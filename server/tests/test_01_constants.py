@@ -12,12 +12,14 @@ from app.core.constants import Constants, _values
 
 from app.schemas.constants import (
     AppConstants,
+    OtpConstants,
     AuthConstants,
     CorsConstants,
     GeminiConstants,
     LoggerConstants,
     QdrantConstants,
     DoclingConstants,
+    RefreshConstants,
     PostgresConstants,
     EmbeddingConstants,
 )
@@ -160,7 +162,8 @@ class ConstantsTests(TestCase):
         """Compare key names only, keeping development secrets out of test output."""
         expected = {name for schema in self.schemas.values()
                     for name in schema.model_fields} | self.deployment
-        optional = set(AuthConstants.model_fields)
+        optional = set(AuthConstants.model_fields) | set(
+            OtpConstants.model_fields) | set(RefreshConstants.model_fields)
         self.assertEqual(set(self.values), expected | optional)
         local = set(dotenv_values(self.root / ".env"))
         self.assertEqual(local - optional, expected)
@@ -175,7 +178,7 @@ class ConstantsTests(TestCase):
         environment = self.compose(self.values)[
             "services"]["server"]["environment"]
         expected = {name for schema in self.schemas.values()
-                    for name in schema.model_fields}
+                    for name in schema.model_fields} | set(OtpConstants.model_fields) | set(AuthConstants.model_fields) | set(RefreshConstants.model_fields)
         self.assertEqual(set(environment), expected)
         for name in expected - {"POSTGRES_PORT"}:
             with self.subTest(name=name):
@@ -185,6 +188,21 @@ class ConstantsTests(TestCase):
                 self.assertEqual(text, self.values[name])
 
         self.assertEqual(environment["POSTGRES_PORT"], 5432)
+
+    def test_compose_forwards_consumed_auth_lifetimes(self) -> None:
+        """Render OTP overrides alongside the now-consumed access/session settings."""
+        for value, expected in ((None, 600), ("", 600), ("73", 73)):
+            values = dict(self.values)
+            values.pop("AUTH_OTP_TTL_SECONDS", None)
+            if value is not None:
+                values["AUTH_OTP_TTL_SECONDS"] = value
+
+            environment = self.compose(
+                values)["services"]["server"]["environment"]
+            self.assertEqual(environment["AUTH_OTP_TTL_SECONDS"], expected)
+            self.assertEqual(
+                environment["AUTH_REFRESH_TOKEN_TTL_SECONDS"], 604800)
+            self.assertFalse(environment["AUTH_COOKIE_SECURE"])
 
     def test_deployment_overrides_reach_database_services(self) -> None:
         """Change published ports and policy while keeping container details fixed."""
@@ -303,12 +321,14 @@ class ConstantsTests(TestCase):
             Constants()
 
     def test_environment_layout_matches_example(self) -> None:
-        """Compare banners, key order, comments, and spacing without exposing values."""
+        """Compare banners, key order, and spacing without coupling explanatory comments."""
         def layout(path: Path) -> str:
             text = path.read_text(encoding="utf-8")
             marker = "\n# ======================================================\n# =================[ AUTH PRIMITIVES ]"
             text = text.split(marker, 1)[0]
-            text = re.sub(r"^AUTH_ACCESS_TOKEN_(?:SECRET|TTL_SECONDS)=.*\n?", "", text, flags=re.MULTILINE)
+            text = re.sub(
+                r"^AUTH_ACCESS_TOKEN_(?:SECRET|TTL_SECONDS)=.*\n?", "", text, flags=re.MULTILINE)
+            text = re.sub(r"^# (?!.*===).*\n", "", text, flags=re.MULTILINE)
             return re.sub(r"^([A-Z][A-Z0-9_]*)=.*$", r"\1=<value>", text, flags=re.MULTILINE).rstrip()
 
         self.assertEqual(layout(self.root / ".env"),

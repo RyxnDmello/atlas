@@ -2,7 +2,7 @@
 
 - **Phase goal:** extend the verified single-file RAG MVP into an authenticated personal drive with canonical PostgreSQL application state, recursive folders, file metadata/lifecycle, owner-authorized single-file RAG, and a static authenticated browser workflow.
 - **Verified dependency:** PHASE_01 — MVP Core RAG is `IMPLEMENTED & VERIFIED`.
-- **Current Phase 2 state:** `IMPLEMENTED, UNVERIFIED` — Amendments 01 and 02 are complete: identity persistence and credential primitives are verified, including their Docker acceptance. Public authentication/session workflows and drive capabilities remain unbuilt.
+- **Current Phase 2 state:** `IMPLEMENTED, UNVERIFIED` — Amendments 01–04 are complete. Registration, verification/resend, and initial session/access issuance are verified through Docker, real PostgreSQL, and live API acceptance. Other authentication/session workflows and drive capabilities remain unbuilt.
 - **Execution rule:** server-side contracts are implemented and verified before the client consumes them, unless an explicitly approved PLAN exception requires otherwise.
 - **Evidence ownership:** `CONTEXT.md` and `MANUAL.md` are created and maintained exclusively by Codex CLI as implementation/evidence artifacts. Planning/authoring work does not pre-create or edit them.
 
@@ -254,7 +254,7 @@ No PLAN may be treated as implemented merely because this overview describes its
 ## 8. PHASE_02_PLAN_01 — PostgreSQL Identity & Authentication Foundation
 
 - **Branch:** `phase-02/plan-01`
-- **Status:** `IMPLEMENTED, UNVERIFIED` — Identity persistence and credential primitives are complete and verified; public authentication/session workflows remain unbuilt.
+- **Status:** `IMPLEMENTED, UNVERIFIED` — Identity persistence, credential primitives, and registration are verified. Other public authentication/session workflows remain unbuilt.
 - **Depends on:** PHASE_01 `IMPLEMENTED & VERIFIED`
 - **Builds:**
   - PostgreSQL 18 service and canonical identity persistence;

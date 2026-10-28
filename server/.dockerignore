@@ -1,6 +1,9 @@
 # ENVIRONMENT
-
 .env
 .env.*
+venv/
+.venv/
+
+# CACHE
 __pycache__/
 **/__pycache__/
