@@ -1,6 +1,21 @@
 from app.errors.api import ApiError
 
 
+class InvalidCredentialsError(ApiError):
+    def __init__(self) -> None:
+        super().__init__("Invalid credentials", "INVALID_CREDENTIALS")
+
+
+class VerificationRequiredError(ApiError):
+    def __init__(self) -> None:
+        super().__init__("Verification required", "VERIFICATION_REQUIRED")
+
+
+class InvalidRefreshTokenError(ApiError):
+    def __init__(self) -> None:
+        super().__init__("Invalid refresh token", "INVALID_REFRESH_TOKEN")
+
+
 class InvalidAccessTokenError(ApiError):
     """Reject untrusted access credentials without library diagnostics."""
 

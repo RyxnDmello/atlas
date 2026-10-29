@@ -34,7 +34,7 @@ class CorsTests(TestCase):
         """Keep upload responses intact while granting only the configured origin."""
         wiring = next(
             item for item in app.user_middleware if item.cls is CORSMiddleware)
-        self.assertFalse(wiring.kwargs["allow_credentials"])
+        self.assertTrue(wiring.kwargs["allow_credentials"])
         self.assertEqual(wiring.kwargs["allow_methods"], ["POST"])
         options = {**wiring.kwargs, "allow_origins": ["http://localhost:3000"]}
         application = FastAPI(lifespan=app.router.lifespan_context,

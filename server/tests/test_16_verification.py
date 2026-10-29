@@ -16,7 +16,8 @@ from app.pipeline.auth.verify import Verified, resend, verify
 from app.pipeline.auth.initial_session import Credentials, issue
 
 from app.schemas.constants import RefreshConstants
-from app.schemas.auth.verification import ResendRequest, VerifyRequest, VerifiedUser
+from app.schemas.auth.authenticated import AuthenticatedUser
+from app.schemas.auth.verification import ResendRequest, VerifyRequest
 
 from app.errors.postgres import PostgresOperationError
 from app.errors.auth import InvalidVerificationError, VerificationExpiredError
@@ -167,14 +168,14 @@ class VerificationTests(unittest.TestCase):
 
     def test_http_cookie_and_error_contract(self) -> None:
         user, _ = state()
-        result = Verified(VerifiedUser(id=user.id, name=user.name, email=user.email),
+        result = Verified(AuthenticatedUser(id=user.id, name=user.name, email=user.email),
                           Credentials(access="synthetic-access", refresh="synthetic-refresh"))
         with TestClient(application()) as client, patch("app.routers.auth.verify", return_value=result):
             response = client.post(
                 "/auth/verify", json={"email": user.email, "otp": "012345"})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(set(response.json()), {
-                         "access_token", "token_type", "user"})
+                         "access_token", "user"})
         cookie = response.headers["set-cookie"]
         for attribute in ("atlas_refresh=", "HttpOnly", "Path=/auth", "SameSite=lax", "Max-Age=604800"):
             self.assertIn(attribute, cookie)

@@ -9,11 +9,14 @@ CommonErrorCode = Literal[
     "INTERNAL_SERVER_ERROR",
 ]
 AuthErrorCode = Literal[
-    "INVALID_ACCESS_TOKEN",
-    "ACCOUNT_ALREADY_EXISTS",
     "ACCOUNT_NOT_FOUND",
+    "INVALID_CREDENTIALS",
+    "INVALID_ACCESS_TOKEN",
     "INVALID_VERIFICATION",
     "VERIFICATION_EXPIRED",
+    "INVALID_REFRESH_TOKEN",
+    "VERIFICATION_REQUIRED",
+    "ACCOUNT_ALREADY_EXISTS",
     "VERIFICATION_NOT_REQUIRED",
 ]
 FileErrorCode = Literal[
@@ -36,6 +39,8 @@ GenerationErrorCode = Literal[
 ErrorCode = CommonErrorCode | FileErrorCode | QdrantErrorCode | GenerationErrorCode | PostgresErrorCode | AuthErrorCode
 
 STATUS_BY_CODE: dict[ErrorCode, int] = {
+    "INVALID_CREDENTIALS": 401,
+    "VERIFICATION_REQUIRED": 403,
     "BAD_REQUEST": 400,
     "INVALID_FILE_TYPE": 400,
     "INVALID_FILE_SIZE": 400,
@@ -43,6 +48,7 @@ STATUS_BY_CODE: dict[ErrorCode, int] = {
     "FILE_UPLOAD_FAILED": 400,
     "UNPROCESSABLE_ENTITY": 422,
     "INVALID_ACCESS_TOKEN": 401,
+    "INVALID_REFRESH_TOKEN": 401,
     "INTERNAL_SERVER_ERROR": 500,
     "ACCOUNT_ALREADY_EXISTS": 409,
     "ACCOUNT_NOT_FOUND": 404,

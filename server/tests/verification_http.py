@@ -69,8 +69,7 @@ def main() -> None:
             status, body, headers = request("/auth/verify", {
                 "email": email, "otp": current}, "POST")
             assert status == 200 and set(
-                body) == {"access_token", "token_type", "user"}
-            assert body["token_type"] == "bearer"
+                body) == {"access_token", "user"}
             assert set(body["user"]) == {"id", "name", "email"}
             assert body["user"]["email"] == email
             assert Access().decode(body["access_token"]).user == user.id

@@ -4,7 +4,7 @@
 - Chronological implementation history belongs in the Codex-owned `CONTEXT` and focused implementation prompts live under `AMENDMENTS/`. This PLAN defines capabilities and contracts without preassigning future Amendment numbering.
 - **Branch:** `phase-02/plan-01`
 - **Depends on:** PHASE_01 `IMPLEMENTED & VERIFIED`.
-- **Status:** `IMPLEMENTED, UNVERIFIED` — Identity persistence, credential primitives, registration, verification/resend, and initial session/access issuance are verified. Amendments 01–04 are complete; other public authentication/session workflows remain unbuilt.
+- **Status:** `IMPLEMENTED, UNVERIFIED` — Identity persistence, credential primitives, registration, verification/resend, initial issuance, login, refresh rotation, logout, and credentialed cookie CORS are verified. Amendments 01–06 are complete, including packaged regression, real PostgreSQL rollback/concurrency, live HTTP/CORS, security scans, and datastore preservation. Bearer current-user resolution, GET /auth, and final complete authentication acceptance remain unbuilt.
 - **Subsystem:** PostgreSQL identity persistence + server authentication/session foundation.
 - **Implementation evidence:** `PHASE_02_PLAN_01_CONTEXT.md` — Codex-owned; created/maintained only when implementation work begins.
 - **Repeatable acceptance:** `PHASE_02_PLAN_01_MANUAL.md` — Codex-owned; created/maintained only by Codex CLI.
@@ -543,7 +543,8 @@ Responsibilities:
 
 - hash registration password with Argon2id;
 - verify login password;
-- use a dummy hash verification path when the email does not exist so obvious account-existence timing differences are reduced;
+- return `INVALID_CREDENTIALS` immediately when email does not exist, without password verification;
+- unknown email and password mismatch share the exact public error, but timing equalization and rate limiting are outside current Phase 2 scope;
 - support `check_needs_rehash`/equivalent current argon2-cffi capability;
 - if a verified login succeeds and the stored hash needs rehashing under current parameters, update it transactionally;
 - convert password-library failures into safe auth/internal errors without logging password/hash content.
@@ -618,7 +619,7 @@ sequenceDiagram
     A->>P: atomically consume matching unexpired session A
     alt missing / expired
         P-->>A: no usable session
-        A-->>B: clear cookie + 401
+        A-->>B: 401 without cookie mutation
     else valid
         P-->>A: user_id
         A->>A: generate token B + hash B
@@ -633,15 +634,16 @@ Atomicity requirement:
 - consumption and replacement belong in one database transaction;
 - the old session row is deleted before transaction success makes the replacement authoritative;
 - if replacement insertion/transaction fails, do not return a usable new credential pair;
-- implementation may use `DELETE ... RETURNING`, row locking, or another PostgreSQL mechanism that proves the same single-consumer behavior;
+- consume with `DELETE ... WHERE token_hash = :digest AND expires_at > :now RETURNING id, user_id`, using one aware UTC `now`;
+- load the canonical verified user, stage replacement through the shared initial-session issuer, and commit both deletion and insertion before returning credentials;
 - Codex must not silently weaken this invariant.
 
 Expired session:
 
 - invalid immediately at `expires_at`;
-- when encountered, delete it;
-- reject refresh;
-- clear browser cookie.
+- when no valid row is consumed, delete only the matching digest with `expires_at <= now`;
+- commit any expired-row cleanup before rejecting refresh;
+- return `401 INVALID_REFRESH_TOKEN` without setting, clearing, expiring, or overwriting the cookie. This prevents a losing concurrent request from erasing a winning replacement cookie.
 
 ---
 
@@ -764,7 +766,6 @@ Reference body:
 ```json
 {
   "access_token": "<jwt>",
-  "token_type": "bearer",
   "user": {
     "id": "<uuid>",
     "name": "Ryan",
@@ -830,7 +831,7 @@ Behavior:
 - use generic invalid-credentials result for wrong email/password;
 - verify password;
 - if unverified:
-  - create/replace current `auth` verification;
+  - leave password and verification state unchanged; `/auth/resend` alone creates/replaces the OTP;
   - do not issue credentials;
   - return verification-required error state;
 - if verified:
@@ -844,12 +845,15 @@ Success body matches `/auth/verify`.
 Invalid credentials:
 
 - HTTP `401`;
-- code: `INVALID_CREDENTIALS`.
+- code: `INVALID_CREDENTIALS`;
+- message: `Invalid credentials` (identical for unknown email and wrong password).
 
 Unverified:
 
 - HTTP `403`;
 - code: `VERIFICATION_REQUIRED`;
+- message: `Verification required`;
+- no rehash, OTP generation, verification mutation, session, or cookie;
 - response does not include the OTP.
 
 ### `POST /auth/refresh`
@@ -875,15 +879,17 @@ Success body:
 ```json
 {
   "access_token": "<jwt>",
-  "token_type": "bearer"
+  "user": { "id": "<uuid>", "name": "Ryan", "email": "ryan@example.com" }
 }
 ```
 
 Invalid/expired/missing refresh credential:
 
-- clear refresh cookie;
+- do not mutate the refresh cookie, including on replay or concurrent loss;
 - HTTP `401`;
-- code: `INVALID_REFRESH_TOKEN`.
+- exact body: `{ "error": "Invalid refresh token", "code": "INVALID_REFRESH_TOKEN" }`.
+
+Missing/blank cookies are rejected before database access. Cookie input is the sole credential; no request body or Authorization header is required or used. Missing/unverified canonical users are internal consistency failures with transaction rollback. Persistence/issuance failure rolls back old consumption and returns no credentials/cookie.
 
 ### `POST /auth/logout`
 
@@ -895,8 +901,11 @@ Behavior:
 
 - hash and delete matching session when present;
 - expired/missing/already-consumed session is not a reason to leave the cookie behind;
-- always clear the refresh cookie;
-- client-facing logout is idempotent.
+- missing/blank cookies avoid database access; unknown/consumed cookies are successful no-ops;
+- delete only the matching digest regardless of expiry, committing a deletion;
+- clear the refresh cookie after every successful domain outcome with matching name/path/HttpOnly/SameSite/Secure, Max-Age=0 and an expired timestamp;
+- real database failure remains an explicit error without successful cookie clearing;
+- client-facing logout is idempotent and affects no independent sessions.
 
 Success:
 
@@ -972,7 +981,8 @@ Refresh-cookie auth requires:
 - explicit configured allowed origins;
 - `allow_credentials=True`;
 - no wildcard origin with credentials;
-- ordinary Authorization header remains allowed;
+- at the Amendment 06 boundary, methods remain POST and explicitly allowed request headers remain Content-Type;
+- Authorization/GET expansion belongs to the later bearer current-user boundary when required;
 - refresh/logout requests from the browser can include credentials;
 - access JWTs remain Bearer headers, not JavaScript-readable cookies.
 
@@ -1201,7 +1211,7 @@ PLAN_01 naturally separates into focused capability boundaries without assigning
 ### Login
 
 - generic credential failure;
-- timing-safe absent-user dummy verify;
+- immediate absent-user `INVALID_CREDENTIALS` without dummy verification or timing equalization;
 - verified login session issuance;
 - unverified verification-required transition.
 
@@ -1359,9 +1369,9 @@ PLAN_01 becomes `IMPLEMENTED & VERIFIED` only when the complete server identity/
 
 - correct verified credentials establish a new session/access token.
 - wrong email and wrong password share generic invalid-credentials public behavior.
-- missing-user path performs dummy password verification or equivalent timing-hardening.
+- missing-user path returns `INVALID_CREDENTIALS` without password verification, dummy hashing, or delay.
 - valid unverified login does not issue auth credentials and returns `VERIFICATION_REQUIRED`.
-- unverified login creates/replaces an auth verification as specified.
+- unverified login leaves verification/password state unchanged and performs no OTP generation or rehash; `/auth/resend` owns OTP creation/replacement.
 
 ### Access token
 

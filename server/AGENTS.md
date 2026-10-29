@@ -119,7 +119,10 @@ PostgreSQL identity persistence
 | User registration                    | IMPLEMENTED & VERIFIED |
 | OTP verification / resend            | IMPLEMENTED & VERIFIED |
 | Initial session / access issuance    | IMPLEMENTED & VERIFIED |
-| Access + refresh authentication      | NOT YET BUILT          |
+| User login                           | IMPLEMENTED & VERIFIED |
+| Refresh rotation / current logout    | IMPLEMENTED & VERIFIED |
+| Credentialed cookie CORS             | IMPLEMENTED & VERIFIED |
+| Bearer current-user resolution       | NOT YET BUILT          |
 | Recursive folders                    | NOT YET BUILT          |
 | Canonical file metadata/lifecycle    | NOT YET BUILT          |
 | Owner authorization before RAG       | NOT YET BUILT          |
@@ -128,7 +131,7 @@ Identity persistence models, explicit migrations, runtime ownership, and Postgre
 
 Argon2id password, HS256 access JWT, opaque refresh/hash, and secure OTP primitives are also implemented and verified locally and in the packaged server.
 
-Amendments 01–04 are complete. Registration, OTP verification/resend, and initial session/access issuance passed real PostgreSQL, packaged regression, live API, and datastore-preservation acceptance; verification/resend concurrency and rollback are verified. Login, refresh rotation, logout, current-user resolution, and credentialed CORS remain unbuilt. Canonical folder/file state belongs to later work.
+Amendments 01–05 are complete. Registration, OTP verification/resend, initial session/access issuance, and login passed real PostgreSQL, packaged regression, live API, and datastore-preservation acceptance. Login rehash/session rollback, independent concurrent sessions, unchanged verification state on unverified login, and the shared access-token/user response are verified. Amendment 06 is complete. Atomic refresh rotation, idempotent current-session logout, and credentialed CORS passed packaged regression, real PostgreSQL rollback/concurrency, live HTTP/cookie/CORS, image/log security, and datastore-preservation acceptance. Bearer current-user resolution remains unbuilt. Canonical folder/file state belongs to later work.
 
 Planned/approved behavior is not implementation evidence. Do not mark a Phase 2 capability implemented or verified until the corresponding code and required verification exist.
 

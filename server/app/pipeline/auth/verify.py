@@ -8,7 +8,8 @@ from app.core.runtime import postgres
 from app.core.constants import constants
 
 from app.models.postgres import User, Verification
-from app.schemas.auth.verification import ResendRequest, VerifyRequest, VerifiedUser
+from app.schemas.auth.authenticated import AuthenticatedUser
+from app.schemas.auth.verification import ResendRequest, VerifyRequest
 
 from app.pipeline.auth.verification import generate
 from app.pipeline.auth.initial_session import Credentials, issue
@@ -23,7 +24,7 @@ from app.errors.auth import (
 
 @dataclass(frozen=True, slots=True)
 class Verified:
-    user: VerifiedUser
+    user: AuthenticatedUser
     credentials: Credentials
 
 
@@ -61,7 +62,8 @@ def verify(request: VerifyRequest) -> Verified:
             user.verified_at = now
             session.delete(row)
             credentials = issue(session, user, now)
-            public = VerifiedUser(id=user.id, name=user.name, email=user.email)
+            public = AuthenticatedUser(
+                id=user.id, name=user.name, email=user.email)
             session.commit()
 
             return Verified(user=public, credentials=credentials)

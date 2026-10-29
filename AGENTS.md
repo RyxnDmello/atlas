@@ -150,20 +150,23 @@ PostgreSQL identity persistence
 
 Current capability state:
 
-| Capability                                   | Status                 |
-| -------------------------------------------- | ---------------------- |
-| PostgreSQL identity persistence              | IMPLEMENTED & VERIFIED |
-| Authentication credential primitives         | IMPLEMENTED & VERIFIED |
-| User registration                            | IMPLEMENTED & VERIFIED |
-| OTP verification / resend                    | IMPLEMENTED & VERIFIED |
-| Initial session / access issuance            | IMPLEMENTED & VERIFIED |
-| Login / refresh / logout / current-user flow | NOT YET BUILT          |
-| Recursive folder hierarchy                   | NOT YET BUILT          |
-| Canonical file metadata / lifecycle          | NOT YET BUILT          |
-| Owner-authorized single-file RAG             | NOT YET BUILT          |
-| Authenticated drive client                   | NOT YET BUILT          |
+| Capability                           | Status                 |
+| ------------------------------------ | ---------------------- |
+| PostgreSQL identity persistence      | IMPLEMENTED & VERIFIED |
+| Authentication credential primitives | IMPLEMENTED & VERIFIED |
+| User registration                    | IMPLEMENTED & VERIFIED |
+| OTP verification / resend            | IMPLEMENTED & VERIFIED |
+| Initial session / access issuance    | IMPLEMENTED & VERIFIED |
+| User login                           | IMPLEMENTED & VERIFIED |
+| Refresh rotation / current logout    | IMPLEMENTED & VERIFIED |
+| Credentialed cookie CORS             | IMPLEMENTED & VERIFIED |
+| Bearer current-user resolution       | NOT YET BUILT          |
+| Recursive folder hierarchy           | NOT YET BUILT          |
+| Canonical file metadata / lifecycle  | NOT YET BUILT          |
+| Owner-authorized single-file RAG     | NOT YET BUILT          |
+| Authenticated drive client           | NOT YET BUILT          |
 
-Amendments 01–04 are complete. Registration, OTP verification/resend, and initial session/access issuance are verified through real PostgreSQL, packaged regression, live API, and datastore-preservation acceptance. Login, refresh rotation, logout, current-user resolution, and credentialed CORS remain unbuilt.
+Amendments 01–05 are complete. Registration, OTP verification/resend, initial session/access issuance, and login are verified through real PostgreSQL, packaged regression, live API, and datastore-preservation acceptance. Login reuses credential/session primitives, commits optional password rehash with its new independent session, and shares the verified access-token/user response with OTP verification. Amendment 06 is complete. Atomic refresh rotation, idempotent current-session logout, and credentialed CORS passed packaged regression, real PostgreSQL rollback/concurrency, live HTTP/cookie/CORS, image/log security, and datastore-preservation acceptance. Bearer current-user resolution remains unbuilt.
 
 Evidence:
 

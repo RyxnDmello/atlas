@@ -37,7 +37,7 @@ def request(path: str, payload: object = None, method: str = "GET",
         assert isinstance(status, int)
         metadata = {name.lower(): value for name,
                     value in response.headers.items()}
-        return status, json.loads(body) if method != "OPTIONS" else None, metadata
+        return status, json.loads(body) if body and method != "OPTIONS" else None, metadata
 
 
 def main() -> None:
@@ -113,12 +113,12 @@ def main() -> None:
             assert status == (200 if origin in origins else 400)
             assert headers.get(
                 "access-control-allow-origin") == (origin if origin in origins else None)
-            assert "access-control-allow-credentials" not in headers
+            assert headers.get("access-control-allow-credentials") == "true"
 
         status, body, _ = request("/openapi.json")
         assert status == 200 and isinstance(body, dict)
         assert {path for path in body["paths"] if path.startswith(
-            "/auth")} == {"/auth/register", "/auth/verify", "/auth/resend"}
+            "/auth")} == {"/auth/register", "/auth/verify", "/auth/resend", "/auth/login", "/auth/refresh", "/auth/logout"}
         assert set(body["paths"]["/auth/register"]) == {"post"}
         assert {"/documents/upload", "/files/{file_id}/ask", "/files/{file_id}/query",
                 "/system/health", "/system/health/databases"} <= set(body["paths"])

@@ -8,8 +8,8 @@ def configure_cors(app: FastAPI) -> None:
     """Register the configured browser-origin policy during application wiring."""
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=constants.cors.CORS_ORIGINS,
+        allow_credentials=True,
         allow_methods=["POST"],
         allow_headers=["Content-Type"],
-        allow_credentials=False,
+        allow_origins=constants.cors.CORS_ORIGINS,
     )
