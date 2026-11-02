@@ -4,8 +4,10 @@ from app.core.cors import configure_cors
 from app.core.lifespan import lifespan
 
 from app.routers.auth import router as auth
+from app.routers.drive import router as drive
 from app.routers.files import router as files
 from app.routers.system import router as system
+from app.routers.folders import router as folders
 from app.routers.documents import router as documents
 
 from app.errors.api import ApiError
@@ -16,8 +18,10 @@ app = FastAPI(lifespan=lifespan)
 configure_cors(app)
 
 app.include_router(auth)
+app.include_router(drive)
 app.include_router(files)
 app.include_router(system)
+app.include_router(folders)
 app.include_router(documents)
 
 app.add_exception_handler(ApiError, cast_handle_api_error())

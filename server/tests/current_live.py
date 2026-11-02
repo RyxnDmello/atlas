@@ -125,7 +125,7 @@ def main() -> None:
         schema(engine)
         schema(source)
         assert (counts(configured), fingerprint(configured)) == baseline
-        print(json.dumps({**result, 'head': '0001_identity',
+        print(json.dumps({**result, 'head': '0002_drive',
               'configured_data': 'preserved'}, sort_keys=True))
     finally:
         if disposable is not None:

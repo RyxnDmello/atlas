@@ -164,7 +164,7 @@ class CurrentTests(unittest.TestCase):
                 for method, header, supported in (('GET', 'Authorization', True),
                                                   ('POST', 'Content-Type', True),
                                                   ('PUT', 'Authorization', False),
-                                                  ('PATCH', 'Authorization', False),
+                                                  ('PATCH', 'Authorization', True),
                                                   ('DELETE', 'Authorization', False),
                                                   ('GET', 'X-Unapproved', False)):
                     response = client.options('/auth', headers={'Origin': origin,

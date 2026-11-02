@@ -35,10 +35,14 @@ PostgresErrorCode = Literal[
 GenerationErrorCode = Literal[
     "GENERATION_FAILED"
 ]
+FolderErrorCode = Literal[
+    "FOLDER_NOT_FOUND"
+]
 
-ErrorCode = CommonErrorCode | FileErrorCode | QdrantErrorCode | GenerationErrorCode | PostgresErrorCode | AuthErrorCode
+ErrorCode = CommonErrorCode | FileErrorCode | QdrantErrorCode | GenerationErrorCode | PostgresErrorCode | AuthErrorCode | FolderErrorCode
 
 STATUS_BY_CODE: dict[ErrorCode, int] = {
+    "FOLDER_NOT_FOUND": 404,
     "INVALID_CREDENTIALS": 401,
     "VERIFICATION_REQUIRED": 403,
     "BAD_REQUEST": 400,

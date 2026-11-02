@@ -179,7 +179,7 @@ def main() -> None:
             assert metadata.get(
                 'access-control-allow-origin') == (origin if allowed else None)
             assert metadata.get('access-control-allow-credentials') == 'true'
-            for method, header in (('PATCH', 'Content-Type'), ('POST', 'X-Unapproved')):
+            for method, header in (('PUT', 'Content-Type'), ('POST', 'X-Unapproved')):
                 status, _, _ = request('/auth/refresh', method='OPTIONS', headers={'Origin': origin,
                                                                                    'Access-Control-Request-Method': method, 'Access-Control-Request-Headers': header})
                 assert status == 400

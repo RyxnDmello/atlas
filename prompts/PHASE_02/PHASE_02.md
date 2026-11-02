@@ -2,7 +2,7 @@
 
 - **Phase goal:** extend the verified single-file RAG MVP into an authenticated personal drive with canonical PostgreSQL application state, recursive folders, file metadata/lifecycle, owner-authorized single-file RAG, and a static authenticated browser workflow.
 - **Verified dependency:** PHASE_01 — MVP Core RAG is `IMPLEMENTED & VERIFIED`.
-- **Current Phase 2 state:** `IMPLEMENTED, UNVERIFIED` — Amendments 01–05 are complete. Registration, verification/resend, initial session/access issuance, and login are `IMPLEMENTED & VERIFIED` through Docker, real PostgreSQL, live API, and datastore-preservation acceptance. Amendment 06 is complete: refresh rotation, current-session logout, and credentialed cookie CORS are `IMPLEMENTED & VERIFIED` through packaged regression, real PostgreSQL rollback/concurrency, live HTTP, security scans, and datastore preservation. Amendment 07 and PLAN_01 are complete: Bearer current-user resolution, GET /auth, and final authentication acceptance are `IMPLEMENTED & VERIFIED` through Docker, real PostgreSQL, live HTTP/CORS, security scans, and datastore preservation. Next destination is PLAN_02 — Authenticated Drive Backend (`NOT YET BUILT`). Drive capabilities remain unbuilt.
+- **Current Phase 2 state:** `IMPLEMENTED, UNVERIFIED` — Amendments 01–05 are complete. Registration, verification/resend, initial session/access issuance, and login are `IMPLEMENTED & VERIFIED` through Docker, real PostgreSQL, live API, and datastore-preservation acceptance. Amendment 06 is complete: refresh rotation, current-session logout, and credentialed cookie CORS are `IMPLEMENTED & VERIFIED` through packaged regression, real PostgreSQL rollback/concurrency, live HTTP, security scans, and datastore preservation. Amendment 07 and PLAN_01 are complete: Bearer current-user resolution, GET /auth, and final authentication acceptance are `IMPLEMENTED & VERIFIED` through Docker, real PostgreSQL, live HTTP/CORS, security scans, and datastore preservation. Current PLAN_02 — Authenticated Drive Backend is `IMPLEMENTED, UNVERIFIED`: Amendment 01 is complete, with canonical folder/file persistence `IMPLEMENTED & VERIFIED` through Docker, real PostgreSQL, live auth/health, security scans, and datastore preservation. Amendment 02 is complete: authenticated folder creation/update and root/direct-child browsing are `IMPLEMENTED & VERIFIED` through local/packaged regression, real PostgreSQL two-user acceptance, live HTTP/CORS, security scans, and datastore preservation. File ingestion/lifecycle, metadata mutation/deletion, and owner-authorized RAG remain `NOT YET BUILT`.
 - **Execution rule:** server-side contracts are implemented and verified before the client consumes them, unless an explicitly approved PLAN exception requires otherwise.
 - **Evidence ownership:** `CONTEXT.md` and `MANUAL.md` are created and maintained exclusively by Codex CLI as implementation/evidence artifacts. Planning/authoring work does not pre-create or edit them.
 
@@ -52,14 +52,15 @@ Phase 2 includes:
 - single-use rotating opaque refresh tokens backed by PostgreSQL sessions;
 - authenticated current-user resolution;
 - PostgreSQL canonical state;
-- recursive folder creation;
-- folder rename;
+- recursive owner-scoped folder creation with user-facing name/description metadata;
+- folder rename/description update without movement;
+- duplicate folder/file display names, with UUIDs remaining canonical identity;
 - root and direct-child folder/file browsing;
-- canonical file metadata;
+- canonical file metadata and explicit `processing` / `ready` / `deleting` lifecycle;
 - transient file-upload bytes used only for the existing ingestion/indexing pipeline;
-- file metadata update;
-- permanent file deletion from PostgreSQL and Qdrant;
-- PostgreSQL owner authorization before file-scoped RAG;
+- file name/description update without content replacement or reindexing;
+- recoverable permanent file deletion from Qdrant and PostgreSQL;
+- PostgreSQL owner and ready-state authorization before file-scoped RAG;
 - authenticated client routes and session restoration;
 - root/folder dashboard navigation;
 - file selection and reuse of the verified `/query` and `/ask` RAG capabilities;
@@ -149,14 +150,37 @@ Upload lifecycle:
 ```text
 authenticated request
 -> authorize target folder
--> create canonical file UUID / metadata state
+-> create canonical file UUID + PostgreSQL `processing` row
 -> receive upload bytes transiently
 -> existing Docling parse / chunk
 -> existing BGE-M3 embed
 -> Qdrant store under the same file_id
--> mark canonical file ready
+-> confirm indexing success
+-> transition PostgreSQL file to `ready`
 -> discard original bytes
 ```
+
+Known ingestion failure:
+
+```text
+ingestion/indexing failure
+-> clean any derived Qdrant state for the exact file_id
+-> remove the temporary PostgreSQL file row
+-> return a structured failure
+```
+
+Phase 2 does not retain a durable `failed` file state. A failed upload therefore does not remain as a user-visible drive file.
+
+Permanent deletion uses a recoverable cross-store lifecycle:
+
+```text
+owner-authorized file
+-> transition to `deleting`
+-> delete all Qdrant points for the exact file_id
+-> delete the PostgreSQL file row
+```
+
+`deleting` is non-queryable and retryable when a cross-store delete step fails.
 
 Consequences accepted for Phase 2:
 
@@ -226,26 +250,33 @@ Root
 
 Rules:
 
+- folders and files are owned by one canonical PostgreSQL user;
 - `parent_id = NULL` means root-level folder;
 - `parent_id = <folder UUID>` means direct child of that folder;
 - root-level files use `folder_id = NULL`;
 - nested files use `folder_id = <folder UUID>`;
+- a child folder's parent and a file's optional folder must belong to the same owner;
+- folder metadata includes user-facing `name` and `description`;
+- duplicate sibling folder names are allowed;
+- duplicate sibling file names are allowed;
+- files and folders may share the same display name;
+- names are metadata; backend UUIDs establish identity;
 - folder depth is not stored separately;
 - no materialized path/tree table is required;
 - folder move is excluded, so `parent_id` is immutable after creation during Phase 2;
-- folder rename changes only folder metadata;
+- folder rename/description update changes only folder metadata;
 - dashboard navigation fetches only direct children for the selected parent, not the whole tree recursively.
 
 ---
 
 ## 7. Phase plans
 
-| Plan             | Status                 | Server/client ownership    | One-line scope                                                                                                              |
-| ---------------- | ---------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| PHASE_02_PLAN_01 | IMPLEMENTED & VERIFIED | Server                     | PostgreSQL identity foundation and complete server authentication/session contract                                          |
-| PHASE_02_PLAN_02 | NOT YET BUILT          | Server                     | Recursive folders, canonical files, transient ingestion lifecycle, permanent deletion, and owner-authorized single-file RAG |
-| PHASE_02_PLAN_03 | NOT YET BUILT          | Client                     | Registration/login/verification/session restoration/logout over verified PLAN_01 APIs                                       |
-| PHASE_02_PLAN_04 | NOT YET BUILT          | Client + final integration | Drive dashboard, folder/file workflows, selected-file RAG, and complete Phase 2 acceptance                                  |
+| Plan             | Status                  | Server/client ownership    | One-line scope                                                                                                                                      |
+| ---------------- | ----------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PHASE_02_PLAN_01 | IMPLEMENTED & VERIFIED  | Server                     | PostgreSQL identity foundation and complete server authentication/session contract                                                                  |
+| PHASE_02_PLAN_02 | IMPLEMENTED, UNVERIFIED | Server                     | Owner-scoped folders/files, canonical file lifecycle, authenticated transient ingestion, recoverable deletion, and owner-authorized single-file RAG |
+| PHASE_02_PLAN_03 | NOT YET BUILT           | Client                     | Registration/login/verification/session restoration/logout over verified PLAN_01 APIs                                                               |
+| PHASE_02_PLAN_04 | NOT YET BUILT           | Client + final integration | Drive dashboard, folder/file workflows, selected-file RAG, and complete Phase 2 acceptance                                                          |
 
 No PLAN may be treated as implemented merely because this overview describes its destination.
 
@@ -279,20 +310,20 @@ Detailed destination: `PLAN_01/PHASE_02_PLAN_01.md`.
 ## 9. PHASE_02_PLAN_02 — Authenticated Drive Backend
 
 - **Branch:** `phase-02/plan-02`
-- **Status:** `NOT YET BUILT`
+- **Status:** `IMPLEMENTED, UNVERIFIED` — Amendment 01 complete; canonical folder/file persistence is `IMPLEMENTED & VERIFIED` through local/packaged regression, real PostgreSQL constraints and reversibility, live auth/health, security, and preservation acceptance. Amendment 02 is complete: authenticated folder creation/update and root/direct-child browsing are `IMPLEMENTED & VERIFIED` through local/packaged regression, real PostgreSQL two-user acceptance, live HTTP/CORS, security scans, and datastore preservation. File ingestion/lifecycle, metadata mutation/deletion, and owner-authorized RAG remain `NOT YET BUILT`.
 - **Depends on:** PLAN_01 `IMPLEMENTED & VERIFIED`
 - **Builds:**
-  - recursive owner-scoped folders;
-  - folder rename;
-  - canonical file metadata;
+  - recursive owner-scoped folders with name/description metadata;
+  - duplicate folder/file display names with UUID-based identity;
+  - folder rename/description update without movement;
+  - canonical file metadata linked to the owning user and optional owned folder;
   - direct-child root/folder listing;
-  - transient upload orchestration;
-  - one immutable file UUID across PostgreSQL/Qdrant/API/client;
-  - file name/description update;
-  - permanent file deletion from Qdrant + PostgreSQL;
-  - PostgreSQL owner authorization before `/query` and `/ask`;
-  - explicit ingestion status lifecycle.
-- **Stops before:** client auth/dashboard, folder/file movement/deletion semantics, persistent binaries, and multi-scope RAG.
+  - authenticated transient upload orchestration using one immutable file UUID across PostgreSQL/Qdrant/API/client;
+  - explicit `processing` -> `ready` ingestion lifecycle with failed-ingestion cleanup and no durable failed-file state;
+  - file name/description update without content reindexing;
+  - recoverable permanent deletion through `deleting` -> exact Qdrant cleanup -> PostgreSQL row deletion;
+  - PostgreSQL owner + ready-state authorization before `/query` and `/ask`.
+- **Stops before:** client auth/dashboard, folder deletion/movement, file movement, persistent binaries, and multi-scope RAG.
 
 ---
 
@@ -454,14 +485,15 @@ PHASE_02 becomes `IMPLEMENTED & VERIFIED` only when all four plans are `IMPLEMEN
 3. refresh uses a single-use rotating refresh token;
 4. sessions restore correctly after client reload;
 5. recursive folders can be created/navigated and renamed;
-6. files have canonical PostgreSQL metadata without persistent original-byte storage;
-7. transient upload successfully feeds the verified indexing pipeline;
-8. file metadata updates do not reindex content;
-9. the selected owned file can be queried/asked through the verified RAG path;
-10. a second authenticated user cannot access the first user's folders, files, retrieval results, generation context, or citations;
-11. permanent file deletion removes canonical PostgreSQL state and all Qdrant points for that `file_id`;
-12. the static client completes the workflow against the verified backend;
-13. no excluded Phase 2 capability was silently introduced;
-14. actual verification evidence is recorded by Codex in each PLAN's CONTEXT/MANUAL.
+6. folders/files have canonical PostgreSQL ownership and UUID identity while duplicate display names remain valid;
+7. files have canonical PostgreSQL metadata without persistent original-byte storage;
+8. authenticated transient upload uses the canonical file UUID, reaches `ready` only after successful indexing, and leaves no durable failed file after a known ingestion failure;
+9. file metadata updates do not reindex content;
+10. only an owner-authorized `ready` file can be queried/asked through the verified RAG path;
+11. a second authenticated user cannot access the first user's folders, files, retrieval results, generation context, or citations;
+12. permanent file deletion uses the recoverable `deleting` lifecycle and ultimately removes canonical PostgreSQL state plus all Qdrant points for that `file_id`;
+13. the static client completes the workflow against the verified backend;
+14. no excluded Phase 2 capability was silently introduced;
+15. actual verification evidence is recorded by Codex in each PLAN's CONTEXT/MANUAL.
 
 Until that acceptance is complete, Phase 1 remains the verified baseline and Phase 2 remains incomplete.

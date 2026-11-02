@@ -97,7 +97,7 @@ Still excluded from the Phase 2 backend unless explicitly approved:
 
 - **Status:** `IMPLEMENTED, UNVERIFIED`
 - **Completed PLAN:** `PHASE_02_PLAN_01 — PostgreSQL Identity & Authentication Foundation` (`IMPLEMENTED & VERIFIED`)
-- **Current PLAN / next destination:** `PHASE_02_PLAN_02 — Authenticated Drive Backend` (`NOT YET BUILT`)
+- **Current PLAN:** `PHASE_02_PLAN_02 — Authenticated Drive Backend` (`IMPLEMENTED, UNVERIFIED`; persistence and folder/direct-child APIs verified; file lifecycle operations remain unbuilt)
 
 #### VERIFIED FOUNDATION
 
@@ -124,7 +124,9 @@ PostgreSQL identity persistence
 | Refresh rotation / current logout    | IMPLEMENTED & VERIFIED |
 | Credentialed cookie CORS             | IMPLEMENTED & VERIFIED |
 | Bearer current-user resolution       | IMPLEMENTED & VERIFIED |
-| Recursive folders                    | NOT YET BUILT          |
+| Canonical folder/file persistence    | IMPLEMENTED & VERIFIED |
+| Recursive folders                    | IMPLEMENTED & VERIFIED |
+| Folder metadata / direct-child APIs  | IMPLEMENTED & VERIFIED |
 | Canonical file metadata/lifecycle    | NOT YET BUILT          |
 | Owner authorization before RAG       | NOT YET BUILT          |
 
@@ -132,7 +134,9 @@ Identity persistence models, explicit migrations, runtime ownership, and Postgre
 
 Argon2id password, HS256 access JWT, opaque refresh/hash, and secure OTP primitives are also implemented and verified locally and in the packaged server.
 
-Amendments 01–05 are complete. Registration, OTP verification/resend, initial session/access issuance, and login passed real PostgreSQL, packaged regression, live API, and datastore-preservation acceptance. Login rehash/session rollback, independent concurrent sessions, unchanged verification state on unverified login, and the shared access-token/user response are verified. Amendment 06 is complete. Atomic refresh rotation, idempotent current-session logout, and credentialed CORS passed packaged regression, real PostgreSQL rollback/concurrency, live HTTP/cookie/CORS, image/log security, and datastore-preservation acceptance. Amendment 07 is complete. Bearer current-user resolution and GET /auth are `IMPLEMENTED & VERIFIED` through packaged regression, real PostgreSQL, live authentication/CORS, security scans, and datastore preservation. PLAN_01 is `IMPLEMENTED & VERIFIED`. Next destination: PHASE_02_PLAN_02 — Authenticated Drive Backend (`NOT YET BUILT`). Canonical folder/file state belongs to later work.
+Amendments 01–05 are complete. Registration, OTP verification/resend, initial session/access issuance, and login passed real PostgreSQL, packaged regression, live API, and datastore-preservation acceptance. Login rehash/session rollback, independent concurrent sessions, unchanged verification state on unverified login, and the shared access-token/user response are verified. Amendment 06 is complete. Atomic refresh rotation, idempotent current-session logout, and credentialed CORS passed packaged regression, real PostgreSQL rollback/concurrency, live HTTP/cookie/CORS, image/log security, and datastore-preservation acceptance. Amendment 07 is complete. Bearer current-user resolution and GET /auth are `IMPLEMENTED & VERIFIED` through packaged regression, real PostgreSQL, live authentication/CORS, security scans, and datastore preservation. PLAN_01 is `IMPLEMENTED & VERIFIED`. Current PLAN: PHASE_02_PLAN_02 — Authenticated Drive Backend (`IMPLEMENTED, UNVERIFIED`); canonical folder/file persistence is verified; folder/direct-child APIs are verified; file lifecycle operations remain unbuilt.
+
+PLAN_02 Amendment 01 is complete. Canonical Folder/File persistence and `0002_drive` are `IMPLEMENTED & VERIFIED` through local and packaged regression, real PostgreSQL ownership/constraint/reversibility acceptance, live authentication/health, security scans, and datastore preservation. Amendment 02 is complete: authenticated folder creation/update and root/direct-child browsing are `IMPLEMENTED & VERIFIED` through local/packaged regression, real PostgreSQL two-user acceptance, live HTTP/CORS, security scans, and datastore preservation. Ingestion orchestration, file metadata mutation/deletion, and owner-authorized RAG remain `NOT YET BUILT`; PLAN_02 remains `IMPLEMENTED, UNVERIFIED`.
 
 Planned/approved behavior is not implementation evidence. Do not mark a Phase 2 capability implemented or verified until the corresponding code and required verification exist.
 
@@ -140,6 +144,7 @@ Planned/approved behavior is not implementation evidence. Do not mark a Phase 2 
 
 - [PHASE_02 PLAN_01 CONTEXT](../prompts/PHASE_02/PLAN_01/PHASE_02_PLAN_01_CONTEXT.md)
 - [PHASE_02 PLAN_01 MANUAL](../prompts/PHASE_02/PLAN_01/PHASE_02_PLAN_01_MANUAL.md)
+- [PHASE_02 PLAN_02 CONTEXT](../prompts/PHASE_02/PLAN_02/PHASE_02_PLAN_02_CONTEXT.md)
 
 ---
 
@@ -429,7 +434,7 @@ Rules:
 - Never print secrets through diagnostics or full environment dumps.
 - Compose environment forwarding must stay aligned with validated settings.
 - CORS uses an explicit configured allow-list; do not replace it with wildcard defaults.
-- When Phase 2 refresh-cookie auth is implemented, credentialed browser CORS/cookie behavior must follow the current PLAN and remain explicit rather than permissive.
+- Verified Phase 2 refresh-cookie auth uses explicit credentialed browser CORS/cookie behavior; later method/header expansion must remain narrow, PLAN-defined, and non-wildcard.
 
 `server/app/errors/` uses one structured FastAPI-native pattern.
 
@@ -508,13 +513,21 @@ flowchart LR
 
 ### Folders and files
 
+- Folders and files are canonical PostgreSQL records owned by one canonical user.
 - Folders are owner-scoped and recursively nestable through a parent-folder relationship.
+- A child folder's parent and a file's optional folder must belong to the same owner; cross-owner placement is invalid.
+- Folder metadata includes user-facing name and description.
 - Phase 2 supports folder creation and rename; it does not support folder deletion or movement.
-- Files are canonical PostgreSQL records owned by one user and optionally placed in one folder/root location according to the current PLAN.
+- Files may be placed in one owned folder or at root; file movement is not supported in Phase 2.
+- Duplicate sibling folder names and duplicate sibling file names are allowed, and files/folders may share the same display name. UUIDs establish identity; names do not.
 - Original file bytes are not persistently stored in Phase 2.
 - File name/description metadata changes do not imply content replacement or Qdrant reindexing.
-- Permanent file deletion removes the canonical PostgreSQL file record and all derived Qdrant points for that `file_id`.
-- A file must be owner-authorized from PostgreSQL before retrieval/generation uses its Qdrant data.
+- Canonical file lifecycle states are `processing`, `ready`, and `deleting`.
+- Canonical upload creates the file UUID/`processing` row before ingestion, uses that exact UUID for Qdrant `file_id`, and transitions to `ready` only after confirmed indexing success.
+- Known ingestion failure cleans any exact-file Qdrant writes and removes the temporary PostgreSQL file row; Phase 2 does not retain a durable `failed` file state.
+- Only an owner-authorized `ready` file may enter retrieval or generation.
+- Permanent deletion transitions the canonical file to `deleting`, removes all derived Qdrant points for the exact `file_id`, then removes the PostgreSQL row. A `deleting` file is non-queryable and the operation is retryable.
+- A file must be owner-authorized from PostgreSQL before any Qdrant retrieval/generation access.
 
 ---
 

@@ -251,7 +251,7 @@ class SessionTests(unittest.TestCase):
                             'access-control-allow-origin'), origin if allowed else None)
                         self.assertEqual(response.headers.get(
                             'access-control-allow-credentials'), 'true')
-                for method, header in (('PATCH', 'Content-Type'), ('POST', 'X-Unapproved')):
+                for method, header in (('PUT', 'Content-Type'), ('POST', 'X-Unapproved')):
                     response = client.options('/auth/refresh', headers={'Origin': origin,
                                                                         'Access-Control-Request-Method': method, 'Access-Control-Request-Headers': header})
                     self.assertEqual(response.status_code, 400)
