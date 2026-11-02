@@ -259,7 +259,7 @@ class LoginTests(unittest.TestCase):
         specification = app.openapi()
         paths = specification["paths"]
         self.assertEqual({path for path in paths if path.startswith("/auth")},
-                         {"/auth/register", "/auth/verify", "/auth/resend", "/auth/login", "/auth/refresh", "/auth/logout"})
+                         {"/auth", "/auth/register", "/auth/verify", "/auth/resend", "/auth/login", "/auth/refresh", "/auth/logout"})
         for path in ("/auth/login", "/auth/verify"):
             self.assertEqual(set(paths[path]), {"post"})
             schema = paths[path]["post"]["responses"]["200"]["content"]["application/json"]["schema"]

@@ -133,7 +133,8 @@ Atlas phase state is cumulative. A later phase may extend or deliberately supers
 #### PHASE_02 — AUTHENTICATED PERSONAL DRIVE
 
 - **Status:** `IMPLEMENTED, UNVERIFIED`
-- **Current PLAN:** `PHASE_02_PLAN_01 — PostgreSQL Identity & Authentication Foundation`
+- **Completed PLAN:** `PHASE_02_PLAN_01 — PostgreSQL Identity & Authentication Foundation` (`IMPLEMENTED & VERIFIED`)
+- **Current PLAN / next destination:** `PHASE_02_PLAN_02 — Authenticated Drive Backend` (`NOT YET BUILT`)
 - **Current branch family:** `phase-02/plan-01`
 
 Verified Phase 2 foundation:
@@ -160,13 +161,13 @@ Current capability state:
 | User login                           | IMPLEMENTED & VERIFIED |
 | Refresh rotation / current logout    | IMPLEMENTED & VERIFIED |
 | Credentialed cookie CORS             | IMPLEMENTED & VERIFIED |
-| Bearer current-user resolution       | NOT YET BUILT          |
+| Bearer current-user resolution       | IMPLEMENTED & VERIFIED |
 | Recursive folder hierarchy           | NOT YET BUILT          |
 | Canonical file metadata / lifecycle  | NOT YET BUILT          |
 | Owner-authorized single-file RAG     | NOT YET BUILT          |
 | Authenticated drive client           | NOT YET BUILT          |
 
-Amendments 01–05 are complete. Registration, OTP verification/resend, initial session/access issuance, and login are verified through real PostgreSQL, packaged regression, live API, and datastore-preservation acceptance. Login reuses credential/session primitives, commits optional password rehash with its new independent session, and shares the verified access-token/user response with OTP verification. Amendment 06 is complete. Atomic refresh rotation, idempotent current-session logout, and credentialed CORS passed packaged regression, real PostgreSQL rollback/concurrency, live HTTP/cookie/CORS, image/log security, and datastore-preservation acceptance. Bearer current-user resolution remains unbuilt.
+Amendments 01–05 are complete. Registration, OTP verification/resend, initial session/access issuance, and login are verified through real PostgreSQL, packaged regression, live API, and datastore-preservation acceptance. Login reuses credential/session primitives, commits optional password rehash with its new independent session, and shares the verified access-token/user response with OTP verification. Amendment 06 is complete. Atomic refresh rotation, idempotent current-session logout, and credentialed CORS passed packaged regression, real PostgreSQL rollback/concurrency, live HTTP/cookie/CORS, image/log security, and datastore-preservation acceptance. Amendment 07 is complete. Bearer current-user resolution and GET /auth are `IMPLEMENTED & VERIFIED` through packaged regression, real PostgreSQL, live authentication/CORS, security scans, and datastore preservation. PLAN_01 is `IMPLEMENTED & VERIFIED`. Next destination: PHASE_02_PLAN_02 — Authenticated Drive Backend (`NOT YET BUILT`).
 
 Evidence:
 

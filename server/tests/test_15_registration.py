@@ -340,7 +340,7 @@ class RegistrationHttpTests(unittest.TestCase):
 
         routes = {(path, method.upper()) for path, operations in app.openapi()["paths"].items()
                   for method in operations if path.startswith("/auth")}
-        self.assertEqual(routes, {("/auth/register", "POST"),
+        self.assertEqual(routes, {("/auth", "GET"), ("/auth/register", "POST"),
                                   ("/auth/verify", "POST"), ("/auth/resend", "POST"),
                                   ("/auth/login", "POST"), ("/auth/refresh", "POST"),
                                   ("/auth/logout", "POST")})

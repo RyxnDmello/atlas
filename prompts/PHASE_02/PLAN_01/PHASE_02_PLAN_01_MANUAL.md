@@ -1,6 +1,6 @@
 # PLAN_01 Manual — Persistence and Authentication Acceptance
 
-Amendments 01–05 are **COMPLETE** through local, real PostgreSQL, packaged Docker, live API, and datastore-preservation acceptance. Login and the revised verify response are `IMPLEMENTED & VERIFIED`. The broader PLAN_01 remains `IMPLEMENTED, UNVERIFIED`; refresh/logout/current-user resolution and credentialed CORS remain unbuilt. Detailed observed results belong in CONTEXT.
+Amendments 01–07 and PHASE_02_PLAN_01 are **COMPLETE**, `IMPLEMENTED & VERIFIED`, through local, real PostgreSQL, packaged Docker, live authentication/CORS, security, and datastore-preservation acceptance. PHASE_02 remains `IMPLEMENTED, UNVERIFIED`. Next: PHASE_02_PLAN_02 — Authenticated Drive Backend (`NOT YET BUILT`). Detailed results belong in CONTEXT.
 
 ## 1. Configuration contract
 
@@ -420,19 +420,19 @@ Expected: step 23's same safe result using packaged `/server/app` and migrations
 The successful session adapter is retained locally under ignored `server/.venv`:
 
 ```powershell
-.venv/Scripts/python.exe .venv/amendment06_http_audit.py
+.venv/Scripts/python.exe .venv/amendment07_http_audit.py
 ```
 
-Expected: tracked `tests.sessions_http`, `tests.login_http`, `tests.verification_http`, and `tests.registration_http` report passed, synthetic-only cleanup, identical invalid credentials, unchanged unverified state, live rehash, exact verify response, refresh rotation/replay/concurrency, logout/isolation, credentialed CORS and six POST auth routes. Health and credential log scans pass without printing credentials. The adapter loads `.env` before tests, scopes host overrides to its process, patches all helper request bindings and excludes empty cookie-clearing values from its private secret set. This ignored adapter is retained session tooling, not supplied by a fresh checkout; the tracked helpers own acceptance assertions.
+Expected: tracked `tests.current_http`, `tests.sessions_http`, `tests.login_http`, `tests.verification_http`, and `tests.registration_http` report passed, synthetic-only cleanup, identical invalid credentials, unchanged unverified state, live rehash, exact verify response, refresh rotation/replay/concurrency, logout/isolation, credentialed GET/Authorization CORS and six POST auth routes plus GET `/auth`. Current-user acceptance proves verify/login/refresh/logout/current-user, canonical missing/unverified/deleted guards and three-second synthetic expiry. Health and credential log scans pass without printing credentials. The adapter loads `.env` before tests, scopes host overrides to its process, patches all helper request bindings and excludes empty cookie-clearing values from its private secret set. This ignored adapter is retained session tooling, not supplied by a fresh checkout; the tracked helpers own acceptance assertions.
 
 ## 26. Preserve data and clean disposable artifacts
 
 Record fresh PostgreSQL row fingerprints and Qdrant collection/point/vector/payload fingerprints before synthetic checks, and compare after cleanup. Record datastore container/image IDs and named volumes too. The retained session adapter reproduces the fingerprint procedure:
 
 ```powershell
-.venv/Scripts/python.exe .venv/amendment06_snapshot.py before
+.venv/Scripts/python.exe .venv/amendment07_snapshot.py before
 # Run authorized acceptance between these commands.
-.venv/Scripts/python.exe .venv/amendment06_snapshot.py after
+.venv/Scripts/python.exe .venv/amendment07_snapshot.py after
 ```
 
 Expected: comparison passes; configured identity rows, revision row and Qdrant configuration/content remain unchanged. Helpers remove only generated users or disposable databases; temporary containers use `--rm`. Preserve working images, model/dependency caches, venv, useful helpers, evidence and datastore volumes. Remove explicitly identified obsolete artifacts after recording evidence. Avoid broad Docker pruning or volume resets. Session adapters are ignored local artifacts; fresh clones must establish equivalent baselines instead of reusing historical measurements.
@@ -451,11 +451,11 @@ $env:TRANSFORMERS_OFFLINE = '1'
 .venv/Scripts/python.exe -m alembic heads
 ```
 
-Expected: 119 focused tests and 228 full backend tests pass, compilation succeeds, dependency consistency reports no broken requirements, and migration discovery reports `0001_identity (head)`. Restore previous offline settings after the checks. These local checks use database fakes and in-memory Qdrant; they do not prove real PostgreSQL transactions/concurrency or packaged/live acceptance.
+Expected: 119 focused tests and 237 full backend tests pass, compilation succeeds, dependency consistency reports no broken requirements, and migration discovery reports `0001_identity (head)`. Restore previous offline settings after the checks. These local checks use database fakes and in-memory Qdrant; they do not prove real PostgreSQL transactions/concurrency or packaged/live acceptance.
 
-Expected code contract: six POST-only auth routes (`register`, `verify`, `resend`, `login`, `refresh`, `logout`), with no GET /auth or bearer dependency yet. Refresh reads only `atlas_refresh`, atomically consumes an unexpired digest and commits a replacement session before returning the shared `access_token`/safe `user` response and cookie. Missing/blank/unknown/replayed/expired credentials return `401 INVALID_REFRESH_TOKEN` with no cookie mutation; encountered expired-row cleanup commits before rejection. Logout deletes only the presented session, treats absent/consumed credentials idempotently, and returns empty HTTP 204 with the matching cookie cleared. Database failure does not masquerade as logout success. Access JWTs remain valid until expiry. CORS enables credentials for exact configured origins while keeping POST/Content-Type scope.
+Expected current contract: six POST auth routes (`register`, `verify`, `resend`, `login`, `refresh`, `logout`) plus GET `/auth` using the shared Bearer dependency. Refresh reads only `atlas_refresh`, atomically consumes an unexpired digest and commits a replacement session before returning the shared `access_token`/safe `user` response and cookie. Missing/blank/unknown/replayed/expired credentials return `401 INVALID_REFRESH_TOKEN` with no cookie mutation; encountered expired-row cleanup commits before rejection. Logout deletes only the presented session, treats absent/consumed credentials idempotently, and returns empty HTTP 204 with the matching cookie cleared. Database failure does not masquerade as logout success. Access JWTs remain valid until expiry. CORS enables credentials for exact configured origins with POST/GET and Content-Type/Authorization only.
 
-Amendment 06 is **COMPLETE** after the subsequent approved Docker/database/live/security/preservation stage. Its three new capabilities are `IMPLEMENTED & VERIFIED`; steps 28–31 reproduce the proven procedures. Steps 17/21 describe earlier four-route/credentials-disabled acceptance; step 25 now records the successful six-route/credentialed-CORS recheck. CONTEXT preserves the original coding/review gate. PLAN_01 remains `IMPLEMENTED, UNVERIFIED` pending bearer current-user resolution, GET /auth and final authentication acceptance.
+Amendment 06 is **COMPLETE** after the subsequent approved Docker/database/live/security/preservation stage. Its three new capabilities are `IMPLEMENTED & VERIFIED`; steps 28–31 reproduce the proven procedures. Steps 17/21 describe earlier four-route/credentials-disabled acceptance; step 25 now records the successful seven-route/credentialed-CORS recheck. CONTEXT preserves the original coding/review gate. The later Amendment 07 final acceptance below completes bearer current-user resolution, GET /auth and PLAN_01 verification.
 
 ## 28. Run real PostgreSQL refresh/logout acceptance
 
@@ -479,21 +479,21 @@ Expected: safe JSON reports rotation/replay, committed exact expiry-boundary cle
 Use the current image and retained datastores. The successful ignored session harness is retained locally:
 
 ```powershell
-Get-Content .venv/amendment06_packaged_suite.py -Raw |
+Get-Content .venv/amendment07_packaged_suite.py -Raw |
   docker compose --env-file .env -f docker-compose.yml run -T --rm --no-deps `
     --volume "${PWD}:/verification/server:ro" --workdir /server `
     --env PYTHONPATH=/verification/server --entrypoint python server -
 ```
 
-Expected: packaged pip check and head pass; 119 focused and 228 full tests pass; real PostgreSQL registration, verification/resend, login and refresh/logout helpers all pass. Application imports come from `/server/app`, tests from the read-only mount, and test-only dependencies are installed only in this disposable container. Regression uses model caches/in-memory Qdrant and mocked generation; configured collection is not written. Container and generated DBs are removed.
+Expected: packaged pip check and head pass; 128 focused and 237 full tests pass; real PostgreSQL registration, verification/resend, login, refresh/logout, current-user and migration roundtrip helpers all pass. Application imports come from `/server/app`, tests from the read-only mount, and test-only dependencies are installed only in this disposable container. Regression uses model caches/in-memory Qdrant and mocked generation; configured collection is not written. Container and generated DBs are removed.
 
 ```powershell
-Get-Content .venv/amendment06_package.py -Raw |
+Get-Content .venv/amendment07_package.py -Raw |
   docker compose --env-file .env -f docker-compose.yml run -T --rm --no-deps `
     --volume "${PWD}:/verification/server:ro" --workdir /server --entrypoint python server -
 ```
 
-Expected: all 67 application Python files compare equal to reviewed source, six POST auth routes only, shared response DTO, credentialed CORS, no image-local `.env` or venv. These ignored adapters are session tooling, not included in a fresh checkout; tracked tests own acceptance assertions.
+Expected: all 68 application Python files compare equal to reviewed source, exactly six POST auth routes and GET `/auth`, shared response DTO, credentialed CORS, no image-local `.env` or venv. These ignored adapters are session tooling, not included in a fresh checkout; tracked tests own acceptance assertions.
 
 ## 30. Run live packaged refresh/logout/CORS acceptance
 
@@ -501,21 +501,112 @@ After packaged checks, update only the API container:
 
 ```powershell
 docker compose --env-file .env -f docker-compose.yml up -d --no-deps --no-build --pull never server
-.venv/Scripts/python.exe .venv/amendment06_http_audit.py
+.venv/Scripts/python.exe .venv/amendment07_http_audit.py
 ```
 
-Expected: wait for startup readiness before the audit. `/system/health` and `/system/health/databases` return healthy responses. `sessions_http` proves A → B → C, replay failures with no Set-Cookie, concurrent 200/401 with no loser cookie mutation, logout 204/empty body/clear cookie, idempotent missing/blank/unknown/consumed/expired cases, independent sessions and second user unchanged, existing JWTs still valid. CORS allows exact configured origins/credentials, denies unapproved allow-origin, GET and Authorization preflights; no wildcard. Login, verify/resend and registration regressions also pass; credentials are absent from logs and generated users/cascades are cleaned. No GET /auth or bearer dependency exists yet.
+Expected: wait for startup readiness before the audit. `/system/health` and `/system/health/databases` return healthy responses. `sessions_http` proves A → B → C, replay failures with no Set-Cookie, concurrent 200/401 with no loser cookie mutation, logout 204/empty body/clear cookie, idempotent missing/blank/unknown/consumed/expired cases, independent sessions and second user unchanged, existing JWTs still valid. CORS allows exact configured origins/credentials, denies unapproved allow-origin and unsupported methods/headers; allows approved GET/Authorization preflight; no wildcard. Login, verify/resend and registration regressions also pass; credentials are absent from logs and generated users/cascades are cleaned. GET `/auth` uses the reusable Bearer dependency and returns only canonical id/name/email, without Set-Cookie.
 
 ## 31. Audit images, preserve data and retain useful resources
 
 Capture a new step 26 baseline before any synthetic acceptance; compare after cleanup. With Docker access and the same image used for the suite/live API:
 
 ```powershell
-.venv/Scripts/python.exe .venv/amendment06_image_audit.py
-.venv/Scripts/python.exe .venv/amendment06_snapshot.py after
-.venv/Scripts/python.exe .venv/amendment06_final.py
+.venv/Scripts/python.exe .venv/amendment07_image_audit.py
+.venv/Scripts/python.exe .venv/amendment07_snapshot.py after
+.venv/Scripts/python.exe .venv/amendment07_final.py
 ```
 
 Expected: configured secret values absent from image history/config and every layer, image excludes `.env` and venvs, required auth modules/migration are packaged, temporary archive removed. Fresh/final PostgreSQL row/revision and Qdrant collection/config/point/vector/payload fingerprints compare equal. Datastore container/image/mount identities match the session resource baseline, both datastores healthy, all base layers reused, zero disposable auth DBs, only three intended containers. The final helper depends on the fresh session resource baseline; fresh checkouts must record their own identities and fingerprints rather than use historical measurements.
 
-Expected cleanup: remove only known superseded session artifacts after replacement tooling passes. Preserve current acceptance helpers, logs/baselines/recipes, server venv, current/recovery images, model/dependency/build caches and datastore volumes. No prune, reset, datastore recreation or `down -v`. Amendment 06 is verified; PLAN_01 remains incomplete until bearer current-user/GET /auth and final acceptance are implemented and verified.
+Expected cleanup: remove only known superseded session artifacts after replacement tooling passes. Preserve current acceptance helpers, logs/baselines/recipes, server venv, current/recovery images, model/dependency/build caches and datastore volumes. No prune, reset, datastore recreation or `down -v`. Amendments 01–07 and PLAN_01 are verified after final acceptance; PHASE_02 remains `IMPLEMENTED, UNVERIFIED`.
+
+32. Run Amendment 07 current-user and existing identity regressions locally from `server/`:
+
+    ```powershell
+    .venv/Scripts/python.exe -m unittest tests.test_19_current tests.test_18_sessions tests.test_17_login tests.test_16_verification tests.test_15_registration tests.test_14_credentials tests.test_12_cors tests.test_13_postgres tests.test_01_constants
+    ```
+
+    Expected: 128 tests pass. Bearer failures use structured 401 errors; database failures remain sanitized 500 errors; safe current-user output and GET/Authorization CORS pass. No Docker or configured datastore is needed.
+
+33. Run the full backend regression using cached model resources:
+
+    ```powershell
+    $previousHubOffline = $env:HF_HUB_OFFLINE
+    $previousTransformersOffline = $env:TRANSFORMERS_OFFLINE
+    try {
+        $env:HF_HUB_OFFLINE = '1'
+        $env:TRANSFORMERS_OFFLINE = '1'
+        .venv/Scripts/python.exe -m tests.run
+    } finally {
+        $env:HF_HUB_OFFLINE = $previousHubOffline
+        $env:TRANSFORMERS_OFFLINE = $previousTransformersOffline
+    }
+    ```
+
+    Expected: 237 tests pass, including real-model upload and existing extraction/streaming regressions. Qdrant is in memory and PostgreSQL is a test double; configured datastores are preserved.
+
+34. Check local compilation, installed dependencies, and migration discovery:
+
+    ```powershell
+    .venv/Scripts/python.exe -m compileall -q app tests
+    .venv/Scripts/python.exe -m pip check
+    .venv/Scripts/python.exe -m alembic heads
+    ```
+
+    Expected: compilation succeeds, no broken requirements, and `0001_identity (head)`. Local checks alone do not prove Docker acceptance; the subsequently approved checks below passed. Amendment 07 adapters supersede the older six-route adapters.
+
+## 35. Run current-user acceptance against real PostgreSQL
+
+From `server/`, with retained PostgreSQL healthy:
+
+```powershell
+@'
+import os, runpy
+from dotenv import load_dotenv, dotenv_values
+load_dotenv('.env')
+os.environ['POSTGRES_HOST'] = '127.0.0.1'
+os.environ['POSTGRES_PORT'] = dotenv_values('.env').get('POSTGRES_HOST_PORT') or '5432'
+runpy.run_module('tests.current_live', run_name='__main__')
+'@ | .venv/Scripts/python.exe -
+```
+
+Expected: canonical profile/read-only lookup, missing/deleted/unverified guards and sanitized DB failure pass; head `0001_identity`; configured data preserved. Only generated `atlas_current_<UUID>` DB is created/migrated/dropped in finally. The lookup is `Session.get(User, decoded.user)`; no session lookup, commit, JWT persistence or client identity override.
+
+## 36. Reproduce final packaged PLAN_01 acceptance
+
+Establish fresh preservation/resource baselines first (steps 26/31). Use the image built for reviewed source. This session proved unchanged dependency/migration/model-cache inputs and no removed app paths before using an ignored recipe with `FROM atlas-server:amendment06-retained` and `COPY app /server/app`; revalidate these prerequisites after any input changes.
+
+```powershell
+docker build --pull=false -f .venv/amendment07.Dockerfile -t server-server:latest .
+Get-Content .venv/amendment07_packaged_suite.py -Raw |
+  docker compose --env-file .env -f docker-compose.yml run -T --rm --no-deps `
+    --volume "${PWD}:/verification/server:ro" --workdir /server --entrypoint python server -
+```
+
+Expected: 128 focused and 237 full tests, pip consistency, head discovery, 68 packaged Python comparisons, seven auth routes, and all six PostgreSQL helpers pass (registration, verification, login, sessions, persistence migration roundtrip, current-user). Application imports resolve to `/server/app`; mounted source supplies tests only. Test dependencies are installed only inside the disposable container. Configured stores stay unchanged; generated databases/container are removed. Ignored adapters are local session tooling; fresh clones must recreate equivalent orchestration around tracked helpers.
+
+## 37. Verify packaged live Bearer authentication, CORS and migration state
+
+```powershell
+docker compose --env-file .env -f docker-compose.yml up -d --no-deps --no-build --pull never server
+# Wait for /system/health/databases to report both stores healthy.
+.venv/Scripts/python.exe .venv/amendment07_http_audit.py
+docker compose --env-file .env -f docker-compose.yml exec -T server python -m alembic current
+```
+
+Expected: current/session/login/verification/registration helpers and health/log scans pass; revision `0001_identity (head)`. GET `/auth` requires `Authorization: Bearer <access-token>`, no body/query identity, and returns exactly `id`, `name`, `email`. Bearer is case-insensitive; missing/wrong/blank/malformed/expired credentials and missing/unverified/deleted canonical users return `401 INVALID_ACCESS_TOKEN`; no Set-Cookie. Access from verification/login/refresh works, old access survives refresh/logout while unexpired, and a synthetic three-second token expires. Refresh replay still fails. Approved-origin GET/Authorization and POST/Content-Type preflight and actual responses pass; denied origin has no usable allow-origin and no wildcard. Generated users/cascades are cleaned.
+
+Expected security: passwords/OTPs, access/refresh credentials and persisted hashes stay absent from captured logs. Whitespace-only malformed input remains tested for 401 but is excluded from literal-secret search because whitespace occurs naturally in logs. No credential value is printed.
+
+## 38. Finish security, preservation and resource acceptance
+
+```powershell
+.venv/Scripts/python.exe .venv/amendment07_image_audit.py
+.venv/Scripts/python.exe .venv/amendment07_snapshot.py after
+.venv/Scripts/python.exe .venv/amendment07_final.py
+git diff --check
+```
+
+Expected: every layer/history/config scan passes against configured credentials; `.env`/venvs excluded, auth/migration modules packaged, temporary archive removed. Fresh/final full PostgreSQL row/revision and Qdrant config/point/vector/payload fingerprints match. Original datastore containers/images/volumes stay unchanged and healthy; all retained base layers reused; no disposable auth databases/temporary containers. Preserve current adapters/logs/recipe/baselines, venv, images/caches/volumes. Remove only identified superseded adapters; no prune/reset or `down -v`.
+
+Expected completion: Amendment 07 **COMPLETE**; Bearer current-user/GET `/auth` and PLAN_01 `IMPLEMENTED & VERIFIED`; PHASE_02 stays `IMPLEMENTED, UNVERIFIED`. PLAN_02 is next, still `NOT YET BUILT`. Branch remains `phase-02/plan-01`; no client/drive/RAG/schema/dependency changes.

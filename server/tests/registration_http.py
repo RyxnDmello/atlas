@@ -118,7 +118,7 @@ def main() -> None:
         status, body, _ = request("/openapi.json")
         assert status == 200 and isinstance(body, dict)
         assert {path for path in body["paths"] if path.startswith(
-            "/auth")} == {"/auth/register", "/auth/verify", "/auth/resend", "/auth/login", "/auth/refresh", "/auth/logout"}
+            "/auth")} == {"/auth/register", "/auth/verify", "/auth/resend", "/auth/login", "/auth/refresh", "/auth/logout", "/auth"}
         assert set(body["paths"]["/auth/register"]) == {"post"}
         assert {"/documents/upload", "/files/{file_id}/ask", "/files/{file_id}/query",
                 "/system/health", "/system/health/databases"} <= set(body["paths"])

@@ -251,17 +251,20 @@ class SessionTests(unittest.TestCase):
                             'access-control-allow-origin'), origin if allowed else None)
                         self.assertEqual(response.headers.get(
                             'access-control-allow-credentials'), 'true')
-                for method, header in (('GET', 'Content-Type'), ('POST', 'Authorization')):
+                for method, header in (('PATCH', 'Content-Type'), ('POST', 'X-Unapproved')):
                     response = client.options('/auth/refresh', headers={'Origin': origin,
                                                                         'Access-Control-Request-Method': method, 'Access-Control-Request-Headers': header})
                     self.assertEqual(response.status_code, 400)
 
-    def test_route_inventory_has_six_post_only_and_no_bearer_dependency(self):
+    def test_route_inventory_has_six_post_and_one_current_user_get(self):
         from app.routers.auth import refreshing, logging_out
         paths = application().openapi()['paths']
-        self.assertEqual(set(paths), {'/auth/' + path for path in (
+        self.assertEqual(set(paths) - {'/auth'}, {'/auth/' + path for path in (
             'register', 'verify', 'resend', 'login', 'refresh', 'logout')})
+        self.assertEqual(set(paths['/auth']), {'get'})
         for path, value in paths.items():
+            if path == '/auth':
+                continue
             self.assertEqual(set(value), {'post'})
             self.assertNotIn('security', value['post'])
         for path in ('refresh', 'logout'):

@@ -35,7 +35,7 @@ class CorsTests(TestCase):
         wiring = next(
             item for item in app.user_middleware if item.cls is CORSMiddleware)
         self.assertTrue(wiring.kwargs["allow_credentials"])
-        self.assertEqual(wiring.kwargs["allow_methods"], ["POST"])
+        self.assertEqual(wiring.kwargs["allow_methods"], ["POST", "GET"])
         options = {**wiring.kwargs, "allow_origins": ["http://localhost:3000"]}
         application = FastAPI(lifespan=app.router.lifespan_context,
                               middleware=[Middleware(CORSMiddleware, **options)])

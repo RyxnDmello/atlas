@@ -4,7 +4,7 @@
 - Chronological implementation history belongs in the Codex-owned `CONTEXT` and focused implementation prompts live under `AMENDMENTS/`. This PLAN defines capabilities and contracts without preassigning future Amendment numbering.
 - **Branch:** `phase-02/plan-01`
 - **Depends on:** PHASE_01 `IMPLEMENTED & VERIFIED`.
-- **Status:** `IMPLEMENTED, UNVERIFIED` — Identity persistence, credential primitives, registration, verification/resend, initial issuance, login, refresh rotation, logout, and credentialed cookie CORS are verified. Amendments 01–06 are complete, including packaged regression, real PostgreSQL rollback/concurrency, live HTTP/CORS, security scans, and datastore preservation. Bearer current-user resolution, GET /auth, and final complete authentication acceptance remain unbuilt.
+- **Status:** `IMPLEMENTED & VERIFIED` — Amendments 01–07 are complete. PostgreSQL identity/migrations, credential primitives, registration, verification/resend, login, refresh rotation/logout, Bearer current-user resolution, GET /auth, credentialed CORS, packaged Phase 1 regression, live authentication, security scans, and datastore preservation passed final acceptance. PHASE_02 remains `IMPLEMENTED, UNVERIFIED`; next destination is PHASE_02_PLAN_02 — Authenticated Drive Backend.
 - **Subsystem:** PostgreSQL identity persistence + server authentication/session foundation.
 - **Implementation evidence:** `PHASE_02_PLAN_01_CONTEXT.md` — Codex-owned; created/maintained only when implementation work begins.
 - **Repeatable acceptance:** `PHASE_02_PLAN_01_MANUAL.md` — Codex-owned; created/maintained only by Codex CLI.
@@ -981,8 +981,9 @@ Refresh-cookie auth requires:
 - explicit configured allowed origins;
 - `allow_credentials=True`;
 - no wildcard origin with credentials;
-- at the Amendment 06 boundary, methods remain POST and explicitly allowed request headers remain Content-Type;
-- Authorization/GET expansion belongs to the later bearer current-user boundary when required;
+- allowed methods are POST and GET;
+- explicitly allowed request headers are Content-Type and Authorization;
+- no speculative PUT/PATCH/DELETE or wildcard expansion;
 - refresh/logout requests from the browser can include credentials;
 - access JWTs remain Bearer headers, not JavaScript-readable cookies.
 

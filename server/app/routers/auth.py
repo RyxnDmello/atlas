@@ -2,21 +2,24 @@ from typing import Any
 from collections.abc import Callable, Coroutine
 
 from fastapi.routing import APIRoute
-from fastapi import APIRouter, Request, Response
 from fastapi.exceptions import RequestValidationError
+from fastapi import APIRouter, Depends, Request, Response
 
 from app.core.constants import constants
 
 from app.pipeline.auth.login import login
 from app.pipeline.auth.logout import logout
+from app.pipeline.auth.current import current
 from app.pipeline.auth.rotation import refresh
 from app.pipeline.auth.verify import resend, verify
 from app.pipeline.auth.registration import register
 
 from app.schemas.auth.login import LoginRequest
-from app.schemas.auth.authenticated import AuthenticatedResponse
 from app.schemas.auth.verification import ResendRequest, VerifyRequest
+from app.schemas.auth.authenticated import AuthenticatedResponse, AuthenticatedUser
 from app.schemas.auth.registration import RegistrationRequest, RegistrationResponse
+
+from app.models.postgres.user import User
 
 from app.errors.api import ApiError
 
@@ -107,3 +110,9 @@ def logging_out(request: Request) -> Response:
     _cookie(response)
 
     return response
+
+
+@router.get("", response_model=AuthenticatedUser)
+def authenticated(user: User = Depends(current)) -> AuthenticatedUser:
+    """Expose only the safe canonical profile supplied by the shared auth dependency."""
+    return AuthenticatedUser(id=user.id, name=user.name, email=user.email)

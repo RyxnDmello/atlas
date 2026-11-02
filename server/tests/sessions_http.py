@@ -179,7 +179,7 @@ def main() -> None:
             assert metadata.get(
                 'access-control-allow-origin') == (origin if allowed else None)
             assert metadata.get('access-control-allow-credentials') == 'true'
-            for method, header in (('GET', 'Content-Type'), ('POST', 'Authorization')):
+            for method, header in (('PATCH', 'Content-Type'), ('POST', 'X-Unapproved')):
                 status, _, _ = request('/auth/refresh', method='OPTIONS', headers={'Origin': origin,
                                                                                    'Access-Control-Request-Method': method, 'Access-Control-Request-Headers': header})
                 assert status == 400
@@ -191,9 +191,11 @@ def main() -> None:
         status, spec, _ = request('/openapi.json')
         assert status == 200
         paths = {path for path in spec['paths'] if path.startswith('/auth')}
-        assert paths == {
+        assert paths - {'/auth'} == {
             '/auth/' + name for name in ('register', 'verify', 'resend', 'login', 'refresh', 'logout')}
-        assert all(set(spec['paths'][path]) == {'post'} for path in paths)
+        assert set(spec['paths']['/auth']) == {'get'}
+        assert all(set(spec['paths'][path]) == {
+                   'post'} for path in paths - {'/auth'})
         logs = subprocess.run(['docker', 'compose', '--env-file', '.env', '-f', 'docker-compose.yml',
                                'logs', '--no-color', 'server'], capture_output=True, text=True, check=True)
         assert all(value not in logs.stdout + logs.stderr for value in private)
