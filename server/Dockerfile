@@ -50,6 +50,8 @@ ENV HF_HUB_OFFLINE=1
 # ======================================================
 
 COPY app ./app
+COPY alembic.ini .
+COPY migrations ./migrations
 
 ARG PORT
 

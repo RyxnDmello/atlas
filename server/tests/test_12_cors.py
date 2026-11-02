@@ -14,6 +14,8 @@ from app.main import app
 
 from tests.test_05_upload_storage import Provider
 
+from tests.postgres import database
+
 
 class CorsTests(TestCase):
     """Verify strict origin configuration and CORS across real upload boundaries."""
@@ -32,8 +34,8 @@ class CorsTests(TestCase):
         """Keep upload responses intact while granting only the configured origin."""
         wiring = next(
             item for item in app.user_middleware if item.cls is CORSMiddleware)
-        self.assertFalse(wiring.kwargs["allow_credentials"])
-        self.assertEqual(wiring.kwargs["allow_methods"], ["POST"])
+        self.assertTrue(wiring.kwargs["allow_credentials"])
+        self.assertEqual(wiring.kwargs["allow_methods"], ["POST", "GET"])
         options = {**wiring.kwargs, "allow_origins": ["http://localhost:3000"]}
         application = FastAPI(lifespan=app.router.lifespan_context,
                               middleware=[Middleware(CORSMiddleware, **options)])
@@ -41,7 +43,7 @@ class CorsTests(TestCase):
         application.exception_handlers.update(app.exception_handlers)
         client = QdrantClient(":memory:", force_disable_check_same_thread=True)
         with patch("app.core.lifespan.get_bge_m3_embedder", return_value=Provider()), patch(
-                "app.core.lifespan.create_client", return_value=client), TestClient(application) as http:
+                "app.core.lifespan.create_client", return_value=client), patch("app.core.lifespan.prepare", return_value=database()), TestClient(application) as http:
             for origin, status in (("http://localhost:3000", 200), ("https://unapproved.example", 400)):
                 with self.subTest(origin=origin):
                     response = http.options("/documents/upload", headers={"Origin": origin,

@@ -1,25 +1,38 @@
 from collections.abc import Iterator
 from contextlib import contextmanager
 
+from app.db.postgres import Database
+
 from app.pipeline.storage import Storage
 
 from app.errors.api import ApiError
 
 _storage: Storage | None = None
+_postgres: Database | None = None
 
 
 @contextmanager
-def activate(storage: Storage) -> Iterator[None]:
-    """Publish startup-ready storage for this lifespan and restore prior scope."""
-    global _storage
+def activate(storage: Storage, postgres: Database) -> Iterator[None]:
+    """Publish both lifespan-owned datastores and restore the prior runtime scope."""
+    global _storage, _postgres
 
-    previous = _storage
+    previous = _storage, _postgres
     _storage = storage
+    _postgres = postgres
 
     try:
         yield
     finally:
-        _storage = previous
+        _storage, _postgres = previous
+
+
+def postgres() -> Database:
+    """Return the lifespan-owned database without constructing an engine or Session."""
+    if _postgres is None:
+        raise ApiError("PostgreSQL is not initialized",
+                       "INTERNAL_SERVER_ERROR")
+
+    return _postgres
 
 
 def storage() -> Storage:

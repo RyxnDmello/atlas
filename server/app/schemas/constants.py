@@ -66,6 +66,66 @@ class GeminiConstants(BaseModel):
         return value
 
 
+class AuthConstants(BaseModel):
+    """Validate access credentials only when the auth boundary is prepared."""
+
+    model_config = ConfigDict(hide_input_in_errors=True, frozen=True)
+
+    AUTH_ACCESS_TOKEN_SECRET: SecretStr
+    AUTH_ACCESS_TOKEN_TTL_SECONDS: int = Field(default=900, gt=0)
+
+    @field_validator("AUTH_ACCESS_TOKEN_SECRET")
+    @classmethod
+    def validate_secret(cls, value: SecretStr) -> SecretStr:
+        """Measure the literal signing key in UTF-8 bytes without normalizing it."""
+        text = value.get_secret_value()
+        if not text.strip() or len(text.encode("utf-8")) < 32:
+            raise ValueError(
+                "Access signing secret must contain at least 32 UTF-8 bytes")
+
+        return value
+
+
+class OtpConstants(BaseModel):
+    """Validate verification lifetime independently of access credentials."""
+
+    model_config = ConfigDict(hide_input_in_errors=True, frozen=True)
+
+    AUTH_OTP_TTL_SECONDS: int = Field(default=600, gt=0)
+
+
+class RefreshConstants(BaseModel):
+    """Validate initial refresh-session lifetime and cookie transport policy."""
+
+    model_config = ConfigDict(hide_input_in_errors=True, frozen=True)
+
+    AUTH_REFRESH_TOKEN_TTL_SECONDS: int = Field(default=604800, gt=0)
+    AUTH_COOKIE_SECURE: bool
+
+
+class PostgresConstants(BaseModel):
+    """Validate required PostgreSQL settings without displaying sensitive input."""
+
+    model_config = ConfigDict(hide_input_in_errors=True)
+
+    POSTGRES_HOST: str
+    POSTGRES_PORT: int = Field(default=5432, ge=1, le=65535)
+    POSTGRES_DB: str
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: SecretStr
+
+    @field_validator("POSTGRES_HOST", "POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD")
+    @classmethod
+    def validate_nonblank(cls, value: SecretStr | str) -> SecretStr | str:
+        """Reject blank connection values while preserving literal credentials."""
+        text = value.get_secret_value() if isinstance(value, SecretStr) else value
+
+        if not text.strip():
+            raise ValueError("PostgreSQL settings must be nonblank")
+
+        return value
+
+
 class LoggerConstants(BaseModel):
     """Validate logging settings."""
 
@@ -116,17 +176,13 @@ class EmbeddingConstants(BaseModel):
 
 
 class QdrantConstants(BaseModel):
-    """Validate Qdrant connection and health-check settings."""
+    """Validate Qdrant application connection and collection settings."""
 
     QDRANT_URL: str = Field(min_length=1)
     QDRANT_DISTANCE: Literal["Cosine"] = "Cosine"
     QDRANT_COLLECTION: str = Field(default="atlas-chunks", min_length=1)
     QDRANT_CLIENT_TIMEOUT: int = Field(default=10, ge=1)
     QDRANT_WRITE_WAIT: Literal[True] = True
-    QDRANT_HEALTHCHECK_RETRIES: int = Field(ge=1)
-    QDRANT_HEALTHCHECK_TIMEOUT: int = Field(ge=1)
-    QDRANT_HEALTHCHECK_INTERVAL: int = Field(ge=1)
-    QDRANT_HEALTHCHECK_START_PERIOD: int = Field(ge=0)
 
     @field_validator("QDRANT_WRITE_WAIT", mode="before")
     @classmethod

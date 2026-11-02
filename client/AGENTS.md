@@ -1,5 +1,7 @@
 # AGENTS.md — Atlas Client
 
+## 0. DOCUMENT ROLE & INHERITANCE
+
 - Applies to all work under `client/**`.
 - Inherits every repository-wide rule from [root AGENTS.md](../AGENTS.md); read the root file first.
 - This file is the authoritative frontend engineering contract for Atlas.
@@ -7,11 +9,38 @@
 - Backend-specific rules belong in [server/AGENTS.md](../server/AGENTS.md).
 - Detailed RAG implementation contracts belong in the [RAG skill](../.agents/skills/rag/SKILL.md); the client consumes verified public/backend contracts rather than redefining them.
 
+### Reading order
+
+For normal client work:
+
+```text
+root AGENTS.md
+-> client/AGENTS.md
+-> current PLAN
+-> targeted source/tests
+```
+
+For cross-boundary work:
+
+```text
+root AGENTS.md
+-> server/AGENTS.md
+-> client/AGENTS.md
+-> current PLAN
+-> targeted server/client source/tests
+```
+
+Read backend/RAG instructions only when the client task actually crosses those boundaries.
+
+Do not read the entire repository by default.
+
 ---
 
-## 1. Client purpose and current objective
+## 1. CLIENT PURPOSE & CURRENT OBJECTIVE
 
-The Atlas client exposes the Phase 1 single-file workflow:
+### Verified Phase 1 client baseline
+
+The Atlas client already exposes the verified single-file workflow:
 
 ```text
 upload file
@@ -22,57 +51,141 @@ upload file
 -> render trusted citations
 ```
 
-Current client objective:
+Phase 1 client status is IMPLEMENTED & VERIFIED.
+
+### Current Phase 2 client objective
+
+Phase 2 extends the static client only after the corresponding server contracts exist:
+
+```text
+register/login/verify
+-> restore authenticated session
+-> dashboard
+-> browse recursive folders
+-> upload/update/delete file metadata/content index
+-> select owned file
+-> reuse verified ask/SSE/citation workflow
+```
+
+Current client goals:
 
 - remain a strict TypeScript, static-export Next.js application;
 - communicate directly with FastAPI from the browser;
-- preserve exact backend trust/provenance boundaries;
-- keep state local and explicit;
-- use the smallest frontend architecture that remains maintainable and interview-defensible.
+- integrate only against server contracts that have already been implemented and appropriately verified, unless the current PLAN explicitly defines a coordinated exception;
+- preserve backend identity, ownership, trust, and provenance boundaries rather than recreating them client-side;
+- add the minimum shared auth/session coordination needed by both Axios and streamed native fetch;
+- keep state ownership explicit and avoid adding a global-state library merely for convenience;
+- keep the frontend architecture maintainable and interview-defensible.
+
+Still excluded unless explicitly approved:
+
+- Next.js BFF/proxy/runtime-server architecture;
+- client Docker service;
+- client-authoritative authorization;
+- multi-file/folder/drive RAG;
+- sharing/teams/ACL management;
+- file preview/download or persistent-original-file workflows;
+- speculative persistence beyond the specifically approved auth-token behavior.
+
+---
+
+## 2. CURRENT CLIENT STATE
+
+### Active phase
+
+#### PHASE_02 — AUTHENTICATED PERSONAL DRIVE
+
+- **Client status:** `NOT YET BUILT`
+- **Integration gate:** client Phase 2 work starts only after the corresponding server contracts are implemented and appropriately verified, unless the current PLAN explicitly defines a coordinated exception.
+
+#### SERVER-FIRST GATE
+
+```text
+server contract
+-> server implementation
+-> server verification
+-> client integration
+-> cross-boundary acceptance
+```
+
+#### CURRENT CLIENT MATURITY
+
+| Client capability                                   | Status        |
+| --------------------------------------------------- | ------------- |
+| Registration / verification UI                      | NOT YET BUILT |
+| Login / logout / refresh integration                | NOT YET BUILT |
+| Shared authenticated transport/session coordination | NOT YET BUILT |
+| Authenticated dashboard                             | NOT YET BUILT |
+| Recursive folder navigation                         | NOT YET BUILT |
+| File metadata modals / lifecycle integration        | NOT YET BUILT |
+| Owner-authorized ask integration                    | NOT YET BUILT |
+
+Approved designs are not implemented behavior until code and verification exist.
+
+#### CURRENT EVIDENCE
+
+No Phase 2 client CONTEXT/MANUAL evidence exists yet because client implementation has not begun.
+
+---
+
+## 3. COMPLETED CLIENT HISTORY
+
+This section records durable verified client baselines for completed Atlas phases.
+
+It is not a chronological implementation log. Detailed Amendment history, failures, timings, versions, hashes, test counts, and corrective work remain in the corresponding CONTEXT files.
+
+Completed client phases are appended here in order when the entire PHASE reaches `IMPLEMENTED & VERIFIED`.
+
+### PHASE_01 — MVP CORE RAG
+
+- **Status:** `IMPLEMENTED & VERIFIED`
+- **Brief:** Established the complete static browser workflow for uploading one file, retaining the exact backend file ID, consuming native POST-SSE answers, and rendering trusted completed citations.
+
+#### VERIFIED BASELINE
+
+```text
+upload file
+-> retain exact backend file ID
+-> ask question
+-> consume POST SSE
+-> render streamed answer
+-> render trusted citations
+```
+
+#### VERIFIED CLIENT MATURITY
+
+| Client capability              | Status                 |
+| ------------------------------ | ---------------------- |
+| Static Next.js foundation      | IMPLEMENTED & VERIFIED |
+| Direct browser-to-FastAPI CORS | IMPLEMENTED & VERIFIED |
+| Upload form/request            | IMPLEMENTED & VERIFIED |
+| Returned-ID handoff            | IMPLEMENTED & VERIFIED |
+| Naming/aliases/Prettier        | IMPLEMENTED & VERIFIED |
+| Question submission            | IMPLEMENTED & VERIFIED |
+| Native POST-SSE consumption    | IMPLEMENTED & VERIFIED |
+| Incremental answer rendering   | IMPLEMENTED & VERIFIED |
+| Internal citation retention    | IMPLEMENTED & VERIFIED |
+| Trusted citation display       | IMPLEMENTED & VERIFIED |
+
+#### COMPLETION BOUNDARY
 
 Phase 1 client remains:
 
 - single-file;
-- single-user;
 - unauthenticated;
-- ephemeral across page reload;
-- no folders;
-- no chat history;
-- no user-facing stream Cancel control;
-- no Next.js runtime server.
+- without folders/drive navigation;
+- without metadata-management UI;
+- without client persistence beyond the verified Phase 1 transient state;
+- dependent on FastAPI as the authoritative backend.
 
-Do not pull later product scope into the client unless explicitly requested.
+#### EVIDENCE
 
----
-
-## 2. Current client maturity
-
-| Client capability              | Status                 |
-| ------------------------------ | ---------------------- |
-| Static Next.js foundation      | Implemented & Verified |
-| Direct browser-to-FastAPI CORS | Implemented & Verified |
-| Upload form/request            | Implemented & Verified |
-| Returned-ID handoff            | Implemented & Verified |
-| Naming/aliases/Prettier        | Implemented & Verified |
-| Question submission            | Implemented & Verified |
-| Native POST-SSE consumption    | Implemented & Verified |
-| Incremental answer rendering   | Implemented & Verified |
-| Internal citation retention    | Implemented & Verified |
-| Trusted citation display       | Implemented & Verified |
-
-PLAN_05 is Verified for the complete Phase 1 workflow, including trusted citation display and whole-client development/static-export acceptance.
-
-Current implementation evidence belongs in:
-
-```text
-../prompts/PHASE_01/PLAN_05/PHASE_01_PLAN_05_CONTEXT.md
-```
-
-Do not convert the maturity table into implementation history; dated evidence stays in CONTEXT.
+- [PLAN_05 CONTEXT](../prompts/PHASE_01/PLAN_05/PHASE_01_PLAN_05_CONTEXT.md)
+- [PLAN_05 MANUAL](../prompts/PHASE_01/PLAN_05/PHASE_01_PLAN_05_MANUAL.md)
 
 ---
 
-## 3. Locked frontend stack and architecture
+## 4. CLIENT ARCHITECTURE & DATA FLOW
 
 ### Stack
 
@@ -87,7 +200,7 @@ Do not convert the maturity table into implementation history; dated evidence st
 - Forms: React Hook Form.
 - Runtime validation: Zod.
 - Formatting: Prettier through Bun.
-- No Redux, Zustand, or another global client-state library in Phase 1.
+- Do not add Redux, Zustand, or another global client-state library unless explicitly approved.
 
 ### Runtime model
 
@@ -95,9 +208,10 @@ Do not convert the maturity table into implementation history; dated evidence st
 - Do not insert a Next.js BFF/proxy.
 - Do not add Route Handlers or Server Actions to proxy Atlas API traffic.
 - Do not add a production Next.js runtime server.
-- Do not add a client Docker service in Phase 1.
+- Do not add a client Docker service without an explicit architecture change.
 - Static export is the production client artifact.
 - Changing browser-visible API configuration requires rebuilding the static artifact.
+- Browser route protection is UX only; FastAPI remains the authoritative authentication/authorization boundary.
 
 ### Tooling
 
@@ -116,11 +230,7 @@ Do not convert the maturity table into implementation history; dated evidence st
   - `bun run`
 - Do not introduce `npm`, `npx`, `pnpm`, or `yarn` as required client workflows.
 
----
-
-## 4. Client architecture and data flow
-
-Current Phase 1 composition:
+### Verified Phase 1 composition
 
 ```mermaid
 flowchart TD
@@ -136,7 +246,7 @@ flowchart TD
     Fetch --> API
 ```
 
-Responsibilities:
+Phase 1 responsibilities remain verified:
 
 - `page.tsx` owns route composition only.
 - `RagWorkspace` coordinates upload and ask state across the active file scope.
@@ -149,24 +259,34 @@ Responsibilities:
 - pure stream parsing lives under `utils/stream/`.
 - runtime schemas validate untrusted network/SSE data before trusted state changes.
 
-### Ask stream lifecycle
+### Phase 2 intended client boundary
+
+Legend: one client auth/session authority supplies both ordinary Axios requests and native streamed fetch without moving authorization authority out of FastAPI.
 
 ```mermaid
-flowchart LR
-    Question["Validated question"] --> Post["POST /files/{file_id}/ask"]
-    Post --> Stream["ReadableStream"]
-    Stream --> Parser["SSE parser"]
-    Parser --> Answer["answer*<br/>provisional"]
-    Answer --> Citations["citations<br/>validated"]
-    Citations --> Done["done<br/>success terminal"]
-    Parser --> Error["error/protocol failure<br/>failure terminal"]
+flowchart TD
+    Routes["Register / Verify / Login / Dashboard"] --> AuthUI["Auth + drive UI"]
+    AuthUI --> Session["Shared auth/session coordinator"]
+    AuthUI --> Query["TanStack Query<br/>drive server state"]
+    Session --> Axios["Configured Axios"]
+    Session --> Fetch["Native fetch<br/>POST SSE"]
+    Query --> Axios
+    Axios --> API["FastAPI"]
+    Fetch --> API
+    API --> Guard["Server-side auth + ownership"]
 ```
 
-Do not treat transport chunks as application-event boundaries.
+Phase 2 rules:
+
+- the shared auth/session boundary is a client coordination mechanism, not an authorization authority;
+- both Axios and native streamed fetch consume the same current access-token/session state;
+- do not build independent token stores for ordinary HTTP and SSE;
+- do not invent backend DTOs/endpoints/session behavior in client code before the server contract exists;
+- preserve the verified SSE parser and citation trust model when adding authenticated transport.
 
 ---
 
-## 5. Client repository structure
+## 5. CLIENT REPOSITORY & OWNERSHIP
 
 The folder contract is mandatory. Create a domain subfolder only when that layer actually has code for the domain; do not create empty symmetry folders.
 
@@ -227,10 +347,6 @@ client/
 
 Do not create unused folders merely to make the tree look symmetrical.
 
----
-
-## 6. Placement and ownership rules
-
 - `src/app/` owns Next.js routing, layouts, route composition, and route-level metadata only.
 - Do not bury reusable components, hooks, services, schemas, or business logic in route folders.
 - `components/ui/` is reserved for shadcn/ui primitives. Do not place Atlas business logic there.
@@ -256,7 +372,7 @@ Do not create unused folders merely to make the tree look symmetrical.
 
 ---
 
-## 7. Naming and import conventions
+## 6. TYPESCRIPT & CLIENT CODE CONVENTIONS
 
 ### Components
 
@@ -322,10 +438,6 @@ Short local relative imports are acceptable.
 Avoid deep relative chains.
 Do not add speculative aliases.
 
----
-
-## 8. TypeScript and runtime validation
-
 - Frontend application source is TypeScript only: `.ts` and `.tsx`.
 - Keep TypeScript `strict` enabled.
 - Keep `allowJs=false`.
@@ -341,86 +453,6 @@ Do not add speculative aliases.
 - Extract shared contracts only when reuse/ownership warrants it.
 - Export only types/interfaces consumers actually need.
 - Do not use type assertions to bypass a missing trust-boundary validation.
-
----
-
-## 9. HTTP, server state, and streaming
-
-### Ordinary HTTP
-
-- Use configured Axios for ordinary request/response HTTP such as uploads and later CRUD/authenticated calls.
-- Preserve the browser-generated multipart boundary for file uploads.
-- Do not invent arbitrary client-side file-size/time limits when the backend contract does not define them.
-- TanStack Query owns approved query/mutation server-state orchestration.
-- Do not use TanStack Query as a substitute for local ephemeral UI state.
-
-### Shared HTTP infrastructure
-
-- `services/http/axios.ts` exports the configured Axios instance.
-- `services/http/fetch.ts` exports the minimal native fetch client with base/get/post when present.
-- Both resolve the validated API URL centrally.
-- Preserve native Axios request options and raw fetch `Response`/stream ownership.
-- No auth interceptors in Phase 1.
-
-### Streamed ask
-
-- Use native browser `fetch()` for `POST /files/{file_id}/ask`.
-- Do not force Axios around the SSE stream.
-- Do not wrap the live SSE stream in TanStack Query.
-- Do not use EventSource because the endpoint is POST.
-- Do not add a third-party SSE library without approval.
-- Use `ReadableStream` and incremental UTF-8 decoding.
-- Do not assume one transport chunk equals one SSE event.
-- Pure SSE framing/protocol helpers belong under `utils/stream/`.
-- Runtime-validate application event payloads before trusted state updates.
-- Internal citation markers must never become public answer text.
-- Use `AbortController` for internal stream ownership/cleanup.
-- No user-facing Cancel feature in Phase 1.
-- No retry/reconnect/resume/Last-Event-ID semantics unless explicitly approved.
-
----
-
-## 10. Forms and client state
-
-- Use React Hook Form for forms.
-- Use Zod for form validation.
-- Keep Phase 1 application state local to the owning workflow/hooks.
-- Do not add Redux, Zustand, or another global state library.
-- Active file/question/answer/citations remain ephemeral across reload.
-- Do not add localStorage/sessionStorage/IndexedDB persistence without approval.
-- Prevent duplicate mutating/streaming submissions while the same operation is active.
-- A successful file replacement changes the active file scope.
-- A failed replacement preserves the last successful active file scope.
-- A file-scope change resets/aborts ask state according to the verified workflow contract.
-
----
-
-## 11. Styling and components
-
-- Use Tailwind CSS + shadcn/ui.
-- Prefer default shadcn behavior for the developer-facing Phase 1 client.
-- Keep presentation functional rather than product-polished.
-- `components/ui/` is generated primitive territory; preserve generated APIs/conventions.
-- Do not add another component/styling system.
-- Avoid handwritten `aria-*` attributes unless needed for functionality/accessibility; prefer native labels and visible status/error text.
-- Do not add Markdown renderers, animation libraries, or other presentation dependencies without an approved need.
-
----
-
-## 12. Environment and configuration
-
-- `NEXT_PUBLIC_ATLAS_API_BASE_URL` is a browser-visible build-time value.
-- Never place secrets in `NEXT_PUBLIC_*`.
-- Validate the public API base through the established client configuration boundary.
-- Browser API base must remain an absolute supported HTTP(S) URL according to the current validator.
-- Static export means a deployment API-base change requires rebuild.
-- Next.js rewrites are unavailable with static export; do not add a runtime proxy to imitate base-URL resolution.
-- Client local env files remain ignored.
-- `.env.example` contains safe examples/placeholders only.
-
----
-
-## 13. Formatting and code style
 
 ### Prettier
 
@@ -470,7 +502,84 @@ Write nonempty object literals across multiple lines, one property per line, inc
 
 ---
 
-## 14. Client testing and verification
+## 7. HTTP, AUTH SESSION & STREAMING
+
+### Ordinary HTTP
+
+- Use configured Axios for ordinary request/response HTTP such as uploads and later CRUD/authenticated calls.
+- Preserve the browser-generated multipart boundary for file uploads.
+- Do not invent arbitrary client-side file-size/time limits when the backend contract does not define them.
+- TanStack Query owns approved query/mutation server-state orchestration.
+- Do not use TanStack Query as a substitute for local ephemeral UI state.
+
+### Shared HTTP infrastructure
+
+- `services/http/axios.ts` exports the configured Axios instance.
+- `services/http/fetch.ts` exports the minimal native fetch client with base/get/post when present.
+- Both resolve the validated API URL centrally.
+- Preserve native Axios request options and raw fetch `Response`/stream ownership.
+- Phase 2 authenticated Axios and native fetch must consume one shared access-token/session authority rather than duplicating token state.
+- Refresh credentials remain in the approved HttpOnly-cookie path and must not be copied into JavaScript-accessible storage.
+- Do not blindly replay arbitrary failed mutating requests after refresh; request replay semantics require an explicit safe contract.
+
+### Streamed ask
+
+- Use native browser `fetch()` for `POST /files/{file_id}/ask`.
+- Do not force Axios around the SSE stream.
+- Do not wrap the live SSE stream in TanStack Query.
+- Do not use EventSource because the endpoint is POST.
+- Do not add a third-party SSE library without approval.
+- Use `ReadableStream` and incremental UTF-8 decoding.
+- Do not assume one transport chunk equals one SSE event.
+- Pure SSE framing/protocol helpers belong under `utils/stream/`.
+- Runtime-validate application event payloads before trusted state updates.
+- Internal citation markers must never become public answer text.
+- Use `AbortController` for internal stream ownership/cleanup.
+- No user-facing Cancel feature unless an approved later PLAN adds one.
+- No retry/reconnect/resume/Last-Event-ID semantics unless explicitly approved.
+
+---
+
+## 8. FORMS, STATE & UI CONTRACTS
+
+- Use React Hook Form for forms.
+- Use Zod for form validation.
+- Do not add Redux, Zustand, or another global state library merely for authentication/dashboard convenience.
+- TanStack Query owns approved remote/server state; local UI state remains with the owning route/component/hook.
+- Phase 2 explicitly permits the approved reversibly encrypted access token in `localStorage`.
+- Do not store the refresh token, password, OTP, or client-side encryption key/material in `localStorage`.
+- Client-side reversible access-token encryption is defense-in-depth/obfuscation, not an XSS security boundary.
+- Do not generalize the access-token exception into arbitrary `localStorage`/`sessionStorage`/IndexedDB persistence without approval.
+- If the persisted access token cannot be safely recovered/used, discard it and rely on the approved refresh-cookie flow rather than bypassing authentication checks.
+- Prevent duplicate mutating/streaming submissions while the same operation is active.
+- Preserve the verified ask abort/reset behavior when the selected active file changes.
+- Browser route/auth state never establishes server ownership or authorization.
+
+- Use Tailwind CSS + shadcn/ui.
+- Prefer default shadcn behavior unless the current PLAN requires a specific product interaction.
+- Keep presentation functional rather than product-polished.
+- `components/ui/` is generated primitive territory; preserve generated APIs/conventions.
+- Do not add another component/styling system.
+- Avoid handwritten `aria-*` attributes unless needed for functionality/accessibility; prefer native labels and visible status/error text.
+- Do not add Markdown renderers, animation libraries, or other presentation dependencies without an approved need.
+
+---
+
+## 9. ENVIRONMENT, BUILD & STATIC EXPORT
+
+- `NEXT_PUBLIC_ATLAS_API_BASE_URL` is a browser-visible build-time value.
+- Never place secrets in `NEXT_PUBLIC_*`.
+- Validate the public API base through the established client configuration boundary.
+- Browser API base must remain an absolute supported HTTP(S) URL according to the current validator.
+- Static export means a deployment API-base change requires rebuild.
+- Next.js rewrites are unavailable with static export; do not add a runtime proxy to imitate base-URL resolution.
+- Client local env files remain ignored.
+- `.env.example` contains safe examples/placeholders only.
+- Never place passwords, OTPs, access tokens, refresh tokens, or client encryption secrets in public build-time configuration.
+
+---
+
+## 10. CLIENT VERIFICATION
 
 Verification follows the root risk model.
 
@@ -500,7 +609,7 @@ Rules:
 
 ---
 
-## 15. Scope and architecture boundaries
+## 11. CLIENT SCOPE GOVERNANCE
 
 ### Always do
 
@@ -512,6 +621,8 @@ Rules:
 - Validate untrusted network boundaries.
 - Preserve exact backend IDs/provenance rather than deriving replacements.
 - Keep static export viable.
+- For cross-boundary Phase 2 work, consume only an implemented/verified server contract unless the PLAN explicitly defines a coordinated exception.
+- Derive no ownership decision from client-selected IDs; send resource identifiers and let FastAPI authorize them.
 
 ### Ask first
 
@@ -523,23 +634,26 @@ Rules:
 - new testing framework;
 - public API shape change;
 - Next.js server/runtime boundary;
-- persistence strategy;
-- auth/token architecture.
+- changes to the approved persistence strategy;
+- changes to the approved auth/token architecture.
 
 ### Never do
 
 - add Node/npm/npx/pnpm/Yarn as required runtime/package-manager workflow;
-- add a Next BFF/proxy in Phase 1;
-- add client Docker service in Phase 1;
+- add a Next BFF/proxy without an explicit architecture change;
+- add a client Docker service without an explicit architecture change;
 - add global state merely for convenience;
+- persist refresh tokens, passwords, OTPs, or auth secrets in JavaScript-accessible storage;
+- treat reversible client-side token encryption as an authorization or XSS security boundary;
 - bypass runtime validation with casts;
 - treat model-authored provenance as trusted citation metadata;
-- add speculative future folders/aliases/abstractions;
+- invent backend ownership/auth behavior or pre-implement speculative API contracts;
+- add speculative future folders/aliases/abstractions beyond the current PLAN;
 - place business logic in `components/ui/` or `lib/utils.ts`.
 
 ---
 
-## 16. Common commands
+## 12. COMMON COMMANDS
 
 Run from `client/`:
 
@@ -560,7 +674,7 @@ Do not use npm/npx/pnpm/yarn in the normal client workflow.
 
 ---
 
-## 17. Explain-back requirement
+## 13. EXPLAIN-BACK REQUIREMENT
 
 For non-trivial client work, report:
 

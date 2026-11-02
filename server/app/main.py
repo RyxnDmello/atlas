@@ -1,9 +1,9 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 
+from app.core.cors import configure_cors
 from app.core.lifespan import lifespan
-from app.core.constants import constants
 
+from app.routers.auth import router as auth
 from app.routers.files import router as files
 from app.routers.system import router as system
 from app.routers.documents import router as documents
@@ -13,14 +13,9 @@ from app.errors.handlers import cast_handle_api_error, cast_handle_unexpected_er
 
 app = FastAPI(lifespan=lifespan)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=constants.cors.CORS_ORIGINS,
-    allow_methods=["POST"],
-    allow_headers=["Content-Type"],
-    allow_credentials=False,
-)
+configure_cors(app)
 
+app.include_router(auth)
 app.include_router(files)
 app.include_router(system)
 app.include_router(documents)

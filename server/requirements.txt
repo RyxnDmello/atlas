@@ -3,6 +3,7 @@ fastapi
 uvicorn
 pydantic
 python-dotenv
+email-validator
 python-multipart
 
 # EXTRACTION & OCR
@@ -18,3 +19,12 @@ qdrant-client
 
 # GENERATION
 google-genai
+
+# CANONICAL DATABASE & MIGRATIONS
+alembic
+SQLAlchemy>=2,<3
+psycopg[binary]>=3,<4
+
+# AUTHENTICATION CREDENTIALS
+PyJWT
+argon2-cffi

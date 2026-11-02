@@ -1,100 +1,269 @@
 # AGENTS.md — Atlas Server
 
+## 0. DOCUMENT ROLE & INHERITANCE
+
 - Applies to all work under `server/**`.
 - Inherits every repository-wide rule from [root AGENTS.md](../AGENTS.md); read the root file first.
 - This file is the authoritative backend engineering contract for Atlas.
-- It specializes root policy for FastAPI, Python, backend runtime, Qdrant integration, configuration, errors, Docker/Compose, and backend verification.
+- It specializes root policy for FastAPI, Python, backend runtime, PostgreSQL, Qdrant integration, configuration, errors, Docker/Compose, and backend verification.
 - Detailed extraction/chunking/embedding/retrieval/generation/citation contracts remain owned by the [RAG skill](../.agents/skills/rag/SKILL.md).
 - Do not duplicate or silently override the RAG skill here.
 
----
+### Reading order
 
-## 1. Server purpose and current objective
-
-The Atlas server owns the Phase 1 backend pipeline:
+For normal server work:
 
 ```text
-upload -> chunk -> embed -> store -> retrieve -> generate -> stream -> cite
+root AGENTS.md
+-> server/AGENTS.md
+-> current PLAN
+-> targeted source/tests
 ```
 
-Current backend objective:
+For RAG-owned work:
 
-- preserve the verified single-file RAG baseline;
-- keep backend trust/scope enforcement server-side;
-- expose stable public API contracts to the static client;
-- maintain explicit resource lifecycle, error, configuration, and verification boundaries;
-- avoid speculative infrastructure before the approved phase.
+```text
+root AGENTS.md
+-> server/AGENTS.md
+-> .agents/skills/rag/SKILL.md
+-> current PLAN
+-> targeted source/tests
+```
 
-Phase 1 server remains:
+Read CONTEXT current-state/latest relevant entries when implementation evidence is required. Use MANUAL for current reproducibility/acceptance commands.
 
-- single-file;
-- unauthenticated;
-- single-user;
-- Qdrant-backed retrieval;
-- no folders/tree/drive retrieval;
-- no PostgreSQL canonical application state;
-- no Redis caching layer.
+Do not read the entire repository by default.
 
 ---
 
-## 2. Current backend maturity
+## 1. SERVER PURPOSE & CURRENT OBJECTIVE
+
+### Verified Phase 1 backend baseline
+
+The Atlas server already owns the verified single-file RAG pipeline:
+
+```text
+upload
+-> chunk
+-> embed
+-> Qdrant
+-> exact file-scoped retrieve
+-> grounded generate
+-> native SSE
+-> trusted citations
+```
+
+Phase 1 backend status is IMPLEMENTED & VERIFIED.
+
+### Current Phase 2 backend objective
+
+Phase 2 extends the server into the canonical authority for identity, personal-drive state, ownership, and authorized reuse of the verified RAG pipeline:
+
+```text
+authenticate
+-> PostgreSQL canonical state
+-> folder/file ownership
+-> authorize selected file
+-> Qdrant exact file_id retrieval
+-> existing grounded generation/SSE
+```
+
+Current backend goals:
+
+- preserve the verified Phase 1 RAG contracts unless a current PLAN deliberately supersedes one;
+- introduce PostgreSQL as canonical application state for users, verifications, sessions, folders, and files;
+- keep authentication, authorization, ownership, retrieval scope, and trust enforcement server-side;
+- support recursively nested folders and canonical file metadata without introducing multi-scope RAG;
+- treat original upload bytes as transient ingestion input only in Phase 2;
+- expose stable public API contracts before the client integrates them;
+- maintain explicit resource lifecycle, error, configuration, and verification boundaries;
+- avoid speculative infrastructure outside the approved phase.
+
+Still excluded from the Phase 2 backend unless explicitly approved:
+
+- multi-file/folder/tree/drive retrieval;
+- persistent original-file storage;
+- folder deletion/movement, file movement, trash/recovery;
+- email delivery and password-reset/forgot-password product flows;
+- Redis, background queues/workers, or new storage services.
+
+---
+
+## 2. CURRENT SERVER STATE
+
+### Active phase
+
+#### PHASE_02 — AUTHENTICATED PERSONAL DRIVE
+
+- **Status:** `IMPLEMENTED, UNVERIFIED`
+- **Completed PLAN:** `PHASE_02_PLAN_01 — PostgreSQL Identity & Authentication Foundation` (`IMPLEMENTED & VERIFIED`)
+- **Current PLAN / next destination:** `PHASE_02_PLAN_02 — Authenticated Drive Backend` (`NOT YET BUILT`)
+
+#### VERIFIED FOUNDATION
+
+```text
+PostgreSQL identity persistence
+-> explicit migrations + runtime ownership
+-> PostgreSQL health/lifecycle
+-> Argon2id password primitives
+-> HS256 access-JWT primitives
+-> opaque refresh-token generation/hash
+-> secure OTP generation
+```
+
+#### CURRENT SERVER MATURITY
+
+| Backend capability                   | Status                 |
+| ------------------------------------ | ---------------------- |
+| PostgreSQL identity persistence      | IMPLEMENTED & VERIFIED |
+| Authentication credential primitives | IMPLEMENTED & VERIFIED |
+| User registration                    | IMPLEMENTED & VERIFIED |
+| OTP verification / resend            | IMPLEMENTED & VERIFIED |
+| Initial session / access issuance    | IMPLEMENTED & VERIFIED |
+| User login                           | IMPLEMENTED & VERIFIED |
+| Refresh rotation / current logout    | IMPLEMENTED & VERIFIED |
+| Credentialed cookie CORS             | IMPLEMENTED & VERIFIED |
+| Bearer current-user resolution       | IMPLEMENTED & VERIFIED |
+| Recursive folders                    | NOT YET BUILT          |
+| Canonical file metadata/lifecycle    | NOT YET BUILT          |
+| Owner authorization before RAG       | NOT YET BUILT          |
+
+Identity persistence models, explicit migrations, runtime ownership, and PostgreSQL health integration are implemented and verified through Docker and real PostgreSQL acceptance.
+
+Argon2id password, HS256 access JWT, opaque refresh/hash, and secure OTP primitives are also implemented and verified locally and in the packaged server.
+
+Amendments 01–05 are complete. Registration, OTP verification/resend, initial session/access issuance, and login passed real PostgreSQL, packaged regression, live API, and datastore-preservation acceptance. Login rehash/session rollback, independent concurrent sessions, unchanged verification state on unverified login, and the shared access-token/user response are verified. Amendment 06 is complete. Atomic refresh rotation, idempotent current-session logout, and credentialed CORS passed packaged regression, real PostgreSQL rollback/concurrency, live HTTP/cookie/CORS, image/log security, and datastore-preservation acceptance. Amendment 07 is complete. Bearer current-user resolution and GET /auth are `IMPLEMENTED & VERIFIED` through packaged regression, real PostgreSQL, live authentication/CORS, security scans, and datastore preservation. PLAN_01 is `IMPLEMENTED & VERIFIED`. Next destination: PHASE_02_PLAN_02 — Authenticated Drive Backend (`NOT YET BUILT`). Canonical folder/file state belongs to later work.
+
+Planned/approved behavior is not implementation evidence. Do not mark a Phase 2 capability implemented or verified until the corresponding code and required verification exist.
+
+#### CURRENT EVIDENCE
+
+- [PHASE_02 PLAN_01 CONTEXT](../prompts/PHASE_02/PLAN_01/PHASE_02_PLAN_01_CONTEXT.md)
+- [PHASE_02 PLAN_01 MANUAL](../prompts/PHASE_02/PLAN_01/PHASE_02_PLAN_01_MANUAL.md)
+
+---
+
+## 3. COMPLETED SERVER HISTORY
+
+This section records durable verified backend baselines for completed Atlas phases.
+
+It is not a chronological implementation log. Detailed Amendment history, failures, timings, versions, hashes, test counts, and corrective work remain in the corresponding CONTEXT files.
+
+Completed backend phases are appended here in order when the entire PHASE reaches `IMPLEMENTED & VERIFIED`.
+
+### PHASE_01 — MVP CORE RAG
+
+- **Status:** `IMPLEMENTED & VERIFIED`
+- **Brief:** Established the complete single-file backend RAG path from upload and extraction through retrieval, grounded generation, native SSE, trusted citations, and browser-facing CORS support.
+
+#### VERIFIED BASELINE
+
+```text
+upload
+-> chunk
+-> embed
+-> Qdrant
+-> exact file-scoped retrieve
+-> grounded generate
+-> native SSE
+-> trusted citations
+```
+
+#### VERIFIED SERVER MATURITY
 
 | Backend capability         | Status                 |
 | -------------------------- | ---------------------- |
-| Upload endpoint            | Implemented & Verified |
-| Extraction/chunking        | Implemented & Verified |
-| Embedding                  | Implemented & Verified |
-| Qdrant storage             | Implemented & Verified |
-| File-scoped retrieval      | Implemented & Verified |
-| Gemini generation          | Implemented & Verified |
-| Grounding/citation core    | Implemented & Verified |
-| Public `/ask` native SSE   | Implemented & Verified |
-| Browser-facing CORS config | Implemented & Verified |
+| Upload endpoint            | IMPLEMENTED & VERIFIED |
+| Extraction/chunking        | IMPLEMENTED & VERIFIED |
+| Embedding                  | IMPLEMENTED & VERIFIED |
+| Qdrant storage             | IMPLEMENTED & VERIFIED |
+| File-scoped retrieval      | IMPLEMENTED & VERIFIED |
+| Gemini generation          | IMPLEMENTED & VERIFIED |
+| Grounding/citation core    | IMPLEMENTED & VERIFIED |
+| Public `/ask` native SSE   | IMPLEMENTED & VERIFIED |
+| Browser-facing CORS config | IMPLEMENTED & VERIFIED |
 
-Detailed implementation evidence belongs in PLAN CONTEXT files, especially PLAN_01 through PLAN_04 and the PLAN_05 CORS records.
+#### COMPLETION BOUNDARY
 
-Do not reopen a verified backend contract merely because client work consumes it.
+Phase 1 backend remains:
+
+- single-file;
+- unauthenticated;
+- without PostgreSQL canonical application state;
+- without folders or owner authorization;
+- without multi-file/folder/tree/drive retrieval.
+
+Do not reopen a verified backend contract merely because a later phase consumes it.
+
+#### EVIDENCE
+
+- [PLAN_01 CONTEXT](../prompts/PHASE_01/PLAN_01/PHASE_01_PLAN_01_CONTEXT.md)
+- [PLAN_01 MANUAL](../prompts/PHASE_01/PLAN_01/PHASE_01_PLAN_01_MANUAL.md)
+- [PLAN_02 CONTEXT](../prompts/PHASE_01/PLAN_02/PHASE_01_PLAN_02_CONTEXT.md)
+- [PLAN_02 MANUAL](../prompts/PHASE_01/PLAN_02/PHASE_01_PLAN_02_MANUAL.md)
+- [PLAN_03 CONTEXT](../prompts/PHASE_01/PLAN_03/PHASE_01_PLAN_03_CONTEXT.md)
+- [PLAN_03 MANUAL](../prompts/PHASE_01/PLAN_03/PHASE_01_PLAN_03_MANUAL.md)
+- [PLAN_04 CONTEXT](../prompts/PHASE_01/PLAN_04/PHASE_01_PLAN_04_CONTEXT.md)
+- [PLAN_04 MANUAL](../prompts/PHASE_01/PLAN_04/PHASE_01_PLAN_04_MANUAL.md)
+- [PLAN_05 CONTEXT](../prompts/PHASE_01/PLAN_05/PHASE_01_PLAN_05_CONTEXT.md)
+- [PLAN_05 MANUAL](../prompts/PHASE_01/PLAN_05/PHASE_01_PLAN_05_MANUAL.md)
 
 ---
 
-## 3. Locked backend stack and architecture
+## 4. SERVER ARCHITECTURE & REQUEST FLOW
 
 ### Backend stack
 
 - Python + FastAPI.
 - Pydantic for validation/DTOs/config schemas.
 - `python-dotenv` for `.env` loading.
-- Qdrant self-hosted in Docker.
-- Docker Compose under `server/`.
+- PostgreSQL begins in Phase 2 as canonical application state.
+- Qdrant remains self-hosted in Docker as the derived retrieval index.
+- Docker Compose remains under `server/`.
 - Docling for extraction/chunking.
 - BAAI/bge-m3 / FlagEmbedding for dense embeddings.
 - Gemini Flash through official `google-genai`, behind Atlas `LLMProvider`.
 - No LangChain by default.
-- PostgreSQL begins in Phase 3 for canonical application state.
-- Redis only when caching becomes concretely relevant.
+- Redis only when caching becomes concretely relevant and explicitly approved.
 
 ### Backend authority boundaries
 
-- PostgreSQL will become canonical application state when introduced.
-- Qdrant remains a retrieval index, not canonical app state.
-- Retrieval scope is enforced server-side before generation.
+- PostgreSQL is canonical application state for Phase 2 users, verifications, sessions, folders, and files.
+- Qdrant remains a retrieval index, not canonical application state.
+- Derive the current user from validated server-side authentication; never trust client-supplied `user_id`/`owner_id` to establish ownership.
+- Authorize folder/file ownership in PostgreSQL before accessing file-scoped retrieval data.
+- After authorization, preserve exact `file_id` filtering in Qdrant before generation.
+- Never globally retrieve from Qdrant and post-filter security scope in Python.
 - Never rely on an LLM to ignore unauthorized/out-of-scope context.
 - Citation metadata comes from trusted Atlas retrieval/provenance data.
-- Existing public API contracts remain authoritative unless a PLAN explicitly changes them.
+- Existing verified public RAG contracts remain authoritative unless a PLAN explicitly changes them.
+- Persistent original-file storage is not part of Phase 2; uploaded bytes are transient input to ingestion/indexing only.
 
----
-
-## 4. Server architecture and request flow
+Legend: PostgreSQL establishes identity/ownership; Qdrant remains the derived RAG index.
 
 ```mermaid
 flowchart TD
-    FastAPI["FastAPI app"] --> Routers["routers/<br/>public HTTP boundaries"]
-    Routers --> Pipeline["Atlas pipeline/domain orchestration"]
-    Pipeline --> Runtime["core/runtime.py<br/>prepared resources"]
-    Runtime --> Qdrant["Qdrant"]
+    Client["Browser client"] --> FastAPI["FastAPI"]
+    FastAPI --> Routers["routers/<br/>public HTTP boundaries"]
+    Routers --> Auth["Auth / request dependencies"]
+    Routers --> Domain["Atlas domain / pipeline orchestration"]
+    Auth --> Postgres["PostgreSQL<br/>canonical users/sessions"]
+    Domain --> Postgres
+    Domain --> Runtime["core/runtime.py<br/>prepared resources"]
+    Runtime --> Qdrant["Qdrant<br/>derived file chunks"]
     Runtime --> Providers["Embedding / Gemini providers"]
-    Pipeline --> Schemas["schemas/<br/>validated DTOs"]
+    Domain --> Schemas["schemas/<br/>validated DTOs"]
     Routers --> Errors["structured ApiError handling"]
+```
+
+For owner-authorized RAG:
+
+```text
+access token
+-> authenticated user
+-> PostgreSQL file ownership + ready state
+-> exact Qdrant file_id scope
+-> verified Phase 1 generation/streaming/citation path
 ```
 
 `main.py` remains wiring only.
@@ -103,14 +272,14 @@ Detailed RAG sub-stage mechanics live in the [RAG skill](../.agents/skills/rag/S
 
 ---
 
-## 5. Server repository structure
+## 5. SERVER REPOSITORY & OWNERSHIP
 
 ```text
 server/
 ├── AGENTS.md
 ├── .env                         # local secrets/runtime config; ignored
 ├── .env.example                 # safe reproducible template
-├── docker-compose.yml           # server + Qdrant Compose definition
+├── docker-compose.yml           # server + Qdrant + PostgreSQL Compose definition
 ├── Dockerfile                   # backend runtime image
 ├── requirements.txt
 ├── app/
@@ -131,7 +300,7 @@ server/
 │   ├── models/
 │   │   ├── qdrant/
 │   │   │   └── chunk.py
-│   │   └── postgres/            # planned from Phase 3
+│   │   └── postgres/            # Phase 2 canonical application entities
 │   ├── pipeline/
 │   │   ├── chunking.py
 │   │   ├── embeddings/
@@ -143,10 +312,6 @@ server/
 ```
 
 Use the current repository implementation if exact names evolve; do not create parallel ownership boundaries merely because this tree shows the intended responsibility.
-
----
-
-## 6. Module placement and responsibility rules
 
 - HTTP handlers live in `routers/`, not `api/`.
 - `main.py`:
@@ -166,62 +331,13 @@ Use the current repository implementation if exact names evolve; do not create p
 - DB/client mechanics remain behind established Atlas boundaries.
 - Do not duplicate verified provider/client initialization in request paths.
 - Reuse startup-prepared runtime resources.
+- PostgreSQL models represent persisted entities only; keep database mechanics behind the established `db/` boundary rather than issuing ad hoc SQL from routers.
+- Phase 2 canonical PostgreSQL entity names are `users`, `verifications`, `sessions`, `folders`, and `files`; exact ORM/schema details belong in the current PLAN.
+- Keep authentication/session mechanics and ownership checks in dedicated backend boundaries rather than duplicating them across routers.
 
 ---
 
-## 7. Configuration architecture
-
-Atlas configuration uses:
-
-```text
-.env
--> python-dotenv loading in core/constants.py
--> Pydantic validation in schemas/constants.py
--> validated Constants groups
-```
-
-Rules:
-
-- `.env` loading remains in `core/constants.py`.
-- Validation remains in `schemas/constants.py`.
-- Configuration groups remain 1:1 across those layers.
-- Loading and validation are separate concerns.
-- Do not introduce `pydantic-settings`.
-- Preserve existing lazy validation where a verified subsystem intentionally validates only when prepared/used.
-- `.env` is local/ignored.
-- `.env.example` uses placeholders/safe examples only.
-- Never print secrets through diagnostics or full environment dumps.
-- Compose environment forwarding must stay aligned with validated settings.
-- CORS uses an explicit configured allow-list; do not replace it with wildcard defaults.
-
----
-
-## 8. Error handling
-
-`server/app/errors/` uses one structured FastAPI-native pattern.
-
-Requirements:
-
-- one category-specific string error-code set per error category;
-- one mapping from error code to HTTP status;
-- base exception such as `ApiError` carrying message + code;
-- consistent serialization:
-
-```json
-{ "error": "...", "code": "..." }
-```
-
-- one FastAPI exception handler registered in `main.py`;
-- routers raise structured application errors rather than constructing ad hoc `HTTPException` responses;
-- dependency/provider failures remain explicit;
-- no silent conversion of operational failure into empty success;
-- no raw provider/source/secret leakage through public errors.
-
-The pattern was adapted from the human-provided TypeScript/Hono reference; preserve the pattern, not the original framework-specific implementation.
-
----
-
-## 9. Python code style and imports
+## 6. PYTHON & SERVER CODE CONVENTIONS
 
 ### Naming
 
@@ -289,7 +405,52 @@ New files mirror the latest established file in the same folder unless this docu
 
 ---
 
-## 10. Runtime and lifecycle ownership
+## 7. CONFIGURATION, ERRORS & LIFECYCLE
+
+Atlas configuration uses:
+
+```text
+.env
+-> python-dotenv loading in core/constants.py
+-> Pydantic validation in schemas/constants.py
+-> validated Constants groups
+```
+
+Rules:
+
+- `.env` loading remains in `core/constants.py`.
+- Validation remains in `schemas/constants.py`.
+- Configuration groups remain 1:1 across those layers.
+- Loading and validation are separate concerns.
+- Do not introduce `pydantic-settings`.
+- Preserve existing lazy validation where a verified subsystem intentionally validates only when prepared/used.
+- `.env` is local/ignored.
+- `.env.example` uses placeholders/safe examples only.
+- Never print secrets through diagnostics or full environment dumps.
+- Compose environment forwarding must stay aligned with validated settings.
+- CORS uses an explicit configured allow-list; do not replace it with wildcard defaults.
+- When Phase 2 refresh-cookie auth is implemented, credentialed browser CORS/cookie behavior must follow the current PLAN and remain explicit rather than permissive.
+
+`server/app/errors/` uses one structured FastAPI-native pattern.
+
+Requirements:
+
+- one category-specific string error-code set per error category;
+- one mapping from error code to HTTP status;
+- base exception such as `ApiError` carrying message + code;
+- consistent serialization:
+
+```json
+{ "error": "...", "code": "..." }
+```
+
+- one FastAPI exception handler registered in `main.py`;
+- routers raise structured application errors rather than constructing ad hoc `HTTPException` responses;
+- dependency/provider failures remain explicit;
+- no silent conversion of operational failure into empty success;
+- no raw provider/source/secret leakage through public errors.
+
+The pattern was adapted from the human-provided TypeScript/Hono reference; preserve the pattern, not the original framework-specific implementation.
 
 - Startup-prepared resources must not be reconstructed per request without an approved reason.
 - Preserve current lifespan ownership.
@@ -302,7 +463,62 @@ New files mirror the latest established file in the same folder unless this docu
 
 ---
 
-## 11. RAG boundary and skill delegation
+## 8. AUTHENTICATION & CANONICAL STATE CONTRACTS
+
+These are cross-Amendment Phase 2 rules. Exact DTOs, ORM/migration tooling and layout, token TTL values, and endpoint error contracts belong in the applicable PLAN.
+
+### Users and credentials
+
+- `users.password` stores the password hash, never plaintext.
+- Password hashing/verification is server-side.
+- Never persist or log raw passwords.
+- Normalize/validate identity input according to the approved server contract before canonical lookup/storage.
+
+### Verifications
+
+- Canonical table name: `verifications`.
+- Verification records carry a typed purpose that supports at least `auth`, `reset`, and `forgot`.
+- Phase 2 product behavior uses `auth`; `reset` and `forgot` are schema-supported purposes, not implemented password flows.
+- Phase 2 intentionally stores the development OTP so it can be inspected from PostgreSQL while email delivery is absent.
+- Never log OTPs.
+- Successful OTP use deletes the verification record.
+- An encountered expired verification is invalid and is deleted during that request.
+- No cron/background TTL mechanism is required.
+
+### Sessions and refresh tokens
+
+- Canonical table name: `sessions`.
+- Persist only a hash of each refresh token, never the raw token.
+- A refresh token is single-use.
+- Successful refresh atomically consumes/deletes the current session row before creating the replacement session and issuing the next access token.
+- An encountered expired session is invalid and is deleted during that request.
+- No revocation-history/family audit model or scheduled TTL cleanup is part of Phase 2 unless a later approved contract adds it.
+
+Legend: a refresh credential is a single-use server session; the old session must disappear before its replacement becomes authoritative.
+
+```mermaid
+flowchart LR
+    Cookie["Refresh token<br/>HttpOnly cookie"] --> Lookup["Hash + lookup session"]
+    Lookup --> Valid{"Exists and unexpired?"}
+    Valid -- No --> Cleanup["Delete expired row if present<br/>Reject refresh"]
+    Valid -- Yes --> Consume["Atomically delete current session"]
+    Consume --> Access["Issue new access token"]
+    Consume --> Replace["Create replacement session<br/>Set new refresh token"]
+```
+
+### Folders and files
+
+- Folders are owner-scoped and recursively nestable through a parent-folder relationship.
+- Phase 2 supports folder creation and rename; it does not support folder deletion or movement.
+- Files are canonical PostgreSQL records owned by one user and optionally placed in one folder/root location according to the current PLAN.
+- Original file bytes are not persistently stored in Phase 2.
+- File name/description metadata changes do not imply content replacement or Qdrant reindexing.
+- Permanent file deletion removes the canonical PostgreSQL file record and all derived Qdrant points for that `file_id`.
+- A file must be owner-authorized from PostgreSQL before retrieval/generation uses its Qdrant data.
+
+---
+
+## 9. RAG INTEGRATION BOUNDARY
 
 Detailed RAG contracts remain authoritative in:
 
@@ -377,7 +593,7 @@ If any high-level summary here conflicts with the RAG skill, stop and report the
 
 ---
 
-## 12. Logging and security
+## 10. SECURITY, LOGGING & OBSERVABILITY
 
 Logging should support debugging/evaluation without leaking content.
 
@@ -397,6 +613,9 @@ Safe examples when relevant:
 Do not log:
 
 - API keys;
+- passwords or password hashes;
+- OTPs;
+- raw access/refresh tokens or refresh-token hashes;
 - full sensitive source documents;
 - unnecessary PII;
 - full user questions unless an approved debugging policy explicitly permits it;
@@ -411,13 +630,15 @@ Security boundaries:
 - enforce retrieval scope server-side;
 - never let the LLM decide authorization/scope;
 - preserve CORS as browser-origin policy, not authentication;
+- authentication does not replace owner authorization;
+- client route state never establishes ownership;
 - do not leak out-of-scope retrieval context.
 
 ---
 
-## 13. Docker and Compose
+## 11. DOCKER & SERVER VERIFICATION
 
-- Backend/Qdrant Compose remains in `server/docker-compose.yml`.
+- Backend/datastore service topology remains in `server/docker-compose.yml`; Phase 2 PostgreSQL joins that topology when its server PLAN implements it.
 - `.env` remains beside Compose for the established workflow.
 - Reuse existing Docker images/containers/volumes when the task does not require rebuilding.
 - Do not run `docker compose down -v` unless explicitly authorized.
@@ -434,10 +655,6 @@ Security boundaries:
 - Client-only work does not justify a backend image rebuild.
 - If a prompt explicitly requires reuse-only verification, do not rebuild unless a deployment-sensitive blocker appears and the human approves the scope change.
 - Docker is authoritative for backend deployment-sensitive verification.
-
----
-
-## 14. Backend testing and verification
 
 Verification follows the root risk model.
 
@@ -468,7 +685,7 @@ Rules:
 
 ---
 
-## 15. Scope and architecture boundaries
+## 12. SERVER SCOPE GOVERNANCE
 
 ### Always do
 
@@ -486,7 +703,7 @@ Rules:
 - new backend dependency;
 - new service boundary;
 - new queue/cache/storage architecture;
-- new auth architecture;
+- changes to the approved auth/session architecture;
 - DB schema/public API changes;
 - embedding/retrieval/generation policy changes;
 - provider/resource lifecycle redesign;
@@ -500,12 +717,15 @@ Rules:
 - treat model-authored citation metadata as trusted;
 - hide provider/Qdrant failures behind empty success;
 - create parallel provider/client initialization paths;
-- add Phase 2+ auth/folders/multi-scope retrieval without explicit approval;
+- introduce multi-file/folder/tree/drive retrieval, persistent original-file storage, folder deletion/movement, or other excluded Phase 2 scope without explicit approval;
+- authorize from Qdrant alone or retrieve before PostgreSQL ownership authorization;
+- trust client-supplied `user_id`/`owner_id` as authorization;
+- add cron/background TTL cleanup for Phase 2 `verifications`/`sessions` without approval;
 - reset/delete persistent Qdrant state for ordinary tests.
 
 ---
 
-## 16. Common commands
+## 13. COMMON COMMANDS
 
 Run from `server/`:
 
@@ -522,7 +742,7 @@ For exact PLAN-specific verification, follow the current PLAN/MANUAL/Amendment r
 
 ---
 
-## 17. Explain-back requirement
+## 14. EXPLAIN-BACK REQUIREMENT
 
 For non-trivial server work, report:
 
