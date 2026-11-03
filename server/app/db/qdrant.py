@@ -1,11 +1,12 @@
 from time import time
 from typing import Any
 from uuid import UUID, uuid4
+from httpx import TransportError
 from datetime import datetime, timezone
 
-from httpx import TransportError
 from qdrant_client import QdrantClient
 from qdrant_client.http.exceptions import ResponseHandlingException, UnexpectedResponse
+
 from qdrant_client.http.models import (
     Filter,
     Distance,
@@ -15,6 +16,7 @@ from qdrant_client.http.models import (
     UpdateStatus,
     VectorParams,
     FieldCondition,
+    FilterSelector,
 )
 
 from app.core.logging import logger
@@ -112,9 +114,8 @@ def store(
             wait=constants.qdrant.QDRANT_WRITE_WAIT,
         )
     except Exception as error:
-        logger.exception(
-            "Qdrant chunk storage failed: collection=%s", collection
-        )
+        logger.error("Qdrant chunk storage failed: collection=%s category=%s",
+                     collection, type(error).__name__)
 
         source = (
             error.source
@@ -143,6 +144,32 @@ def store(
         )
 
     return len(points)
+
+
+def remove(client: QdrantClient, collection: str, file_id: UUID) -> None:
+    """Delete only this canonical file and require synchronous completion, including zero matches."""
+    try:
+        result = client.delete(
+            collection_name=collection,
+            points_selector=FilterSelector(filter=Filter(must=[FieldCondition(
+                key="file_id", match=MatchValue(value=str(file_id)))])),
+            wait=True,
+        )
+    except Exception as error:
+        logger.error("Qdrant cleanup failed: file_id=%s category=%s",
+                     file_id, type(error).__name__)
+        source = error.source if isinstance(
+            error, ResponseHandlingException) else error
+        if isinstance(source, (TransportError, ConnectionError, TimeoutError)):
+            raise QdrantConnectionError(
+                "Unable to connect to Qdrant while cleaning chunks") from None
+
+        raise QdrantCollectionError(
+            "Unable to clean file chunks from Qdrant") from None
+
+    if result.status != UpdateStatus.COMPLETED:
+        raise QdrantCollectionError(
+            "Qdrant did not confirm completed file cleanup")
 
 
 def query(

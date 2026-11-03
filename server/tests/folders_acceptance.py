@@ -9,12 +9,10 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from sqlalchemy import delete, select, text
 
+from app.db.postgres import Database
 from app.core.constants import constants
 
-from app.db.postgres import Database
-
 from app.pipeline.auth.password import Password
-
 from app.models.postgres import Base, File, Folder, User
 
 
@@ -231,9 +229,9 @@ def acceptance(database: Database, client: Client, private: list[str]) -> dict[s
                 response = client.options("/folders/"+root["id"], headers={"Origin": origin,
                                                                            "Access-Control-Request-Method": method, "Access-Control-Request-Headers": "Authorization, Content-Type"})
                 assert response.status_code == (200 if approved and method in {
-                                                "GET", "POST", "PATCH"} else 400)
+                                                "GET", "POST", "PATCH", "DELETE"} else 400)
                 assert set(
-                    response.headers["access-control-allow-methods"].split(", ")) == {"GET", "POST", "PATCH"}
+                    response.headers["access-control-allow-methods"].split(", ")) == {"GET", "POST", "PATCH", "DELETE"}
                 assert response.headers.get(
                     "access-control-allow-origin") == (origin if approved else None)
                 assert response.headers["access-control-allow-credentials"] == "true"

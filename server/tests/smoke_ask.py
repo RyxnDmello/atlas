@@ -1,6 +1,8 @@
 import sys
 import json
+import httpx
 import socket
+import uvicorn
 import argparse
 from uuid import uuid4
 from typing import Literal
@@ -10,17 +12,17 @@ from time import monotonic, sleep
 from collections.abc import Iterator
 from contextlib import closing, contextmanager
 
-import httpx
-import uvicorn
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import FieldCondition, Filter, MatchValue
 
-from app.core.constants import constants
 from app.core.runtime import storage
+from app.core.constants import constants
 
 from app.pipeline.generation.prompt import FALLBACK
 
 from app.main import app
+
+from tests.uploads import environment
 
 
 @contextmanager
@@ -234,17 +236,17 @@ def local() -> None:
     """Run the actual app with real BGE/Gemini and isolated ephemeral Qdrant, without Docker."""
     client = QdrantClient(":memory:", force_disable_check_same_thread=True)
 
-    with patch("app.core.lifespan.create_client", return_value=client), serve() as base:
+    with environment() as (database, user, headers), patch("app.core.lifespan.prepare", return_value=database), patch("app.core.lifespan.create_client", return_value=client), serve() as base:
         files = []
         with httpx.Client(base_url=base, timeout=120, trust_env=False) as http:
             for name, body in (
                 ("Luma", "The Luma garden has exactly two silver trees and a blue pond."),
                 ("Vela", "The Vela garden has exactly nine copper trees and a red pond."),
             ):
-                response = http.post("/documents/upload", files={"file": (
+                response = http.post("/files", headers=headers, data={"name": name}, files={"file": (
                     f"ask-{name}-{uuid4()}.md", body.encode(), "text/markdown",
                 )})
-                assert response.status_code == 200
+                assert response.status_code == 201
                 files.append(response.json()["id"])
 
         before = client.count(

@@ -1,6 +1,8 @@
-# PLAN_02 Manual — Canonical Persistence and Folder APIs
+# PLAN_02 Manual — Canonical Drive Backend
 
-Amendment 01 is **COMPLETE**, with canonical folder/file persistence `IMPLEMENTED & VERIFIED` through local and Docker/live acceptance. Amendment 02 is **COMPLETE**: authenticated folder/direct-child APIs are `IMPLEMENTED & VERIFIED` through local/packaged, real PostgreSQL, live HTTP/CORS, security, preservation and cleanup acceptance. PLAN_02 remains `IMPLEMENTED, UNVERIFIED`. See CONTEXT for actual results and pending acceptance.
+Current Amendment 04: **COMPLETE**, `IMPLEMENTED & VERIFIED`. Sections 15 and 16 record coding/review and separately authorized Docker/live acceptance. File PATCH/DELETE and exact GET/POST/PATCH/DELETE CORS are verified. Earlier sections preserve historical Amendment procedures; the Amendment 03 destructive reset must not be repeated. PLAN_02 remains `IMPLEMENTED, UNVERIFIED`; owner/ready query and ask authorization remain future work.
+
+Amendment 01 is **COMPLETE**, with canonical folder/file persistence `IMPLEMENTED & VERIFIED` through local and Docker/live acceptance. Amendment 02 is **COMPLETE**: authenticated folder/direct-child APIs are `IMPLEMENTED & VERIFIED` through local/packaged, real PostgreSQL, live HTTP/CORS, security, preservation and cleanup acceptance. PLAN_02 remains `IMPLEMENTED, UNVERIFIED`. Amendment 03 is **COMPLETE**: canonical authenticated upload is `IMPLEMENTED & VERIFIED` through coding/review, packaged regression, real PostgreSQL/Qdrant lifecycle and failure compensation, live HTTP, security and authorized clean-dataset acceptance. See section 14 and CONTEXT for proven procedures and actual results.
 
 Sections 6–11 retain the proven Amendment 01 Docker procedure and its historical migration boundary. Do not rerun that workflow blindly for Amendment 02: the installed head is already `0002_drive`, no migration is needed, and the fresh preservation baseline must cover **all five canonical tables**, as well as full Qdrant configuration and point content. Section 12 records the proven Amendment 02 workflow. Both new folder helpers have passed against PostgreSQL and the running server.
 
@@ -24,7 +26,7 @@ $env:TRANSFORMERS_OFFLINE='1'
 .venv/Scripts/python.exe -m tests.run
 ```
 
-Expected: two synthetic real-model upload probes and the full discovered suite pass using cached models and in-memory Qdrant. PostgreSQL is mocked; no Gemini generation or persistent Qdrant writes occur. If the required model cache is absent, report that prerequisite rather than treating the check as passed.
+Expected: two synthetic real-model upload probes and the full discovered suite pass using cached models and in-memory Qdrant. PostgreSQL startup is replaced by isolated in-memory SQLite sessions with synthetic Bearer authentication; no Gemini generation or persistent datastore writes occur. SQLite does not establish PostgreSQL acceptance. If the required model cache is absent, report that prerequisite rather than treating the check as passed.
 
 ## 3. Inspect migration discovery and offline SQL contracts
 
@@ -272,3 +274,307 @@ docker compose --env-file .env -f docker-compose.yml ps --all
 ```
 
 Expected: latest server plus required datastore images remain; three intended services run, datastores healthy. Record actual outcomes in CONTEXT. Amendment 02 may then be COMPLETE / `IMPLEMENTED & VERIFIED`; PLAN_02 stays `IMPLEMENTED, UNVERIFIED` with file lifecycle, deletion, owner-authorized RAG and later client work outstanding.
+
+## 13. Amendment 03 canonical upload — coding/local verification
+
+Amendment 03 is COMPLETE / `IMPLEMENTED & VERIFIED`. Coding/review preceded the authorized Docker/live stage recorded in section 14. The local commands below use isolated stores; they do not reset configured PostgreSQL/Qdrant or consume Gemini quota.
+
+### 13.1. Run focused upload and backend regression
+
+From `server/` in the existing project venv:
+
+```powershell
+$env:HF_HUB_OFFLINE='1'
+$env:TRANSFORMERS_OFFLINE='1'
+.venv/Scripts/python.exe -m unittest tests.test_22_uploads tests.test_05_upload_storage
+.venv/Scripts/python.exe -m unittest tests.test_21_folders tests.test_20_drive tests.test_19_current tests.test_18_sessions tests.test_17_login tests.test_16_verification tests.test_15_registration tests.test_14_credentials tests.test_13_postgres tests.test_12_cors
+.venv/Scripts/python.exe -m tests.run
+```
+
+Expected: all tests pass. Full-suite probes perform authenticated canonical HTTP uploads using cached real BGE-M3, isolated SQLite, and in-memory Qdrant. Upload tests prove metadata limits, owner/folder/privacy gates, one UUID, independent transactions, confirmed/uncertain cleanup, partial-write isolation, finalization rollback/ambiguous acknowledgement, closed transient uploads, and old-route absence. The prepared live HTTP contract helper also runs against local isolated stores; that does not establish real PostgreSQL acceptance.
+
+### 13.2. Inspect public and migration contracts
+
+```powershell
+.venv/Scripts/python.exe -c "from app.main import app; paths=app.openapi()['paths']; assert 'post' in paths['/files']; assert '/documents/upload' not in paths; assert set(paths['/files']['post']['requestBody']['content']) == {'multipart/form-data'}; print('Canonical multipart upload only')"
+.venv/Scripts/python.exe -m alembic heads
+.venv/Scripts/python.exe -m alembic history
+.venv/Scripts/python.exe -m compileall -q app migrations tests
+.venv/Scripts/python.exe -m pip check
+```
+
+Expected: `POST /files` advertises multipart and returns the canonical File DTO after durable ready commit; old upload is absent. Migration source head is unchanged at `0002_drive`. Compilation and dependency checks pass. Existing CORS methods remain GET/POST/PATCH. These commands do not inspect the configured database's installed revision.
+
+Run the cached static checker from `server/`, explicitly including the lifecycle test module:
+
+```powershell
+node "$env:LOCALAPPDATA/npm-cache/_npx/110e52990071af13/node_modules/pyright/dist/pyright.js" --pythonpath .venv/Scripts/python.exe --typeshedpath "$env:LOCALAPPDATA/npm-cache/_npx/110e52990071af13/node_modules/pyright/dist/typeshed-fallback" app tests/test_22_uploads.py tests/uploads.py tests/uploads_acceptance.py tests/uploads_http.py tests/uploads_live.py
+```
+
+Expected: zero errors and warnings. This uses the existing local Pyright cache; if absent, report that prerequisite. The original coding-stage command omitted `test_22_uploads.py`; this expanded command supersedes it following code review. CONTEXT preserves the original check and records the correction.
+
+From repository root:
+
+```powershell
+git diff --check
+```
+
+Expected: no whitespace errors; normal Git LF/CRLF advisories may appear. CONTEXT records the cached Pyright invocation and actual static/security results.
+
+### 13.3. Review gate and destructive live-stage boundary
+
+Expected: coding review precedes Docker build/run and live datastore mutation. That gate was fulfilled before section 14 acceptance. `tests.uploads_live` and `tests.uploads_http` are opt-in helpers now verified against real stores; they remain excluded from ordinary discovered tests.
+
+**DESTRUCTIVE, AUTHORIZED DOCKER STAGE ONLY:** Amendment 03 intentionally clears all development rows from files, folders, sessions, verifications, and users, plus all points in the Atlas Qdrant collection. Run only after the explicit Docker-stage green flag and target-resource inspection. Never run against data that should be retained. Preserve PostgreSQL schema/constraints/revision `0002_drive`, Qdrant collection/vector configuration/indexes, datastore images, and volumes; do not use `down -v` or broad prune. Historical sections 6–12 describe preservation-based prior Amendments and do not authorize this reset early.
+
+Expected after Docker/live acceptance and synthetic cleanup: all five application tables and Atlas collection point count are zero, migration/collection configuration unchanged, and no disposable database/container/archive remains. Proven reset, packaged/live/fault/security procedures follow in section 14; actual outcomes are in CONTEXT.
+
+## 14. Amendment 03 Docker and live acceptance
+
+These procedures were proven after explicit Docker-stage approval. This Amendment intentionally resets development **data**, unlike earlier preservation-only procedures. Commands run from `server/`. Ignored `.venv/uploads03_*` adapters are session evidence, not shipped dependencies; inspect/adapt them before reuse. Capture fresh resource identities and fingerprints instead of reusing historical IDs from CONTEXT.
+
+### 14.1. Inspect retained resources and establish the authorized zero baseline
+
+```powershell
+docker compose --env-file .env -f docker-compose.yml ps -a
+docker image ls --format '{{.Repository}}:{{.Tag}} {{.ID}}'
+docker compose --env-file .env -f docker-compose.yml up -d --no-build --no-recreate postgres qdrant
+```
+
+Expected: existing PostgreSQL/Qdrant containers and volumes reused, both healthy. Privately record container/image/volume IDs and retained server layers. Compare Dockerfile, Compose, requirements, model/constants configuration, migrations and Alembic config before choosing an app-only build. Do not print resolved environment configuration.
+
+**DESTRUCTIVE — requires explicit development-reset authorization and target inspection.** Capture fresh private pre-reset evidence: all five tables' row fingerprints/counts, installed revision, catalog columns/indexes/constraints/enums, and every Qdrant collection's full config/payload indexes/point IDs/payloads/vectors. The accepted `.venv/uploads03_snapshot.py reset` performed these exact operations with privately loaded settings and published host ports:
+
+```sql
+TRUNCATE TABLE files, folders, sessions, verifications, users;
+```
+
+```http
+POST /collections/<configured Atlas collection>/points/delete?wait=true
+Content-Type: application/json
+
+{"filter":{}}
+```
+
+Expected: one PostgreSQL transaction **without CASCADE**; Qdrant status `completed`. Recount all five tables/Atlas points at zero. Installed revision remains `0002_drive`; complete schema/catalog fingerprint, vector configuration (1024/Cosine), payload indexes and collection config match before reset. Unrelated collections match their complete pre-reset fingerprints. Save a separate **post-reset zero baseline** for final comparison. No DB/collection/volume drop, normal downgrade, datastore rebuild, broad prune or `down -v`.
+
+Expected: this session's reset adapter refuses a repeat when its pre-reset/baseline files already exist. Its `after` mode is a read-only exact comparison. This session deliberately cleared 93 old Atlas points; canonical tables were already empty. Earlier Amendments' preservation procedures do not authorize future resets.
+
+### 14.2. Package current app and delete obsolete modules
+
+After confirming retained dependency/cache/migration equivalence, create the accepted ignored recipe:
+
+```dockerfile
+FROM atlas-server:plan02-amendment03-base
+RUN rm -f /server/app/routers/documents.py /server/app/schemas/documents.py
+COPY app /server/app
+```
+
+```powershell
+docker tag server-server:latest atlas-server:plan02-amendment03-base
+docker build --pull=false -f .venv/uploads03.Dockerfile -t server-server:latest .
+```
+
+Expected: retained layers plus two filesystem layers. Explicit deletion prevents legacy modules surviving a copy overlay. Normal clean builds also omit these deleted source files; production Dockerfile/Compose are unchanged.
+
+Expected: all app/migration Python paths and normalized source bytes match workspace; imports use `/server/app`; multipart `POST /files` returns exact canonical File DTO; legacy route/modules absent; existing auth/folder/query/ask routes retained; credentialed configured-origin CORS remains GET/POST/PATCH. No runtime source mount, `.env` or venv. Accepted `.venv/uploads03_package.py` checked these inside the workload.
+
+### 14.3. Run packaged regression and real cross-store faults
+
+```powershell
+$verifyRoot=Split-Path (Get-Location).Path -Parent
+docker compose --env-file .env -f docker-compose.yml run --rm --no-deps -T -e HF_HUB_OFFLINE=1 -e TRANSFORMERS_OFFLINE=1 -v "${verifyRoot}:/verification:ro" --entrypoint python server /verification/server/.venv/uploads03_packaged_suite.py
+```
+
+The accepted adapter runs section 12.3's workload with `tests.test_22_uploads` added to focused names, the upload package checks above, then this final call from `/server`:
+
+```python
+runpy.run_path('/verification/server/tests/uploads_live.py', run_name='__main__')
+```
+
+Expected: pip/source Alembic checks, focused/full `tests.run`, cached real-model canonical upload probes and all existing disposable PostgreSQL helpers pass. Test-only requirements stay in the temporary container; no Gemini quota. Mounted test code must import the installed app.
+
+Expected: `uploads_live` creates only its guarded UUID-named `atlas_uploads_...` DB, migrates it explicitly to `0002_drive`, and uses actual configured Qdrant/cached Docling/BGE-M3. Root/nested uploads prove canonical metadata/UUID/payload/provenance, actual exact-file query, validation and two-owner privacy. It removes exact synthetic points before canonical cleanup and drops the disposable DB in `finally`.
+
+Expected: test-only patches inject extraction/embedding failures, actual Qdrant upsert followed by transport failure, uncertain cleanup, pre-finalization failure, committed-ready acknowledgement failure, actual SQLAlchemy ready-commit rejection, and commit rejection plus uncertain cleanup. Confirmed cleanup removes processing state; uncertainty retains processing plus actual points until scoped recovery. A second owner's survivor point IDs/payloads/vectors stay identical throughout. No production fault-control route or switch is introduced.
+
+### 14.4. Recreate only server and run live HTTP
+
+```powershell
+docker compose --env-file .env -f docker-compose.yml up -d --no-build --no-deps server
+docker compose --env-file .env -f docker-compose.yml exec -T server python -m alembic current
+```
+
+Expected: only server recreated, installed `0002_drive (head)`, no normal migration application; both system health endpoints and both datastores healthy.
+
+```powershell
+@'
+import os, runpy
+from dotenv import dotenv_values, load_dotenv
+values = dotenv_values('.env')
+load_dotenv('.env')
+os.environ['POSTGRES_HOST'] = '127.0.0.1'
+os.environ['POSTGRES_PORT'] = values.get('POSTGRES_HOST_PORT') or '5432'
+os.environ['QDRANT_URL'] = 'http://127.0.0.1:' + (values.get('QDRANT_HOST_PORT') or '6333')
+os.environ['HF_HUB_OFFLINE'] = '1'
+os.environ['TRANSFORMERS_OFFLINE'] = '1'
+runpy.run_module('tests.uploads_http', run_name='__main__')
+'@ | .venv/Scripts/python.exe -
+```
+
+Expected: actual HTTP root/nested upload, trimmed display/source metadata, ready response/canonical UUID/Qdrant provenance, exact-file query, identical foreign/missing errors without residue, validation boundaries, authentication rejection and legacy 404 pass. Exact vectors are removed before canonical cleanup; all five table fingerprints and Atlas point count return to baseline; no original file is retained.
+
+Expected: rerun the five existing auth HTTP helpers and `tests.folders_http`, including cookies/CORS. Accepted `.venv/uploads03_http.py` wrapped those and the upload helper, captured synthetic passwords/hashes, OTPs, access/refresh credentials/session hashes privately, and audited server logs for those, configured secrets and complete synthetic upload content. Never print captured credentials or response bodies.
+
+### 14.5. Audit, compare final state and clean narrow resources
+
+Expected: image history/config and every layer contain no configured secret values or local `.env`/venvs; required upload/auth/drive/migration files are packaged. Accepted `.venv/uploads03_image_audit.py` removes its archive in `finally`. Package filesystem/source checks separately prove legacy-module absence; old historical layers may still contain nonsensitive deleted modules.
+
+Expected: `.venv/uploads03_snapshot.py after` matches the zero baseline exactly: all five tables **0**, Atlas points **0**, `0002_drive`, unchanged full PostgreSQL catalog and Qdrant config/payload indexes, unrelated collections unchanged. Counts alone do not establish complete preservation.
+
+Expected: datastore container/image/volume identities unchanged, latest server running without app mounts, and no disposable DB/container/archive or synthetic data. Accepted `.venv/uploads03_final.py` validates these before explicit `--cleanup` removes the temporary base tag and only the superseded unreferenced Atlas image. Keep latest app, required datastore images/containers/volumes and shared build cache. Never use broad pruning or historical image IDs as deletion targets.
+
+```powershell
+docker image ls --format '{{.Repository}}:{{.Tag}} {{.ID}} {{.Size}}'
+docker compose --env-file .env -f docker-compose.yml ps --all
+```
+
+Expected: three intended running services, healthy datastores and only latest Atlas plus required datastore images. Run section 13.2's expanded Pyright, compile/dependency and diff checks after helper edits. Audit changed source/docs and private logs for actual configured secrets without printing them. Record actual outcomes in CONTEXT before marking Amendment 03 COMPLETE / `IMPLEMENTED & VERIFIED`. PLAN_02/PHASE_02 remain `IMPLEMENTED, UNVERIFIED`: metadata mutation, deletion/deleting lifecycle, query/ask owner/ready authorization, final PLAN acceptance and later client work remain outstanding.
+
+## 15. Amendment 04 — coding/local checks and review gate
+
+### 15.1. Run isolated mutation and regression checks
+
+From `server/`:
+
+```powershell
+.venv/Scripts/python.exe -m unittest tests.test_23_files
+.venv/Scripts/python.exe -m unittest tests.test_23_files tests.test_22_uploads tests.test_21_folders tests.test_20_drive tests.test_19_current tests.test_18_sessions tests.test_17_login tests.test_16_verification tests.test_15_registration tests.test_14_credentials tests.test_13_postgres tests.test_12_cors
+```
+
+Expected: authenticated ready-only PATCH changes only supplied name/description plus update time, rejects empty/null-name/immutable input, returns the exact File DTO and preserves indexed points. Missing/foreign file errors match exactly; processing/deleting PATCH and processing DELETE return FILE_NOT_READY. SQLite fixtures never connect to the configured database.
+
+Expected: DELETE commits deleting before exact cleanup with no open PostgreSQL session across Qdrant. A confirmed cleanup permits final row deletion and empty 204; missing/foreign/processing never access storage. In-memory Qdrant proves exact-file isolation and zero-match retries. Injected transport and actual SQLAlchemy final-commit rejection retain deleting, return failure and succeed on retry. Drive listing reflects updates/deleting/disappearance. CORS permits only GET/POST/PATCH/DELETE with configured origins/credentials/headers; PUT remains rejected.
+
+Expected: `FileAcceptanceHelperTests` dry-runs the prepared shared acceptance/fault logic with SQLite, deterministic ingestion/embedding and in-memory Qdrant, then verifies synthetic cleanup. `FileValidationTests` guards the disposable helper namespace without creating or dropping a database. These checks are **not** real PostgreSQL locking or Docker/live acceptance.
+
+```powershell
+$env:HF_HUB_OFFLINE='1'
+$env:TRANSFORMERS_OFFLINE='1'
+.venv/Scripts/python.exe -m tests.run
+```
+
+Expected: full regression and two cached real-model authenticated upload probes pass with isolated stores. Existing extraction/coverage/deprecation warnings remain visible. No configured datastore or Gemini quota is used.
+
+### 15.2. Static, schema-source and safety checks
+
+```powershell
+.venv/Scripts/python.exe -m compileall -q app migrations tests
+.venv/Scripts/python.exe -m pip check
+.venv/Scripts/python.exe -m alembic heads
+.venv/Scripts/python.exe -m alembic history
+node "$env:LOCALAPPDATA/npm-cache/_npx/110e52990071af13/node_modules/pyright/dist/pyright.js" --pythonpath .venv/Scripts/python.exe --typeshedpath "$env:LOCALAPPDATA/npm-cache/_npx/110e52990071af13/node_modules/pyright/dist/typeshed-fallback" app tests/test_23_files.py tests/files_acceptance.py tests/files_live.py tests/files_http.py tests/test_22_uploads.py tests/uploads.py tests/uploads_acceptance.py tests/uploads_live.py tests/uploads_http.py tests/test_12_cors.py tests/test_19_current.py tests/test_21_folders.py tests/folders_acceptance.py
+git diff --check
+git check-ignore .env
+```
+
+Expected: compile/dependency/static checks pass, zero Pyright errors/warnings, source head `0002_drive`, unchanged two-revision history, no migration/model/dependency/topology changes. This cached Pyright path is machine-specific; it uses the already installed tool and project interpreter, not a new runtime dependency. `.env` remains ignored/untracked; source/docs/private logs contain no configured secret values. Include untracked new files in whitespace and secret scans because `git diff --check` does not cover them.
+
+Expected: OpenAPI inventory covered by the tests includes canonical POST `/files`, PATCH/DELETE `/files/{file_id}`, unchanged query/ask paths and no `/documents/upload`. The exact DELETE success response has no content body; FilePatch forbids additional fields and advertises only name/description.
+
+### 15.3. Review gate and outstanding acceptance
+
+Expected: finish Stage 1, ping the user and **stop** for code review. Do not run Docker, the opt-in `tests.files_live`/`tests.files_http` against configured stores, live migrations, reset commands or image cleanup until the separate Amendment 04 green flag.
+
+Prepared helpers are locally dry-run and statically checked, but real execution procedures/results will be added only after approval and successful Stage 2 execution. `files_live` is restricted to its generated `atlas_files_<UUID hex>` database and exact synthetic vectors; `files_http` compares all canonical rows/revision and all collection point IDs/payloads/vectors before and after synthetic acceptance. Fault controls exist only in the verification helper.
+
+Expected: Stage 2 starts with actual resource/health/revision and complete PostgreSQL/Qdrant baseline inspection. Prior zero-state evidence is an expectation, not a fresh observation. Unexpected nonempty data must be reported, not erased. **Do not repeat section 14's historical destructive reset.** After review approval, follow the Amendment 04 acceptance requirements for packaging, real deletion faults/retries, live privacy/CORS, full survivor comparisons, security/image/log audits, exact synthetic cleanup and preservation. Only then may Amendment 04 become COMPLETE / `IMPLEMENTED & VERIFIED`; PLAN_02 remains `IMPLEMENTED, UNVERIFIED` until later authorization/final acceptance.
+
+## 16. Amendment 04 — approved Docker and live acceptance
+
+### 16.1. Inspect and preserve the actual starting state
+
+Run from `server/` after the separate Stage 2 green flag:
+
+```powershell
+docker compose --env-file .env -f docker-compose.yml ps --all
+docker image ls --format '{{.Repository}}:{{.Tag}} {{.ID}} {{.Size}}'
+docker volume ls
+```
+
+Expected: inspect existing service/container/image/volume identities before starting or recreating anything. In the accepted run, all three retained containers were stopped; `docker start server-postgres-1 server-qdrant-1 server-server-1` started those same resources. Confirm PostgreSQL/Qdrant health without printing container environments or Compose's expanded secret configuration.
+
+Expected: privately capture every row in all five canonical tables, installed revision, PostgreSQL columns/constraints/indexes/enums, and every Qdrant collection's complete paginated IDs/payloads/vectors/config/payload indexes. Accepted ignored `.venv/files04_snapshot.py capture` recorded the fresh empty baseline and has no reset mode. `compare` requires complete equality. Capture once; do not overwrite a baseline after synthetic writes.
+
+Expected: users/verifications/sessions/folders/files **0**, Atlas points **0**, installed `0002_drive`, 1024-dimensional Cosine collection unchanged. Unexpected nonempty state must be reported and preserved. **Never invoke Amendment 03's historical reset for this workflow.** A fresh machine must recreate the read-only adapter or use equivalent private fingerprints; the ignored adapters are local evidence, not tracked tooling.
+
+### 16.2. Package the application and run regression against it
+
+After recording the actual current image ID privately, retain it under temporary tag `atlas-server:plan02-amendment04-base`. The accepted ignored `.venv/files04.Dockerfile` contains:
+
+```dockerfile
+FROM atlas-server:plan02-amendment04-base
+COPY app /server/app
+```
+
+```powershell
+docker build --file .venv/files04.Dockerfile --tag server-server:latest .
+docker compose --env-file .env -f docker-compose.yml stop server
+$verifyRoot = (Resolve-Path ..).Path
+docker compose --env-file .env -f docker-compose.yml run --rm --no-deps -T -e HF_HUB_OFFLINE=1 -e TRANSFORMERS_OFFLINE=1 -v "${verifyRoot}:/verification:ro" --entrypoint python server /verification/server/.venv/files04_packaged_suite.py
+```
+
+Expected: one new app layer above all retained dependency/model layers. No `.env`/venv copied. Runtime imports must resolve to `/server/app`, while tests come from the read-only mount. Compare every application Python file and its complete path inventory, migrations and Alembic configuration against source; compare normalized newlines only. Source head and installed head remain `0002_drive`.
+
+Expected: exact POST `/files`, PATCH/DELETE `/files/{file_id}`, unchanged query/ask paths, no `/documents/upload` or legacy modules; exact File DTO; exact credentialed GET/POST/PATCH/DELETE CORS with existing origin/header policy. The disposable container alone installs test-only requirements. Focused/full tests, cached-model probes, dependency checks and all existing PostgreSQL identity/auth/folder/drive/upload helpers pass.
+
+Expected: `tests.files_live` creates only its validated `atlas_files_<UUID hex>` database, upgrades that disposable database, runs acceptance using the packaged app and actual Qdrant, removes exact synthetic vectors before canonical cleanup, and drops only its own database. It never migrates or truncates the normal database.
+
+Expected: real PostgreSQL observes both row-lock orders through `pg_blocking_pids`. PATCH waiting behind deleting rejects; deletion waiting behind a metadata commit preserves that metadata. Before actual/failing Qdrant cleanup, the engine has zero checked-out connections and an independent session sees committed deleting. These are verification-only observations, not production instrumentation.
+
+Expected: shared acceptance hashes complete point IDs/payloads/vectors before/after PATCH and full survivor canonical/vector state through deletion. Real-store fault helpers inject Qdrant failure and final SQLAlchemy commit rejection, require retained deleting and failure responses, then require successful retry, including zero target vectors after the rejected final commit. Fault injection exists only inside TestClient verification code; no running-server fault endpoint is added.
+
+### 16.3. Verify the running server through actual HTTP
+
+```powershell
+docker compose --env-file .env -f docker-compose.yml up -d --no-build --no-deps server
+```
+
+Run the five existing auth HTTP helpers, `tests.folders_http`, `tests.uploads_http`, and `tests.files_http`. Accepted ignored `.venv/files04_http.py` orchestrates them with host PostgreSQL/Qdrant overrides, cached/offline models and private credential/content log scans. To run just the file HTTP acceptance using the proven host adapter pattern:
+
+```powershell
+@'
+import os, runpy
+from dotenv import dotenv_values, load_dotenv
+values = dotenv_values('.env')
+load_dotenv('.env')
+os.environ['POSTGRES_HOST'] = '127.0.0.1'
+os.environ['POSTGRES_PORT'] = values.get('POSTGRES_HOST_PORT') or '5432'
+os.environ['QDRANT_URL'] = 'http://127.0.0.1:' + (values.get('QDRANT_HOST_PORT') or '6333')
+os.environ['HF_HUB_OFFLINE'] = '1'
+os.environ['TRANSFORMERS_OFFLINE'] = '1'
+runpy.run_module('tests.files_http', run_name='__main__')
+'@ | .venv/Scripts/python.exe -
+```
+
+Expected: actual HTTP two-owner uploads, nested target metadata edits, description clearing, shared validation limits, full vector equality after every PATCH, exact immutable fields, owner/missing identical 404, processing PATCH/DELETE 409, completed DELETE empty 204, listing removal and survivor canonical/vector/retrieval preservation. DELETE preflight grants only approved origins/headers with credentials; unapproved origins and PUT receive no grant. Helpers remove only their explicit synthetic owners, with exact vectors cleaned first, and compare complete canonical/vector baseline afterward.
+
+Expected: existing auth/cookie/session/folder/upload behavior and database health remain correct. Privately collect synthetic credentials, hashes, OTPs and upload content for exact server-log checks; never print them. The accepted run checked configured secrets plus captured credentials/hashes and complete synthetic content.
+
+### 16.4. Audit, restore and record completion
+
+Expected: inspect image history/config and every filesystem layer for actual configured secrets, local `.env`/venvs and required packaged files. Accepted ignored `.venv/files04_image_audit.py` removes its temporary archive in `finally`; final installed path/source comparison separately proves legacy-module absence.
+
+```powershell
+.venv/Scripts/python.exe .venv/files04_snapshot.py compare
+.venv/Scripts/python.exe .venv/files04_final.py --cleanup
+docker compose --env-file .env -f docker-compose.yml ps --all
+docker image ls --format '{{.Repository}}:{{.Tag}} {{.ID}} {{.Size}}'
+git diff --check
+```
+
+Expected: the complete starting PostgreSQL/Qdrant snapshot matches, all five tables/Atlas points return to zero, schema/config/payload indexes and `0002_drive` are unchanged. Datastore container/image/volume identities remain the same. Latest server runs from the new image without app mounts; no disposable database/container/archive remains.
+
+Expected: cleanup first inspects every container image reference, then removes only the temporary Amendment 04 base tag and superseded unreferenced Atlas image. Keep latest server, PostgreSQL/Qdrant images/containers/volumes and shared build cache. No broad prune or `down -v`.
+
+Expected: rerun section 15.2 static/compile/dependency/diff checks after helper edits, include untracked files in UTF-8/whitespace/Markdown checks, and scan changed source/docs/private logs against actual configured secrets. Only after all required checks pass, update actual CONTEXT evidence, current-state documents and Amendment 04 to COMPLETE / `IMPLEMENTED & VERIFIED`. PLAN_02 and PHASE_02 remain `IMPLEMENTED, UNVERIFIED`; owner/ready query/ask authorization, final PLAN acceptance and later client work remain outstanding.

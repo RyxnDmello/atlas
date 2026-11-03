@@ -12,7 +12,7 @@ from app.schemas.constants import CorsConstants
 
 from app.main import app
 
-from tests.postgres import database
+from tests.uploads import environment
 from tests.test_05_upload_storage import Provider
 
 
@@ -35,37 +35,37 @@ class CorsTests(TestCase):
             item for item in app.user_middleware if item.cls is CORSMiddleware)
         self.assertTrue(wiring.kwargs["allow_credentials"])
         self.assertEqual(wiring.kwargs["allow_methods"], [
-                         "POST", "GET", "PATCH"])
+                         "POST", "GET", "PATCH", "DELETE"])
         options = {**wiring.kwargs, "allow_origins": ["http://localhost:3000"]}
         application = FastAPI(lifespan=app.router.lifespan_context,
                               middleware=[Middleware(CORSMiddleware, **options)])
         application.include_router(app.router)
         application.exception_handlers.update(app.exception_handlers)
         client = QdrantClient(":memory:", force_disable_check_same_thread=True)
-        with patch("app.core.lifespan.get_bge_m3_embedder", return_value=Provider()), patch(
-                "app.core.lifespan.create_client", return_value=client), patch("app.core.lifespan.prepare", return_value=database()), TestClient(application) as http:
+        with environment() as (database, user, auth), patch("app.core.lifespan.get_bge_m3_embedder", return_value=Provider()), patch(
+                "app.core.lifespan.create_client", return_value=client), patch("app.core.lifespan.prepare", return_value=database), TestClient(application) as http:
             for origin, status in (("http://localhost:3000", 200), ("https://unapproved.example", 400)):
                 with self.subTest(origin=origin):
-                    response = http.options("/documents/upload", headers={"Origin": origin,
-                                                                          "Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "Content-Type"})
+                    response = http.options("/files", headers={"Origin": origin,
+                                                               "Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "Content-Type"})
                     self.assertEqual(response.status_code, status)
                     self.assertEqual(response.headers.get(
                         "access-control-allow-origin"), origin if status == 200 else None)
 
-            headers = {"Origin": "http://localhost:3000"}
-            response = http.post("/documents/upload", headers=headers,
+            headers = {"Origin": "http://localhost:3000", **auth}
+            response = http.post("/files", headers=headers, data={"name": "cors"},
                                  files={"file": ("cors.md", b"# Policy\n\nKeep records for seven years.", "text/markdown")})
-            self.assertEqual(response.status_code, 200, response.text)
+            self.assertEqual(response.status_code, 201, response.text)
             self.assertEqual(
                 response.headers["access-control-allow-origin"], headers["Origin"])
             self.assertEqual(set(response.json()), {
-                             "id", "name", "type", "total", "chunks"})
-            response = http.post("/documents/upload", headers=headers,
+                             "id", "name", "description", "original_name", "extension", "size_bytes", "status", "folder_id", "created_at", "updated_at"})
+            response = http.post("/files", headers=headers, data={"name": "cors"},
                                  files={"file": ("invalid.zip", b"unsupported", "application/zip")})
             self.assertEqual(response.status_code, 400)
             self.assertEqual(
                 response.headers["access-control-allow-origin"], headers["Origin"])
             self.assertEqual(set(response.json()), {"error", "code"})
-            response = http.post("/documents/upload", headers={"Origin": "https://unapproved.example"},
+            response = http.post("/files", headers={"Origin": "https://unapproved.example"},
                                  files={"file": ("invalid.zip", b"unsupported", "application/zip")})
             self.assertNotIn("access-control-allow-origin", response.headers)

@@ -378,9 +378,9 @@ class FolderApiTests(unittest.TestCase):
                     response = client.options("/folders/"+str(self.root), headers={"Origin": origin,
                                                                                    "Access-Control-Request-Method": method, "Access-Control-Request-Headers": "Authorization, Content-Type"})
                     self.assertEqual(response.status_code, 200 if origin ==
-                                     "https://atlas.example" and method in {"GET", "POST", "PATCH"} else 400)
+                                     "https://atlas.example" and method in {"GET", "POST", "PATCH", "DELETE"} else 400)
                     self.assertEqual(set(
-                        response.headers["access-control-allow-methods"].split(", ")), {"GET", "POST", "PATCH"})
+                        response.headers["access-control-allow-methods"].split(", ")), {"GET", "POST", "PATCH", "DELETE"})
                     self.assertEqual(
                         response.headers["access-control-allow-credentials"], "true")
                     self.assertEqual(response.headers.get(
@@ -414,8 +414,8 @@ class FolderApiTests(unittest.TestCase):
         self.assertEqual(set(paths["/drive"]), {"get"})
         self.assertEqual(set(paths["/folders"]), {"post"})
         self.assertEqual(set(paths["/folders/{folder_id}"]), {"patch"})
-        self.assertNotIn("/files", paths)
-        self.assertNotIn("/files/{file_id}", paths)
+        self.assertEqual(set(paths["/files"]), {"post"})
+        self.assertEqual(set(paths["/files/{file_id}"]), {"patch", "delete"})
 
     def test_synthetic_cleanup_removes_deep_rows_and_preserves_other_owners(self):
         from tests.folders_acceptance import cleanup

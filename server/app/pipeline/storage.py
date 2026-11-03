@@ -7,7 +7,7 @@ from qdrant_client import QdrantClient
 
 from app.core.logging import logger
 
-from app.db.qdrant import store
+from app.db.qdrant import remove, store
 from app.pipeline.embeddings.provider import EmbeddingProvider
 
 from app.schemas.pipeline import Chunk
@@ -53,7 +53,8 @@ class Storage:
                     "Embedding output does not match the chunk vector contract"
                 )
         except Exception as error:
-            logger.exception("Embedding failed: file_id=%s", chunks[0].id)
+            logger.error("Embedding failed: file_id=%s category=%s",
+                         chunks[0].id, type(error).__name__)
 
             raise ApiError(
                 "Unable to embed uploaded file chunks", "INTERNAL_SERVER_ERROR"
@@ -86,3 +87,7 @@ class Storage:
         logger.info("Stored file: file_id=%s points=%d", chunks[0].id, count)
 
         return count
+
+    def delete(self, file_id: UUID) -> None:
+        """Confirm idempotent exact-file cleanup through the existing Qdrant client."""
+        remove(self.client, self.collection, file_id)

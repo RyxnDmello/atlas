@@ -4,7 +4,7 @@
 - Chronological implementation history belongs in the Codex-owned `CONTEXT` and focused implementation prompts live under `AMENDMENTS/`. This PLAN defines capabilities and contracts without preassigning future Amendment numbering.
 - **Branch:** `phase-02/plan-02`
 - **Depends on:** PHASE_02_PLAN_01 `IMPLEMENTED & VERIFIED`.
-- **Status:** `IMPLEMENTED, UNVERIFIED` — Amendment 01 complete; canonical folder/file persistence is `IMPLEMENTED & VERIFIED` through local/Docker regression, real PostgreSQL constraints/reversibility, live auth/health, security, and preservation acceptance. Amendment 02 is complete: authenticated folder creation/update and root/direct-child browsing are `IMPLEMENTED & VERIFIED` through local/packaged regression, real PostgreSQL two-user acceptance, live HTTP/CORS, security scans, and datastore preservation. File ingestion/lifecycle, metadata mutation/deletion, and owner-authorized RAG remain `NOT YET BUILT`.
+- **Status:** `IMPLEMENTED, UNVERIFIED` — Amendment 01 complete; canonical folder/file persistence is `IMPLEMENTED & VERIFIED` through local/Docker regression, real PostgreSQL constraints/reversibility, live auth/health, security, and preservation acceptance. Amendment 02 is complete: authenticated folder creation/update and root/direct-child browsing are `IMPLEMENTED & VERIFIED` through local/packaged regression, real PostgreSQL two-user acceptance, live HTTP/CORS, security scans, and datastore preservation. Amendment 03 is complete: canonical authenticated upload is `IMPLEMENTED & VERIFIED` through local/packaged regression, real PostgreSQL/Qdrant lifecycle and failure compensation, live HTTP, security scans and the authorized clean-dataset acceptance. Amendment 04 is complete: metadata mutation and recoverable permanent deletion are `IMPLEMENTED & VERIFIED` through local/packaged regression, real PostgreSQL locking/transactions, Qdrant failure/retry/isolation, live HTTP/CORS, security and datastore preservation. CORS permits exactly GET/POST/PATCH/DELETE. Owner-authorized RAG remains `NOT YET BUILT`.
 - **Subsystem:** canonical personal-drive state + authenticated transient ingestion + owner-authorized single-file RAG.
 - **Implementation evidence:** `PHASE_02_PLAN_02_CONTEXT.md` — Codex-owned; created/maintained only when implementation begins.
 - **Repeatable acceptance:** `PHASE_02_PLAN_02_MANUAL.md` — Codex-owned; created/maintained only by Codex CLI.
@@ -67,7 +67,7 @@ PLAN_02 stops before Phase 2 client authentication/dashboard implementation, fol
 - folder creation;
 - folder name/description update;
 - canonical `POST /files` authenticated upload;
-- temporary authenticated compatibility support for legacy `POST /documents/upload`;
+- removal of legacy `POST /documents/upload` under Amendment 03;
 - one immutable file UUID across PostgreSQL/API/client/Qdrant payload;
 - transient original-file bytes;
 - existing verified Docling/chunking/embedding/Qdrant indexing path;
@@ -655,6 +655,8 @@ folder_id=<optional UUID>
 
 The browser/framework owns the multipart boundary.
 
+Amendment 03 locks file metadata validation: trim `name`, require 1–100 Python characters, and allow Unicode letter/number categories, ASCII space, and only `_ - . , ( ) [ ] & + @ '` punctuation. Reject all other characters after trimming. Trim optional nullable `description`, normalize blank to null, and limit normalized length to 250; no punctuation whitelist. Reject extra multipart fields; identity, ownership, lifecycle, source metadata, and timestamps are server-owned.
+
 ### High-level flow
 
 ```text
@@ -762,22 +764,11 @@ Do not add an automatic repair worker merely to eliminate this accepted distribu
 
 ---
 
-## 15. Legacy compatibility upload: `POST /documents/upload`
+## 15. Legacy upload removal: `POST /documents/upload`
 
-The Phase 1 route remains temporarily available as a compatibility adapter.
+Amendment 03 deliberately supersedes the earlier compatibility-adapter decision: the legacy public route is removed entirely. It must not remain as an alias, redirect, hidden route, or adapter. The internal ingestion implementation is reused by canonical authenticated `POST /files`.
 
-PLAN_02 deliberately changes its security/persistence behavior:
-
-- it now requires authenticated current-user context;
-- it must call the same canonical PostgreSQL-backed upload orchestration as `POST /files`;
-- it must not create a Qdrant-only file;
-- it must use the same canonical file UUID;
-- it must use the same lifecycle/cleanup rules;
-- it must preserve the historical Phase 1 response shape where practical for compatibility.
-
-There must be one ingestion architecture, not two.
-
-This server-first authentication change may temporarily make the verified Phase 1 unauthenticated client incompatible until the Phase 2 client plans consume authenticated APIs. That temporary mismatch is accepted by the Phase 2 server-first sequencing rule and must be explicitly recorded in PLAN_02 evidence rather than hidden.
+The unauthenticated Phase 1 client upload flow is temporarily incompatible until later Phase 2 client integration. Historical Phase 1 verification remains unchanged.
 
 ---
 
@@ -1176,7 +1167,7 @@ PLAN_02 naturally separates into focused capability boundaries without assigning
 - existing RAG ingestion reuse;
 - ready finalization;
 - exact-file failure cleanup;
-- legacy `/documents/upload` adapter.
+- removal of legacy `/documents/upload`; one internal ingestion path.
 
 ### File metadata and permanent deletion
 
@@ -1287,7 +1278,7 @@ Additional work is introduced only when evidence/defects justify it.
 - existing auth/session contracts remain verified;
 - existing system/database health contracts remain verified;
 - Phase 1 RAG mechanics remain verified;
-- legacy `/documents/upload` uses canonical authenticated backend path;
+- legacy `/documents/upload` is absent; only `/files` exposes upload;
 - no client implementation;
 - no persistent original storage;
 - no multi-scope RAG.
@@ -1348,7 +1339,7 @@ PLAN_02 becomes `IMPLEMENTED & VERIFIED` only when the complete authenticated dr
 - failed cleanup never falsely deletes canonical recovery state;
 - no durable `failed` status exists;
 - finalization failure never returns a ready/successful file falsely;
-- legacy `/documents/upload` does not create a parallel Qdrant-only architecture.
+- legacy `/documents/upload` is absent from HTTP/OpenAPI and cannot invoke ingestion.
 
 ### Metadata
 
@@ -1435,9 +1426,9 @@ There is no trash/recovery.
 
 Successful deletion removes canonical metadata and derived vectors permanently.
 
-### Authenticated legacy upload
+### Removed legacy upload
 
-The legacy Phase 1 `/documents/upload` path becomes authenticated/canonical in PLAN_02.
+Amendment 03 removes the legacy Phase 1 `/documents/upload` path; authenticated `POST /files` is the sole upload endpoint.
 
 This can temporarily break the unauthenticated Phase 1 browser workflow until later Phase 2 client integration. The server-first sequencing rule accepts that temporary mismatch; evidence must state it rather than pretending Phase 1 client compatibility remains complete during the transition.
 

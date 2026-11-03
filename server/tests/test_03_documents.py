@@ -1,14 +1,14 @@
-from app.routers.documents import upload
-from app.pipeline.chunking import MAX_CHUNK_TOKENS
-
 import io
 import sys
 import zipfile
 import logging
 import unittest
+from uuid import uuid4
 from pathlib import Path
 from collections.abc import Sequence
 from PIL import Image, ImageDraw, ImageFont
+from fastapi import HTTPException, UploadFile
+from starlette.concurrency import run_in_threadpool
 
 from pptx import Presentation
 from pptx.shapes.autoshape import Shape
@@ -16,9 +16,11 @@ from pptx.shapes.autoshape import Shape
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 
-from fastapi import HTTPException, UploadFile
+from app.pipeline.chunking import MAX_CHUNK_TOKENS
+from app.pipeline.ingestion import ingest, validate
 
 SERVER_ROOT = Path(__file__).resolve().parents[1]
+
 if str(SERVER_ROOT) not in sys.path:
     sys.path.insert(0, str(SERVER_ROOT))
 
@@ -211,6 +213,17 @@ def make_upload(filename: str, content: bytes) -> UploadFile:
     return UploadFile(filename=filename, file=io.BytesIO(content))
 
 
+async def upload(file):
+    """Probe the internal ingestion boundary; public upload lifecycle has separate tests."""
+    try:
+        content = await file.read()
+        filename = file.filename or ""
+        extension = validate(content, filename)
+        return await run_in_threadpool(ingest, content, filename, extension, uuid4())
+    finally:
+        await file.close()
+
+
 class DocumentUploadTests(unittest.IsolatedAsyncioTestCase):
     """Verify supported uploads, validation failures, and blank-page warnings."""
 
@@ -233,16 +246,16 @@ class DocumentUploadTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(filename=filename):
                 response = await upload(make_upload(filename, content))
 
-                self.assertGreater(response.total, 0)
-                self.assertTrue(response.chunks)
-                self.assertTrue(all(chunk.text for chunk in response.chunks))
+                self.assertGreater(len(response), 0)
+                self.assertTrue(response)
+                self.assertTrue(all(chunk.text for chunk in response))
                 self.assertTrue(
-                    all(chunk.count <= MAX_CHUNK_TOKENS for chunk in response.chunks)
+                    all(chunk.count <= MAX_CHUNK_TOKENS for chunk in response)
                 )
 
                 if filename in {"policy.png", "policy.jpg"}:
                     text = " ".join(
-                        chunk.text for chunk in response.chunks).upper()
+                        chunk.text for chunk in response).upper()
                     self.assertIn("ATLAS", text)
 
     async def test_pdf_upload_and_blank_page_warning(self) -> None:
@@ -258,9 +271,9 @@ class DocumentUploadTests(unittest.IsolatedAsyncioTestCase):
         with self.assertLogs("app.pipeline.text_extraction", level=logging.WARNING) as logs:
             response = await upload(make_upload("policy.pdf", content))
 
-        self.assertGreater(response.total, 0)
+        self.assertGreater(len(response), 0)
 
-        text = " ".join(chunk.text for chunk in response.chunks)
+        text = " ".join(chunk.text for chunk in response)
 
         self.assertIn("First page", text)
         self.assertIn("Third page", text)
@@ -273,7 +286,7 @@ class DocumentUploadTests(unittest.IsolatedAsyncioTestCase):
             await upload(make_upload("archive.zip", b"not processed"))
 
         self.assertEqual(caught.exception.status_code, 400)
-        self.assertIn(".zip", caught.exception.detail)
+        self.assertIn("extension", caught.exception.detail)
 
     async def test_empty_upload_is_rejected(self) -> None:
         """Reject a zero-byte upload with an explicit validation error."""
@@ -287,9 +300,9 @@ class DocumentUploadTests(unittest.IsolatedAsyncioTestCase):
         """Keep a short file in one chunk with its original text."""
         response = await upload(make_upload("short.md", b"A short policy sentence."))
 
-        self.assertEqual(response.total, 1)
-        self.assertEqual(response.chunks[0].index, 0)
-        self.assertIn("A short policy sentence.", response.chunks[0].text)
+        self.assertEqual(len(response), 1)
+        self.assertEqual(response[0].index, 0)
+        self.assertIn("A short policy sentence.", response[0].text)
 
 
 if __name__ == "__main__":
