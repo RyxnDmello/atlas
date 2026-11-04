@@ -1,8 +1,10 @@
 # PLAN_02 Manual — Canonical Drive Backend
 
-Current Amendment 04: **COMPLETE**, `IMPLEMENTED & VERIFIED`. Sections 15 and 16 record coding/review and separately authorized Docker/live acceptance. File PATCH/DELETE and exact GET/POST/PATCH/DELETE CORS are verified. Earlier sections preserve historical Amendment procedures; the Amendment 03 destructive reset must not be repeated. PLAN_02 remains `IMPLEMENTED, UNVERIFIED`; owner/ready query and ask authorization remain future work.
+Current Amendment 06: **COMPLETE**, `IMPLEMENTED & VERIFIED`. Reviewed coding and separately authorized Docker/real-store/HTTP/security/preservation acceptance passed. PLAN_02 is `IMPLEMENTED & VERIFIED`; PHASE_02 remains `IMPLEMENTED, UNVERIFIED`. Section 19 contains the complete matrix and executed procedure; authenticated client plans remain `NOT YET BUILT`.
 
-Amendment 01 is **COMPLETE**, with canonical folder/file persistence `IMPLEMENTED & VERIFIED` through local and Docker/live acceptance. Amendment 02 is **COMPLETE**: authenticated folder/direct-child APIs are `IMPLEMENTED & VERIFIED` through local/packaged, real PostgreSQL, live HTTP/CORS, security, preservation and cleanup acceptance. PLAN_02 remains `IMPLEMENTED, UNVERIFIED`. Amendment 03 is **COMPLETE**: canonical authenticated upload is `IMPLEMENTED & VERIFIED` through coding/review, packaged regression, real PostgreSQL/Qdrant lifecycle and failure compensation, live HTTP, security and authorized clean-dataset acceptance. See section 14 and CONTEXT for proven procedures and actual results.
+Amendment 05: **COMPLETE**, `IMPLEMENTED & VERIFIED`; owner/ready query and ask authorization passed local acceptance (section 17) and separately authorized packaged, real PostgreSQL/Qdrant, deterministic native SSE, running HTTP, security and preservation acceptance (section 18). No live Gemini call was made. Amendment 04 remains **COMPLETE**, `IMPLEMENTED & VERIFIED`; sections 15–16 preserve its accepted procedures. Earlier sections are historical; the Amendment 03 destructive reset must not be repeated. PLAN_02 is now `IMPLEMENTED & VERIFIED` through Amendment 06.
+
+Amendment 01 is **COMPLETE**, with canonical folder/file persistence `IMPLEMENTED & VERIFIED` through local and Docker/live acceptance. Amendment 02 is **COMPLETE**: authenticated folder/direct-child APIs are `IMPLEMENTED & VERIFIED` through local/packaged, real PostgreSQL, live HTTP/CORS, security, preservation and cleanup acceptance. PLAN_02 is now `IMPLEMENTED & VERIFIED` through Amendment 06. Amendment 03 is **COMPLETE**: canonical authenticated upload is `IMPLEMENTED & VERIFIED` through coding/review, packaged regression, real PostgreSQL/Qdrant lifecycle and failure compensation, live HTTP, security and authorized clean-dataset acceptance. See section 14 and CONTEXT for proven procedures and actual results.
 
 Sections 6–11 retain the proven Amendment 01 Docker procedure and its historical migration boundary. Do not rerun that workflow blindly for Amendment 02: the installed head is already `0002_drive`, no migration is needed, and the fresh preservation baseline must cover **all five canonical tables**, as well as full Qdrant configuration and point content. Section 12 records the proven Amendment 02 workflow. Both new folder helpers have passed against PostgreSQL and the running server.
 
@@ -578,3 +580,438 @@ Expected: the complete starting PostgreSQL/Qdrant snapshot matches, all five tab
 Expected: cleanup first inspects every container image reference, then removes only the temporary Amendment 04 base tag and superseded unreferenced Atlas image. Keep latest server, PostgreSQL/Qdrant images/containers/volumes and shared build cache. No broad prune or `down -v`.
 
 Expected: rerun section 15.2 static/compile/dependency/diff checks after helper edits, include untracked files in UTF-8/whitespace/Markdown checks, and scan changed source/docs/private logs against actual configured secrets. Only after all required checks pass, update actual CONTEXT evidence, current-state documents and Amendment 04 to COMPLETE / `IMPLEMENTED & VERIFIED`. PLAN_02 and PHASE_02 remain `IMPLEMENTED, UNVERIFIED`; owner/ready query/ask authorization, final PLAN acceptance and later client work remain outstanding.
+
+## 17. Amendment 05 — isolated local acceptance and code-review stop
+
+### 17.1. Run focused authorization and backend regression
+
+From `server/`, use a child PowerShell session so offline overrides end with that session:
+
+```powershell
+$env:HF_HUB_OFFLINE = '1'
+$env:TRANSFORMERS_OFFLINE = '1'
+.venv/Scripts/python.exe -m unittest tests.test_24_rag tests.test_07_retrieval tests.test_10_ask tests.test_23_files tests.test_22_uploads tests.test_21_folders tests.test_20_drive tests.test_19_current tests.test_18_sessions tests.test_17_login tests.test_16_verification tests.test_15_registration tests.test_14_credentials tests.test_13_postgres tests.test_12_cors
+```
+
+Expected: focused regression passes without Docker, configured datastore access or live generation. Accepted expanded run: 214 tests. Fixtures use actual Bearer validation, isolated SQLite canonical rows, deterministic embeddings/in-memory Qdrant, real retrieval and native SSE/grounding with deterministic generation. SQLite does not prove PostgreSQL behavior.
+
+Expected: missing/invalid/expired credentials return 401; missing/foreign files in every lifecycle state and indexed orphans return identical 404; owned processing/deleting return 409. Query/ask denials have JSON media type and invoke no retrieval, query embedding, Qdrant query, provider or grounded stream. SQL predicates include both file and owner UUIDs with no row lock/commit; sessions close before embedding/provider iteration. Both owners can query/ask their own ready files; canonical rows and vectors remain unchanged by reads.
+
+Expected: existing request validation/top_k/raw-score/order/exact-file retrieval tests, empty query, native answer/citations/done, exact fallback, pre-stream retrieval failures, post-commit error/no-done and disconnect/cleanup tests pass. Legacy upload remains absent; auth/folder/upload/PATCH/DELETE/CORS regressions remain active.
+
+### 17.2. Run the full isolated offline suite
+
+```powershell
+$env:HF_HUB_OFFLINE = '1'
+$env:TRANSFORMERS_OFFLINE = '1'
+.venv/Scripts/python.exe -m tests.run
+```
+
+Expected: final accepted run passes all 312 tests in 73.144s, plus two cached real BGE-M3 authenticated upload probes with in-memory Qdrant/isolated canonical state. Timing is observational, not a required threshold. No actual PostgreSQL, configured Qdrant or Gemini acceptance is implied.
+
+Expected: the new opt-in acceptance helper's local dry run and injected-failure cleanup leave only the fixture's original canonical user and restore exact vector state. The disposable DB namespace guard accepts only generated `atlas_rag_<UUID hex>` names and rejects configured/foreign/malformed targets. Live helper entry points are not run by discovery.
+
+### 17.3. Check static, source-migration and secret handling
+
+```powershell
+.venv/Scripts/python.exe -m compileall -q app migrations tests
+.venv/Scripts/python.exe -m pip check
+.venv/Scripts/python.exe -m alembic heads
+.venv/Scripts/python.exe -m alembic history
+node "$env:LOCALAPPDATA/npm-cache/_npx/110e52990071af13/node_modules/pyright/dist/pyright.js" --pythonpath .venv/Scripts/python.exe --typeshedpath "$env:LOCALAPPDATA/npm-cache/_npx/110e52990071af13/node_modules/pyright/dist/typeshed-fallback" app tests/test_24_rag.py tests/rag.py tests/rag_acceptance.py tests/rag_live.py tests/rag_http.py tests/test_07_retrieval.py tests/test_10_ask.py tests/test_05_upload_storage.py tests/uploads.py tests/uploads_acceptance.py tests/files_acceptance.py tests/smoke_ask.py
+git diff --check
+```
+
+Expected: compilation/dependencies pass, Pyright reports zero errors/warnings/informations, source head remains `0002_drive` after `0001_identity`. This does not inspect the configured PostgreSQL installed revision. The cached Pyright/typeshed path is machine-specific and uses an existing tool, not a new project dependency.
+
+Expected: `.env` remains ignored/untracked. Privately scan all changed/new source/docs and task logs for actual configured password/API/signing secrets without printing them, including untracked files in UTF-8, final-newline and trailing-whitespace checks. Models, migrations, dependencies, Dockerfile/Compose, CORS, retrieval/generation/citation internals and request DTO sources remain unchanged. Existing Git LF/CRLF advisories are distinct from diff whitespace failures.
+
+### 17.4. Stop for review; prepared live helpers are not acceptance evidence
+
+Expected: Amendment 05 and its RAG capability remain `IMPLEMENTED, UNVERIFIED`. Report the coding results and wait for a separate explicit Amendment 05 Stage 2 green flag. No Docker command, real configured PostgreSQL/Qdrant connection, image operation or live provider check belongs in Stage 1. Prior Amendment approvals do not authorize this stage.
+
+Prepared only: `tests.rag_live` owns a validated disposable PostgreSQL database and actual Qdrant synthetic data; positive nonempty ask uses a deterministic verification-only provider, with pool checks before retrieval and during generation. `tests.rag_http` covers real running HTTP queries, negative ask JSON responses, empty-context SSE and deletion interaction without nonempty Gemini generation. Both preserve exact unrelated/survivor state and clean synthetic vectors before canonical owners. Their real-store invocations and full schema/collection/image/security/preservation acceptance remain unverified until Stage 2.
+
+Prepared only: existing opt-in `tests.smoke_ask` now supplies authentication. `--local` seeds an isolated owned-ready empty file; external/hosted modes require a private current-owner token in `ATLAS_VERIFY_ACCESS_TOKEN` and explicit current owned-ready fixture UUIDs. Its historical defaults do not establish canonical ownership. Do not run live generation without the relevant network/credential/cost authorization; it was not run in this coding stage.
+
+Expected: authorization remains a request-start gate; later deletion can affect an already-authorized request. No SQL transaction/connection or row lock spans retrieval, generation or streaming. PLAN_02/PHASE_02 stay `IMPLEMENTED, UNVERIFIED`; final integrated acceptance and later client work remain outstanding.
+
+## 18. Amendment 05 — authorized Docker, real-store and live acceptance
+
+### 18.1. Preserve a fresh baseline and package the reviewed app
+
+Expected: Stage 1 review and a separate explicit Stage 2 green flag precede these commands. That approval was received for the recorded run. Section 17 preserves the earlier review stop. Never repeat the Amendment 03 reset.
+
+From `server/`, inspect retained resources without printing environment configuration:
+
+```powershell
+docker compose --env-file .env -f docker-compose.yml ps --all
+docker image ls --format '{{.Repository}}:{{.Tag}} {{.ID}} {{.Size}}'
+docker volume ls --format '{{.Name}}'
+docker compose --env-file .env -f docker-compose.yml start postgres qdrant
+.venv/Scripts/python.exe .venv/rag05_snapshot.py capture
+```
+
+Expected: use a fresh write-once private snapshot path for a new run; do not overwrite the accepted baseline. The ignored `rag05_snapshot.py` is the local acceptance adapter, derived from the prior full snapshot adapter with zero-data assumptions removed. It fingerprints all five canonical tables, PostgreSQL schema/catalog/revision, every Qdrant collection configuration/payload index and complete paginated point IDs/payloads/vectors. Preserve and report unexpected data. The accepted run observed all five counts and Atlas points at zero, installed `0002_drive`; no reset or normal-DB migration was performed.
+
+Expected: privately capture container/image/volume identities, all container references and the retained server layer list before replacing the server. The accepted run reused all existing dependency/model layers and both datastore services. Its ignored `.venv/rag05.Dockerfile` contained:
+
+```dockerfile
+FROM atlas-server:plan02-amendment05-base
+COPY app /server/app
+```
+
+```powershell
+docker tag server-server:latest atlas-server:plan02-amendment05-base
+docker build --pull=false -f .venv/rag05.Dockerfile -t server-server:latest .
+```
+
+Expected: exactly one application layer above the recorded base; no dependency/model download, datastore rebuild/pull or topology change. These are the accepted machine-local adapters under ignored `.venv`, not repository-provided files for a fresh clone. On another machine reproduce their documented checks using new private paths. If the packaged app already matches a later checkout, reuse that image after proving equality.
+
+### 18.2. Run packaged and real-store acceptance
+
+```powershell
+$verifyRoot = (Resolve-Path ..).Path
+docker compose --env-file .env -f docker-compose.yml run --rm --no-deps -T -e HF_HUB_OFFLINE=1 -e TRANSFORMERS_OFFLINE=1 -v "${verifyRoot}:/verification:ro" --entrypoint python server /verification/server/.venv/rag05_packaged_suite.py
+```
+
+Expected: the adapter puts `/server` first on `sys.path`; application imports resolve to packaged `/server/app`, and tests come from the read-only verification mount. No application source bind mount. It checks exact file inventory/content, migration/requirements equality, auth and drive routes/DTOs/dependencies, legacy module absence, narrow credentialed CORS, `pip check` and Alembic head. The route inspector uses actual file-router `APIRoute` objects because included routers need not appear as a flat `app.routes` list.
+
+Expected: focused suite **229 tests** and full `tests.run` **312 tests**, plus both cached BGE-M3 authenticated upload probes, pass. Existing real PostgreSQL registration, verification/resend, login, session, migration/reversibility, current-user, folders/drive, uploads and file mutation/deletion helpers pass. Test-only requirements may be installed inside the disposable container; do not change runtime dependency inputs.
+
+Expected: the final adapter invokes tracked `tests/rag_live.py` with packaged app imports. This helper creates/migrates only a validated disposable `atlas_rag_<UUID hex>` database, uses actual Qdrant and BGE-M3 ingestion/retrieval, and drops only that database in `finally`. Both owners query their own uploaded ready files. Nonempty ask uses a **deterministic verification-only provider**, preserving actual grounding, trusted citations and native answer/citations/done. No live Gemini call or public test hook.
+
+Expected: foreign files in every status, missing rows and indexed orphans return identical JSON 404s; owned processing/deleting return JSON 409s. Instrumentation proves denied cases never call retrieval, embedding, Qdrant query, provider or GroundedStream. PostgreSQL pool checkout count is zero before retrieval and during generation. Empty owned-ready files preserve empty query/fallback SSE; reads preserve rows/vectors; deletion preserves a synthetic survivor and denies the deleted target. Cleanup removes exact synthetic vectors before canonical synthetic users, restoring full state.
+
+### 18.3. Verify the actual running HTTP service and logs
+
+```powershell
+.venv/Scripts/python.exe .venv/rag05_snapshot.py compare
+docker compose --env-file .env -f docker-compose.yml up -d --no-build --no-deps server
+.venv/Scripts/python.exe .venv/rag05_http.py
+```
+
+Expected: packaged acceptance restores the fresh baseline before HTTP tests. Recreate only the server. The ignored HTTP adapter safely sets host-loopback PostgreSQL/Qdrant overrides in its own process, waits for health, runs existing auth/current-user/session/cookie/CORS/folder/upload/file helpers and tracked `tests.rag_http`. It captures synthetic credentials/hashes/content privately for server-log scans. Its response interceptor parses JSON only for JSON media types; successful SSE must not be parsed as JSON.
+
+Expected: actual HTTP proves owner-only positive queries with existing scored-chunk DTOs, pre-SSE JSON 401/404/409 behavior, foreign status privacy and indexed-orphan denial, empty query/native fallback SSE and post-delete denial/survivor preservation. Nonempty ask generation is covered by the separately labeled packaged deterministic real-store harness. No live Gemini generation is required or implied. Accepted final HTTP audit checked 114 auth credentials and 798 file/upload/RAG credential/content values; folder scans and database health also passed.
+
+### 18.4. Audit the image, restore exact state and finish
+
+```powershell
+.venv/Scripts/python.exe .venv/rag05_image_audit.py
+.venv/Scripts/python.exe .venv/rag05_snapshot.py compare
+.venv/Scripts/python.exe .venv/rag05_final.py --cleanup
+docker compose --env-file .env -f docker-compose.yml ps --all
+docker image ls --format '{{.Repository}}:{{.Tag}} {{.ID}} {{.Size}}'
+git diff --check
+```
+
+Expected: image history/config and all filesystem layers pass actual configured-secret scans without printing secrets. The accepted scan covered 27 layers / 58,934 files / 7,943,915,392 bytes. Local `.env`/venvs are absent from the packaged app. The temporary archive is deleted in `finally`; ensure enough free disk before exporting an image.
+
+Expected: compare complete canonical rows/catalog/revision and every collection configuration/payload index/point with the fresh starting baseline, without assuming counts for future runs. The accepted final comparison matched exactly, all five tables/Atlas points zero and head `0002_drive`. No disposable DB/container/archive remains. Datastore container/image/volume identities match the starting record; latest server runs from the verified image with no mounts.
+
+Expected: cleanup inspects every container image reference before removing only the temporary Amendment 05 base tag and superseded unreferenced Atlas image. Retain latest server, datastore images/containers/volumes, unrelated resources and useful build cache. No broad prune, reset, normal-database migration or `down -v`.
+
+Expected: section 17.3 compile/static/dependency/source-migration checks pass; final source/docs/private-log configured-secret, UTF-8/newline/whitespace and ignored `.env` checks include untracked files. Current source remains unchanged outside the approved implementation; final cached Pyright reports zero errors/warnings/informations. Preserve failed adapter logs and record their corrections in CONTEXT.
+
+Expected: Amendment 05 may be **COMPLETE / `IMPLEMENTED & VERIFIED`** only after both stages and all required checks pass. The recorded run satisfies that boundary. PLAN_02/PHASE_02 remain `IMPLEMENTED, UNVERIFIED`, with final integrated PLAN_02 acceptance and later authenticated client work outstanding. Authorization remains a request-start gate with the documented later-delete race.
+
+## 19. Amendment 06 — isolated integration preparation and evidence matrix
+
+### 19.1. Stage 1 local checks and review boundary
+
+Expected: the user selected a code-review stop before Docker/configured-store acceptance specifically for Amendment 06. Use only isolated SQL/Qdrant and deterministic providers in this stage. Stage 2 needs a separate explicit green flag; previous Amendment approvals do not carry forward.
+
+From `server/`, in a child PowerShell session:
+
+```powershell
+$env:HF_HUB_OFFLINE = '1'
+$env:TRANSFORMERS_OFFLINE = '1'
+.venv/Scripts/python.exe -m unittest tests.test_25_integrated tests.test_24_rag tests.test_07_retrieval tests.test_10_ask tests.test_23_files tests.test_22_uploads tests.test_21_folders tests.test_20_drive tests.test_19_current tests.test_18_sessions tests.test_17_login tests.test_16_verification tests.test_15_registration tests.test_14_credentials tests.test_13_postgres tests.test_12_cors
+.venv/Scripts/python.exe -m tests.run
+.venv/Scripts/python.exe -m compileall -q app migrations tests
+.venv/Scripts/python.exe -m pip check
+.venv/Scripts/python.exe -m alembic heads
+.venv/Scripts/python.exe -m alembic history
+node "$env:LOCALAPPDATA/npm-cache/_npx/110e52990071af13/node_modules/pyright/dist/pyright.js" --pythonpath .venv/Scripts/python.exe --typeshedpath "$env:LOCALAPPDATA/npm-cache/_npx/110e52990071af13/node_modules/pyright/dist/typeshed-fallback" app tests/integrated_acceptance.py tests/integrated_live.py tests/integrated_http.py tests/test_25_integrated.py
+git diff --check
+```
+
+Expected: `test_25_integrated` runs the shared continuous journey with actual auth/domain/HTTP code, SQLite canonical rows, deterministic ingestion/embeddings, in-memory Qdrant and deterministic nonempty generation. Separate clients keep cookie jars independent. It also proves HTTP-mode ask never constructs a live provider, partial registration and nested-upload acknowledgement-loss cleanup, generation-preparation failure cleanup, vector-cleanup failure retaining canonical recovery state, cleanup scope guards and disposable namespace guards. SQLite verification timestamps receive a test-only timezone adapter; its revision row is a fixture, not migration evidence.
+
+Expected: local results establish helper behavior and regression only. They do not prove real PostgreSQL locks/constraints/migrations, actual model ingestion in the new journey, configured Qdrant, packaged source equality, live HTTP health or Gemini availability. CONTEXT records exact observed counts/timings and static results. No fixed old test count is an acceptance target.
+
+### 19.2. Prepared shared journey and Stage 2 handoff
+
+Executed and passed in Stage 2 against real stores: `tests.integrated_live` creates only a validated `atlas_integrated_<32 UUID hex>` database, explicitly migrates it and runs the packaged app with actual Qdrant/cached ingestion. The first TestClient owns lifespan; the second is a separate request client within that lifespan. Nonempty ask uses a deterministic verification-only provider, actual retrieval/grounding/citations/native SSE and pool-release checks. The disposable DB is dropped only after full canonical/vector restoration; incomplete cleanup retains it and reports its safe recovery name.
+
+Executed and passed in Stage 2 against the running server: `tests.integrated_http` uses the same journey with two independent HTTP clients against the configured packaged server. It proves nonempty query and empty-context ask fallback/pre-SSE JSON denials; it never patches the running provider or calls nonempty Gemini. Both entrypoints additionally check actual liveness and PostgreSQL/Qdrant health. Host-loopback overrides belong to the private runner process, not tracked configuration.
+
+Expected for Stage 2 (executed successfully; see 19.8): capture fresh full schema/row/revision/all-collection fingerprints and resource identities before synthetic writes. Inspect and compare the existing package first; reuse the image if source/migrations/dependency/model inputs match. Use read-only verification mounts and authoritative `/server/app` imports. Run focused/full packaged regression, the integrated real-store/HTTP journey and established dedicated failure/migration/auth helpers. Scan relevant source, image history/config/layers and logs using captured private credentials/hashes/OTP/content. Cleanup only exact synthetic vectors then canonical rows/folders/users, compare complete original fingerprints, and verify no temporary resources remain. All these checks were executed after the separate green flag; results and private evidence identifiers are recorded in 19.8 and CONTEXT.
+
+Expected: the same two users register/verify/login/refresh, browse and edit nested folders, upload root/nested/survivor files, edit metadata, query/ask, deny foreign/non-ready/orphan access, delete a target, query the unchanged survivor and log out. Successful registration, upload and deletion responses are validated against unchanged public contracts. Instrumented TestClient paths verify committed processing/deleting states, no metadata reindex, no denied RAG calls and trusted citation equality with stored provenance. Dedicated tests retain exhaustive fault, score/order/validation, stream error/disconnect and SQL locking evidence.
+
+Expected: a vector cleanup failure must retain canonical recovery rows and report synthetic owner/retry file UUIDs; do not hide residue or declare completion. A partial registration is resolved by its pre-generated exact synthetic email even if the response was lost. Cleanup accepts only the two generated UUID-qualified synthetic email addresses. Current runtime images, normal PostgreSQL and Qdrant must not be reset.
+
+### 19.3. Evidence keys and interpretation
+
+The tables below enumerate every bullet in PLAN sections 26 (requirements) and 27 (acceptance), then every Amendment 06 acceptance gate. `R26`/`C27` IDs preserve group and bullet order; `A06` IDs match the Amendment's numbered acceptance criteria. Historical evidence is the completed Amendment 01–05 record in CONTEXT and MANUAL sections 1–18; it is separate from fresh Amendment 06 acceptance.
+
+| Key      | Existing evidence / present checks                                                         | Fresh closure check                                                                                      |
+| -------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| PERSIST  | Amendment 01; `test_20_drive`, `test_13_postgres`; `drive_live`, `postgres_live`           | Source/installed `0002_drive`, real schema/constraints and disposable upgrade/downgrade/re-upgrade       |
+| DRIVE    | Amendment 02; `test_21_folders`; `folders_live` / `folders_http`                           | Integrated two-owner hierarchy/direct-child/location journey                                             |
+| UPLOAD   | Amendment 03; `test_22_uploads`, `test_05_upload_storage`; `uploads_live` / `uploads_http` | Integrated root/nested canonical uploads, actual cached ingestion and representative compensation checks |
+| FILE     | Amendment 04; `test_23_files`; `files_live` / `files_http`                                 | Integrated metadata vector equality, exact delete/survivor integrity; dedicated retry/locking checks     |
+| RAG      | Amendment 05; `test_24_rag`, `test_07_retrieval`, `test_10_ask`; `rag_live` / `rag_http`   | Integrated owner/status/orphan denials, retrieval, deterministic nonempty SSE and actual HTTP fallback   |
+| AUTH     | PLAN_01; `test_14_credentials`–`test_19_current`; existing auth live/HTTP helpers          | Integrated public registration/verification/login/refresh/current/logout plus auth/session regression    |
+| JOURNEY  | New `integrated_acceptance`, `integrated_live`, `integrated_http`; `test_25_integrated`    | Run the same continuous two-owner journey with real PG/Qdrant and running HTTP                           |
+| PACKAGE  | Amendment 05 package/source/route/CORS audit                                               | Fresh complete packaged source/input/route/DTO/CORS equivalence and packaged focused/full regression     |
+| PRESERVE | Amendment 05 full row/catalog/revision/config/index/vector snapshot and resource audit     | New write-once baseline, exact final equality, synthetic cleanup and retained identities                 |
+| SECURITY | Amendment 05 source/image/layer/credential/content log audits                              | Fresh private configured/synthetic-secret/content scans, error privacy and cleanup scope                 |
+| LOCAL    | Prior local suites; current section 19.1 commands and ignored `integrated06_*.log`         | Fresh full/focused/compile/pip/Alembic/Pyright/diff/source-format checks                                 |
+| DOCS     | Existing CONTEXT/MANUAL and current reconciled upload removal specification                | Final matrix/evidence/status reconciliation and explicit client/limitations handoff                      |
+
+The final observation column now records freshly executed/reviewed closure evidence, linked by key to section 19.8. Historical evidence remains separate. All dedicated fault/migration/auth helpers were rerun; no active requirement relies only on script existence or SQLite evidence. Allowed observations are PASS / FAIL / NOT RUN / BLOCKED / SUPERSEDED; the separate legacy adapter row remains SUPERSEDED.
+
+### 19.4. PLAN section 26 traceability
+
+| ID        | Contract                                                                      | Historical evidence     | Present/fresh checks     | Fresh required | Observation / status                  |
+| --------- | ----------------------------------------------------------------------------- | ----------------------- | ------------------------ | -------------- | ------------------------------------- |
+| R26-CP-01 | `0002_drive` migration from verified `0001_identity`                          | PASS — Amendment 01     | PERSIST                  | Yes            | PASS - 19.8: PERSIST                  |
+| R26-CP-02 | exact `file_status` values                                                    | PASS — Amendment 01     | PERSIST                  | Yes            | PASS - 19.8: PERSIST                  |
+| R26-CP-03 | exact folder/file columns and constraints                                     | PASS — Amendment 01     | PERSIST                  | Yes            | PASS - 19.8: PERSIST                  |
+| R26-CP-04 | application-generated UUIDs                                                   | PASS — Amendment 01     | PERSIST                  | Yes            | PASS - 19.8: PERSIST                  |
+| R26-CP-05 | timezone-aware timestamps                                                     | PASS — Amendment 01     | PERSIST                  | Yes            | PASS - 19.8: PERSIST                  |
+| R26-CP-06 | same-owner hierarchy/location constraints                                     | PASS — Amendment 01     | PERSIST                  | Yes            | PASS - 19.8: PERSIST                  |
+| R26-CP-07 | no name uniqueness                                                            | PASS — Amendment 01     | PERSIST                  | Yes            | PASS - 19.8: PERSIST                  |
+| R26-CP-08 | no persistent-original fields                                                 | PASS — Amendment 01     | PERSIST                  | Yes            | PASS - 19.8: PERSIST                  |
+| R26-CP-09 | no second file identifier                                                     | PASS — Amendment 01     | PERSIST                  | Yes            | PASS - 19.8: PERSIST                  |
+| R26-DR-01 | Bearer current-user dependency reused                                         | PASS — Amendment 02     | DRIVE, AUTH, JOURNEY     | Yes            | PASS - 19.8: DRIVE, AUTH, JOURNEY     |
+| R26-DR-02 | no client `owner_id`                                                          | PASS — Amendment 02     | DRIVE, AUTH, JOURNEY     | Yes            | PASS - 19.8: DRIVE, AUTH, JOURNEY     |
+| R26-DR-03 | direct-child listing only                                                     | PASS — Amendment 02     | DRIVE, AUTH, JOURNEY     | Yes            | PASS - 19.8: DRIVE, AUTH, JOURNEY     |
+| R26-DR-04 | missing/foreign privacy equivalence                                           | PASS — Amendment 02     | DRIVE, AUTH, JOURNEY     | Yes            | PASS - 19.8: DRIVE, AUTH, JOURNEY     |
+| R26-DR-05 | folder parent immutable                                                       | PASS — Amendment 02     | DRIVE, AUTH, JOURNEY     | Yes            | PASS - 19.8: DRIVE, AUTH, JOURNEY     |
+| R26-DR-06 | file folder immutable                                                         | PASS — Amendment 02     | DRIVE, AUTH, JOURNEY     | Yes            | PASS - 19.8: DRIVE, AUTH, JOURNEY     |
+| R26-DR-07 | duplicate names accepted                                                      | PASS — Amendment 02     | DRIVE, AUTH, JOURNEY     | Yes            | PASS - 19.8: DRIVE, AUTH, JOURNEY     |
+| R26-DR-08 | public DTOs omit ownership authority internals                                | PASS — Amendment 02     | DRIVE, AUTH, JOURNEY     | Yes            | PASS - 19.8: DRIVE, AUTH, JOURNEY     |
+| R26-UP-01 | authenticated target-folder authorization before ingestion                    | PASS — Amendment 03     | UPLOAD, JOURNEY          | Yes            | PASS - 19.8: UPLOAD, JOURNEY          |
+| R26-UP-02 | canonical file UUID generated before ingestion                                | PASS — Amendment 03     | UPLOAD, JOURNEY          | Yes            | PASS - 19.8: UPLOAD, JOURNEY          |
+| R26-UP-03 | PostgreSQL `processing` row committed before expensive ingestion              | PASS — Amendment 03     | UPLOAD, JOURNEY          | Yes            | PASS - 19.8: UPLOAD, JOURNEY          |
+| R26-UP-04 | no SQL transaction held across parse/embed/Qdrant                             | PASS — Amendment 03     | UPLOAD, JOURNEY          | Yes            | PASS - 19.8: UPLOAD, JOURNEY          |
+| R26-UP-05 | Qdrant payload uses exact canonical UUID                                      | PASS — Amendment 03     | UPLOAD, JOURNEY          | Yes            | PASS - 19.8: UPLOAD, JOURNEY          |
+| R26-UP-06 | `ready` committed only after confirmed indexing                               | PASS — Amendment 03     | UPLOAD, JOURNEY          | Yes            | PASS - 19.8: UPLOAD, JOURNEY          |
+| R26-UP-07 | known failure performs exact-file cleanup                                     | PASS — Amendment 03     | UPLOAD, JOURNEY          | Yes            | PASS - 19.8: UPLOAD, JOURNEY          |
+| R26-UP-08 | canonical row deleted only after cleanup confirmation                         | PASS — Amendment 03     | UPLOAD, JOURNEY          | Yes            | PASS - 19.8: UPLOAD, JOURNEY          |
+| R26-UP-09 | no durable `failed` state                                                     | PASS — Amendment 03     | UPLOAD, JOURNEY          | Yes            | PASS - 19.8: UPLOAD, JOURNEY          |
+| R26-UP-10 | no original bytes persisted                                                   | PASS — Amendment 03     | UPLOAD, JOURNEY          | Yes            | PASS - 19.8: UPLOAD, JOURNEY          |
+| R26-MT-01 | file/folder name/description only                                             | PASS — Amendments 02/04 | DRIVE, FILE, JOURNEY     | Yes            | PASS - 19.8: DRIVE, FILE, JOURNEY     |
+| R26-MT-02 | no movement                                                                   | PASS — Amendments 02/04 | DRIVE, FILE, JOURNEY     | Yes            | PASS - 19.8: DRIVE, FILE, JOURNEY     |
+| R26-MT-03 | no file replacement                                                           | PASS — Amendments 02/04 | DRIVE, FILE, JOURNEY     | Yes            | PASS - 19.8: DRIVE, FILE, JOURNEY     |
+| R26-MT-04 | no Qdrant reindex/update for metadata-only edits                              | PASS — Amendments 02/04 | DRIVE, FILE, JOURNEY     | Yes            | PASS - 19.8: DRIVE, FILE, JOURNEY     |
+| R26-DE-01 | owner-authorized                                                              | PASS — Amendment 04     | FILE, JOURNEY            | Yes            | PASS - 19.8: FILE, JOURNEY            |
+| R26-DE-02 | `ready -> deleting` committed before Qdrant deletion                          | PASS — Amendment 04     | FILE, JOURNEY            | Yes            | PASS - 19.8: FILE, JOURNEY            |
+| R26-DE-03 | exact Qdrant filter by canonical file UUID                                    | PASS — Amendment 04     | FILE, JOURNEY            | Yes            | PASS - 19.8: FILE, JOURNEY            |
+| R26-DE-04 | Qdrant failure leaves retryable `deleting`                                    | PASS — Amendment 04     | FILE, JOURNEY            | Yes            | PASS - 19.8: FILE, JOURNEY            |
+| R26-DE-05 | final PostgreSQL deletion only after derived cleanup                          | PASS — Amendment 04     | FILE, JOURNEY            | Yes            | PASS - 19.8: FILE, JOURNEY            |
+| R26-DE-06 | repeated exact Qdrant delete is idempotently acceptable                       | PASS — Amendment 04     | FILE, JOURNEY            | Yes            | PASS - 19.8: FILE, JOURNEY            |
+| R26-DE-07 | no trash                                                                      | PASS — Amendment 04     | FILE, JOURNEY            | Yes            | PASS - 19.8: FILE, JOURNEY            |
+| R26-RA-01 | PostgreSQL owner lookup before Qdrant                                         | PASS — Amendment 05     | RAG, JOURNEY             | Yes            | PASS - 19.8: RAG, JOURNEY             |
+| R26-RA-02 | `ready` required                                                              | PASS — Amendment 05     | RAG, JOURNEY             | Yes            | PASS - 19.8: RAG, JOURNEY             |
+| R26-RA-03 | unauthorized/non-ready requests do not invoke retrieval/generation            | PASS — Amendment 05     | RAG, JOURNEY             | Yes            | PASS - 19.8: RAG, JOURNEY             |
+| R26-RA-04 | existing single-file RAG behavior preserved                                   | PASS — Amendment 05     | RAG, JOURNEY             | Yes            | PASS - 19.8: RAG, JOURNEY             |
+| R26-RA-05 | auth/status errors occur before ask SSE starts                                | PASS — Amendment 05     | RAG, JOURNEY             | Yes            | PASS - 19.8: RAG, JOURNEY             |
+| R26-CO-01 | explicit origins                                                              | PASS — Amendments 02–05 | PACKAGE, LOCAL, JOURNEY  | Yes            | PASS - 19.8: PACKAGE, LOCAL, JOURNEY  |
+| R26-CO-02 | credentials true                                                              | PASS — Amendments 02–05 | PACKAGE, LOCAL, JOURNEY  | Yes            | PASS - 19.8: PACKAGE, LOCAL, JOURNEY  |
+| R26-CO-03 | methods GET/POST/PATCH/DELETE                                                 | PASS — Amendments 02–05 | PACKAGE, LOCAL, JOURNEY  | Yes            | PASS - 19.8: PACKAGE, LOCAL, JOURNEY  |
+| R26-CO-04 | headers Content-Type/Authorization                                            | PASS — Amendments 02–05 | PACKAGE, LOCAL, JOURNEY  | Yes            | PASS - 19.8: PACKAGE, LOCAL, JOURNEY  |
+| R26-CO-05 | no wildcard                                                                   | PASS — Amendments 02–05 | PACKAGE, LOCAL, JOURNEY  | Yes            | PASS - 19.8: PACKAGE, LOCAL, JOURNEY  |
+| R26-CO-06 | no PUT                                                                        | PASS — Amendments 02–05 | PACKAGE, LOCAL, JOURNEY  | Yes            | PASS - 19.8: PACKAGE, LOCAL, JOURNEY  |
+| R26-CM-01 | existing auth/session contracts remain verified                               | PASS — Amendments 01–05 | AUTH, RAG, PACKAGE, DOCS | Yes            | PASS - 19.8: AUTH, RAG, PACKAGE, DOCS |
+| R26-CM-02 | existing system/database health contracts remain verified                     | PASS — Amendments 01–05 | AUTH, RAG, PACKAGE, DOCS | Yes            | PASS - 19.8: AUTH, RAG, PACKAGE, DOCS |
+| R26-CM-03 | Phase 1 RAG mechanics remain verified                                         | PASS — Amendments 01–05 | AUTH, RAG, PACKAGE, DOCS | Yes            | PASS - 19.8: AUTH, RAG, PACKAGE, DOCS |
+| R26-CM-04 | legacy `/documents/upload` is absent; only `/files` exposes upload            | PASS — Amendments 01–05 | AUTH, RAG, PACKAGE, DOCS | Yes            | PASS - 19.8: AUTH, RAG, PACKAGE, DOCS |
+| R26-CM-05 | no client implementation                                                      | PASS — Amendments 01–05 | AUTH, RAG, PACKAGE, DOCS | Yes            | PASS - 19.8: AUTH, RAG, PACKAGE, DOCS |
+| R26-CM-06 | no persistent original storage                                                | PASS — Amendments 01–05 | AUTH, RAG, PACKAGE, DOCS | Yes            | PASS - 19.8: AUTH, RAG, PACKAGE, DOCS |
+| R26-CM-07 | no multi-scope RAG                                                            | PASS — Amendments 01–05 | AUTH, RAG, PACKAGE, DOCS | Yes            | PASS - 19.8: AUTH, RAG, PACKAGE, DOCS |
+| R26-DO-01 | Codex creates/maintains PLAN_02 CONTEXT and MANUAL when implementation begins | PASS — Amendments 01–05 | DOCS                     | Yes            | PASS - 19.8: DOCS                     |
+| R26-DO-02 | planning author does not pre-create/populate them                             | PASS — Amendments 01–05 | DOCS                     | Yes            | PASS - 19.8: DOCS                     |
+| R26-DO-03 | CONTEXT records actual chronology/evidence only                               | PASS — Amendments 01–05 | DOCS                     | Yes            | PASS - 19.8: DOCS                     |
+| R26-DO-04 | MANUAL records proven reproducibility only                                    | PASS — Amendments 01–05 | DOCS                     | Yes            | PASS - 19.8: DOCS                     |
+| R26-DO-05 | statuses are evidence-based                                                   | PASS — Amendments 01–05 | DOCS                     | Yes            | PASS - 19.8: DOCS                     |
+
+### 19.5. PLAN section 27 traceability
+
+| ID        | Contract                                                                                                    | Historical evidence     | Present/fresh checks                                | Fresh required | Observation / status                                             |
+| --------- | ----------------------------------------------------------------------------------------------------------- | ----------------------- | --------------------------------------------------- | -------------- | ---------------------------------------------------------------- |
+| C27-MS-01 | existing `0001_identity` database upgrades to `0002_drive`                                                  | PASS — Amendment 01     | PERSIST                                             | Yes            | PASS - 19.8: PERSIST                                             |
+| C27-MS-02 | `file_status` contains exactly `processing`, `ready`, `deleting`                                            | PASS — Amendment 01     | PERSIST                                             | Yes            | PASS - 19.8: PERSIST                                             |
+| C27-MS-03 | `folders` and `files` exist with approved columns/types/nullability                                         | PASS — Amendment 01     | PERSIST                                             | Yes            | PASS - 19.8: PERSIST                                             |
+| C27-MS-04 | owner FKs are restrictive                                                                                   | PASS — Amendment 01     | PERSIST                                             | Yes            | PASS - 19.8: PERSIST                                             |
+| C27-MS-05 | same-owner folder/file location constraints work                                                            | PASS — Amendment 01     | PERSIST                                             | Yes            | PASS - 19.8: PERSIST                                             |
+| C27-MS-06 | duplicate folder/file display names are accepted                                                            | PASS — Amendment 01     | PERSIST                                             | Yes            | PASS - 19.8: PERSIST                                             |
+| C27-MS-07 | `size_bytes < 0` is rejected                                                                                | PASS — Amendment 01     | PERSIST                                             | Yes            | PASS - 19.8: PERSIST                                             |
+| C27-MS-08 | no excluded columns/tables are introduced                                                                   | PASS — Amendment 01     | PERSIST                                             | Yes            | PASS - 19.8: PERSIST                                             |
+| C27-MS-09 | disposable downgrade to `0001_identity` and re-upgrade succeeds                                             | PASS — Amendment 01     | PERSIST                                             | Yes            | PASS - 19.8: PERSIST                                             |
+| C27-MS-10 | normal persistent DB is not destructively downgraded                                                        | PASS — Amendment 01     | PERSIST                                             | Yes            | PASS - 19.8: PERSIST                                             |
+| C27-FH-01 | authenticated user creates root folder                                                                      | PASS — Amendment 02     | DRIVE, JOURNEY                                      | Yes            | PASS - 19.8: DRIVE, JOURNEY                                      |
+| C27-FH-02 | creates nested folders                                                                                      | PASS — Amendment 02     | DRIVE, JOURNEY                                      | Yes            | PASS - 19.8: DRIVE, JOURNEY                                      |
+| C27-FH-03 | duplicate sibling folder names succeed                                                                      | PASS — Amendment 02     | DRIVE, JOURNEY                                      | Yes            | PASS - 19.8: DRIVE, JOURNEY                                      |
+| C27-FH-04 | cross-owner parent assignment fails at server/DB boundaries                                                 | PASS — Amendment 02     | DRIVE, JOURNEY                                      | Yes            | PASS - 19.8: DRIVE, JOURNEY                                      |
+| C27-FH-05 | foreign/missing folder privacy returns same 404                                                             | PASS — Amendment 02     | DRIVE, JOURNEY                                      | Yes            | PASS - 19.8: DRIVE, JOURNEY                                      |
+| C27-FH-06 | folder rename/description update preserves parent/location                                                  | PASS — Amendment 02     | DRIVE, JOURNEY                                      | Yes            | PASS - 19.8: DRIVE, JOURNEY                                      |
+| C27-FH-07 | direct-child listing returns only selected location children                                                | PASS — Amendment 02     | DRIVE, JOURNEY                                      | Yes            | PASS - 19.8: DRIVE, JOURNEY                                      |
+| C27-CF-01 | root/nested file metadata is canonical in PostgreSQL                                                        | PASS — Amendments 01/03 | PERSIST, UPLOAD, JOURNEY                            | Yes            | PASS - 19.8: PERSIST, UPLOAD, JOURNEY                            |
+| C27-CF-02 | duplicate file names succeed                                                                                | PASS — Amendments 01/03 | PERSIST, UPLOAD, JOURNEY                            | Yes            | PASS - 19.8: PERSIST, UPLOAD, JOURNEY                            |
+| C27-CF-03 | file/folder matching names succeed                                                                          | PASS — Amendments 01/03 | PERSIST, UPLOAD, JOURNEY                            | Yes            | PASS - 19.8: PERSIST, UPLOAD, JOURNEY                            |
+| C27-CF-04 | same-owner folder location enforced                                                                         | PASS — Amendments 01/03 | PERSIST, UPLOAD, JOURNEY                            | Yes            | PASS - 19.8: PERSIST, UPLOAD, JOURNEY                            |
+| C27-CF-05 | cross-owner folder placement rejected                                                                       | PASS — Amendments 01/03 | PERSIST, UPLOAD, JOURNEY                            | Yes            | PASS - 19.8: PERSIST, UPLOAD, JOURNEY                            |
+| C27-CF-06 | canonical UUID remains stable                                                                               | PASS — Amendments 01/03 | PERSIST, UPLOAD, JOURNEY                            | Yes            | PASS - 19.8: PERSIST, UPLOAD, JOURNEY                            |
+| C27-UL-01 | authenticated upload creates `processing` canonical state                                                   | PASS — Amendment 03     | UPLOAD, JOURNEY                                     | Yes            | PASS - 19.8: UPLOAD, JOURNEY                                     |
+| C27-UL-02 | same UUID reaches every Qdrant chunk payload                                                                | PASS — Amendment 03     | UPLOAD, JOURNEY                                     | Yes            | PASS - 19.8: UPLOAD, JOURNEY                                     |
+| C27-UL-03 | successful indexing ends in `ready`                                                                         | PASS — Amendment 03     | UPLOAD, JOURNEY                                     | Yes            | PASS - 19.8: UPLOAD, JOURNEY                                     |
+| C27-UL-04 | no persistent original bytes remain                                                                         | PASS — Amendment 03     | UPLOAD, JOURNEY                                     | Yes            | PASS - 19.8: UPLOAD, JOURNEY                                     |
+| C27-UL-05 | known ingestion failure cleans exact-file Qdrant state and removes canonical row after cleanup confirmation | PASS — Amendment 03     | UPLOAD, JOURNEY                                     | Yes            | PASS - 19.8: UPLOAD, JOURNEY                                     |
+| C27-UL-06 | failed cleanup never falsely deletes canonical recovery state                                               | PASS — Amendment 03     | UPLOAD, JOURNEY                                     | Yes            | PASS - 19.8: UPLOAD, JOURNEY                                     |
+| C27-UL-07 | no durable `failed` status exists                                                                           | PASS — Amendment 03     | UPLOAD, JOURNEY                                     | Yes            | PASS - 19.8: UPLOAD, JOURNEY                                     |
+| C27-UL-08 | finalization failure never returns a ready/successful file falsely                                          | PASS — Amendment 03     | UPLOAD, JOURNEY                                     | Yes            | PASS - 19.8: UPLOAD, JOURNEY                                     |
+| C27-UL-09 | legacy `/documents/upload` is absent from HTTP/OpenAPI and cannot invoke ingestion                          | PASS — Amendment 03     | UPLOAD, JOURNEY                                     | Yes            | PASS - 19.8: UPLOAD, JOURNEY                                     |
+| C27-MD-01 | folder metadata edit is PostgreSQL-only                                                                     | PASS — Amendments 02/04 | DRIVE, FILE, JOURNEY                                | Yes            | PASS - 19.8: DRIVE, FILE, JOURNEY                                |
+| C27-MD-02 | file metadata edit is PostgreSQL-only                                                                       | PASS — Amendments 02/04 | DRIVE, FILE, JOURNEY                                | Yes            | PASS - 19.8: DRIVE, FILE, JOURNEY                                |
+| C27-MD-03 | file edit does not alter Qdrant point count/payload content                                                 | PASS — Amendments 02/04 | DRIVE, FILE, JOURNEY                                | Yes            | PASS - 19.8: DRIVE, FILE, JOURNEY                                |
+| C27-MD-04 | no re-embedding/reindexing occurs                                                                           | PASS — Amendments 02/04 | DRIVE, FILE, JOURNEY                                | Yes            | PASS - 19.8: DRIVE, FILE, JOURNEY                                |
+| C27-MD-05 | folder/file location remains unchanged                                                                      | PASS — Amendments 02/04 | DRIVE, FILE, JOURNEY                                | Yes            | PASS - 19.8: DRIVE, FILE, JOURNEY                                |
+| C27-PD-01 | owned ready file transitions to `deleting`                                                                  | PASS — Amendment 04     | FILE, JOURNEY                                       | Yes            | PASS - 19.8: FILE, JOURNEY                                       |
+| C27-PD-02 | exact-file Qdrant points are removed                                                                        | PASS — Amendment 04     | FILE, JOURNEY                                       | Yes            | PASS - 19.8: FILE, JOURNEY                                       |
+| C27-PD-03 | PostgreSQL row is then removed                                                                              | PASS — Amendment 04     | FILE, JOURNEY                                       | Yes            | PASS - 19.8: FILE, JOURNEY                                       |
+| C27-PD-04 | Qdrant outage leaves `deleting` and no canonical-row deletion                                               | PASS — Amendment 04     | FILE, JOURNEY                                       | Yes            | PASS - 19.8: FILE, JOURNEY                                       |
+| C27-PD-05 | PostgreSQL final-delete failure after successful Qdrant deletion remains retryable                          | PASS — Amendment 04     | FILE, JOURNEY                                       | Yes            | PASS - 19.8: FILE, JOURNEY                                       |
+| C27-PD-06 | retry with zero matching Qdrant points succeeds safely                                                      | PASS — Amendment 04     | FILE, JOURNEY                                       | Yes            | PASS - 19.8: FILE, JOURNEY                                       |
+| C27-PD-07 | unrelated users/files/Qdrant points remain intact                                                           | PASS — Amendment 04     | FILE, JOURNEY                                       | Yes            | PASS - 19.8: FILE, JOURNEY                                       |
+| C27-PD-08 | foreign user cannot trigger Qdrant deletion for another user's file                                         | PASS — Amendment 04     | FILE, JOURNEY                                       | Yes            | PASS - 19.8: FILE, JOURNEY                                       |
+| C27-QA-01 | valid owner + ready file preserves existing query behavior                                                  | PASS — Amendment 05     | RAG, JOURNEY                                        | Yes            | PASS - 19.8: RAG, JOURNEY                                        |
+| C27-QA-02 | valid owner + ready file preserves existing ask SSE/citations                                               | PASS — Amendment 05     | RAG, JOURNEY                                        | Yes            | PASS - 19.8: RAG, JOURNEY                                        |
+| C27-QA-03 | missing/foreign file -> same 404                                                                            | PASS — Amendment 05     | RAG, JOURNEY                                        | Yes            | PASS - 19.8: RAG, JOURNEY                                        |
+| C27-QA-04 | processing/deleting owned file -> 409                                                                       | PASS — Amendment 05     | RAG, JOURNEY                                        | Yes            | PASS - 19.8: RAG, JOURNEY                                        |
+| C27-QA-05 | unauthorized/non-ready query does not invoke query embedding/Qdrant retrieval                               | PASS — Amendment 05     | RAG, JOURNEY                                        | Yes            | PASS - 19.8: RAG, JOURNEY                                        |
+| C27-QA-06 | unauthorized/non-ready ask does not invoke retrieval/Gemini/SSE                                             | PASS — Amendment 05     | RAG, JOURNEY                                        | Yes            | PASS - 19.8: RAG, JOURNEY                                        |
+| C27-QA-07 | no folder/drive/multi-file retrieval is introduced                                                          | PASS — Amendment 05     | RAG, JOURNEY                                        | Yes            | PASS - 19.8: RAG, JOURNEY                                        |
+| C27-SR-01 | current-user auth remains authoritative                                                                     | PASS — Amendments 01–05 | AUTH, RAG, PACKAGE, PRESERVE, SECURITY, LOCAL, DOCS | Yes            | PASS - 19.8: AUTH, RAG, PACKAGE, PRESERVE, SECURITY, LOCAL, DOCS |
+| C27-SR-02 | no route trusts client owner/user IDs                                                                       | PASS — Amendments 01–05 | AUTH, RAG, PACKAGE, PRESERVE, SECURITY, LOCAL, DOCS | Yes            | PASS - 19.8: AUTH, RAG, PACKAGE, PRESERVE, SECURITY, LOCAL, DOCS |
+| C27-SR-03 | no foreign-resource existence leakage                                                                       | PASS — Amendments 01–05 | AUTH, RAG, PACKAGE, PRESERVE, SECURITY, LOCAL, DOCS | Yes            | PASS - 19.8: AUTH, RAG, PACKAGE, PRESERVE, SECURITY, LOCAL, DOCS |
+| C27-SR-04 | no secrets/source-content leaks in logs/errors beyond existing approved observability                       | PASS — Amendments 01–05 | AUTH, RAG, PACKAGE, PRESERVE, SECURITY, LOCAL, DOCS | Yes            | PASS - 19.8: AUTH, RAG, PACKAGE, PRESERVE, SECURITY, LOCAL, DOCS |
+| C27-SR-05 | CORS is narrow and credentialed                                                                             | PASS — Amendments 01–05 | AUTH, RAG, PACKAGE, PRESERVE, SECURITY, LOCAL, DOCS | Yes            | PASS - 19.8: AUTH, RAG, PACKAGE, PRESERVE, SECURITY, LOCAL, DOCS |
+| C27-SR-06 | full PLAN_01 auth regression passes                                                                         | PASS — Amendments 01–05 | AUTH, RAG, PACKAGE, PRESERVE, SECURITY, LOCAL, DOCS | Yes            | PASS - 19.8: AUTH, RAG, PACKAGE, PRESERVE, SECURITY, LOCAL, DOCS |
+| C27-SR-07 | relevant Phase 1 RAG regression passes                                                                      | PASS — Amendments 01–05 | AUTH, RAG, PACKAGE, PRESERVE, SECURITY, LOCAL, DOCS | Yes            | PASS - 19.8: AUTH, RAG, PACKAGE, PRESERVE, SECURITY, LOCAL, DOCS |
+| C27-SR-08 | persistent Qdrant/PostgreSQL state is preserved except deliberate synthetic acceptance mutations/cleanup    | PASS — Amendments 01–05 | AUTH, RAG, PACKAGE, PRESERVE, SECURITY, LOCAL, DOCS | Yes            | PASS - 19.8: AUTH, RAG, PACKAGE, PRESERVE, SECURITY, LOCAL, DOCS |
+| C27-SR-09 | Docker/package acceptance passes where required                                                             | PASS — Amendments 01–05 | AUTH, RAG, PACKAGE, PRESERVE, SECURITY, LOCAL, DOCS | Yes            | PASS - 19.8: AUTH, RAG, PACKAGE, PRESERVE, SECURITY, LOCAL, DOCS |
+| C27-SR-10 | `git diff --check` passes                                                                                   | PASS — Amendments 01–05 | AUTH, RAG, PACKAGE, PRESERVE, SECURITY, LOCAL, DOCS | Yes            | PASS - 19.8: AUTH, RAG, PACKAGE, PRESERVE, SECURITY, LOCAL, DOCS |
+| C27-SR-11 | Codex explains lifecycle, transaction boundaries, cross-store failure handling, and remaining client scope  | PASS — Amendments 01–05 | AUTH, RAG, PACKAGE, PRESERVE, SECURITY, LOCAL, DOCS | Yes            | PASS - 19.8: AUTH, RAG, PACKAGE, PRESERVE, SECURITY, LOCAL, DOCS |
+
+### 19.6. Amendment 06 closure gates
+
+| Gate   | Contract                                                                            | Historical evidence                                 | Present/fresh checks    | Fresh required | Observation / status                 |
+| ------ | ----------------------------------------------------------------------------------- | --------------------------------------------------- | ----------------------- | -------------- | ------------------------------------ |
+| A06-01 | Branch and worktree examined; all unrelated/uncommitted work preserved              | Earlier supporting contracts; new Amendment 06 gate | DOCS, LOCAL             | Yes            | PASS - 19.8: DOCS, LOCAL             |
+| A06-02 | Amendments 01–05 confirmed COMPLETE / IMPLEMENTED & VERIFIED                        | Earlier supporting contracts; new Amendment 06 gate | DOCS                    | Yes            | PASS - 19.8: DOCS                    |
+| A06-03 | PLAN_02 requirements-to-evidence matrix complete, no unexplained gaps               | Earlier supporting contracts; new Amendment 06 gate | DOCS                    | Yes            | PASS - 19.8: DOCS                    |
+| A06-04 | Intentional supersession of /documents/upload compatibility explicitly recorded     | Earlier supporting contracts; new Amendment 06 gate | DOCS                    | Yes            | PASS - 19.8: DOCS                    |
+| A06-05 | Only canonical authenticated POST /files remains; no legacy public alias            | Earlier supporting contracts; new Amendment 06 gate | PACKAGE                 | Yes            | PASS - 19.8: PACKAGE                 |
+| A06-06 | Source/installed migration head stays 0002_drive, schema/constraints verified       | Earlier supporting contracts; new Amendment 06 gate | PERSIST                 | Yes            | PASS - 19.8: PERSIST                 |
+| A06-07 | Disposable real PostgreSQL migration upgrade/downgrade/re-upgrade checks pass       | Earlier supporting contracts; new Amendment 06 gate | PERSIST                 | Yes            | PASS - 19.8: PERSIST                 |
+| A06-08 | Full authentication/session/current-user regression remains valid                   | Earlier supporting contracts; new Amendment 06 gate | AUTH                    | Yes            | PASS - 19.8: AUTH                    |
+| A06-09 | Root/nested folder creation, update and direct-child browsing accepted              | Earlier supporting contracts; new Amendment 06 gate | DRIVE, JOURNEY          | Yes            | PASS - 19.8: DRIVE, JOURNEY          |
+| A06-10 | Two-user folder visibility and parent/location isolation accepted                   | Earlier supporting contracts; new Amendment 06 gate | DRIVE, JOURNEY          | Yes            | PASS - 19.8: DRIVE, JOURNEY          |
+| A06-11 | Root/nested file uploads accepted through current public API                        | Earlier supporting contracts; new Amendment 06 gate | UPLOAD, JOURNEY         | Yes            | PASS - 19.8: UPLOAD, JOURNEY         |
+| A06-12 | Canonical UUID equal across response, PostgreSQL and every Qdrant payload.file_id   | Earlier supporting contracts; new Amendment 06 gate | UPLOAD, JOURNEY         | Yes            | PASS - 19.8: UPLOAD, JOURNEY         |
+| A06-13 | Processing -> ready and compensation/recovery contracts supported by tests/evidence | Earlier supporting contracts; new Amendment 06 gate | UPLOAD                  | Yes            | PASS - 19.8: UPLOAD                  |
+| A06-14 | Transient originals and exact supported-upload validation preserved                 | Earlier supporting contracts; new Amendment 06 gate | UPLOAD                  | Yes            | PASS - 19.8: UPLOAD                  |
+| A06-15 | File PATCH changes metadata/updated_at only; Qdrant fingerprints unchanged          | Earlier supporting contracts; new Amendment 06 gate | FILE, JOURNEY           | Yes            | PASS - 19.8: FILE, JOURNEY           |
+| A06-16 | File DELETE follows deleting -> Qdrant -> PostgreSQL with retry/fault coverage      | Earlier supporting contracts; new Amendment 06 gate | FILE                    | Yes            | PASS - 19.8: FILE                    |
+| A06-17 | Two-user exact-vector deletion isolation and survivor integrity proven              | Earlier supporting contracts; new Amendment 06 gate | FILE, JOURNEY           | Yes            | PASS - 19.8: FILE, JOURNEY           |
+| A06-18 | Query only reaches Qdrant after canonical owner + ready authorization               | Earlier supporting contracts; new Amendment 06 gate | RAG, JOURNEY            | Yes            | PASS - 19.8: RAG, JOURNEY            |
+| A06-19 | Ask only reaches generation/SSE after canonical owner + ready authorization         | Earlier supporting contracts; new Amendment 06 gate | RAG, JOURNEY            | Yes            | PASS - 19.8: RAG, JOURNEY            |
+| A06-20 | Foreign/missing/non-ready privacy and error precedence preserved                    | Earlier supporting contracts; new Amendment 06 gate | RAG, JOURNEY            | Yes            | PASS - 19.8: RAG, JOURNEY            |
+| A06-21 | Grounded nonempty ask with trusted citations/native SSE verified deterministically  | Earlier supporting contracts; new Amendment 06 gate | RAG, JOURNEY            | Yes            | PASS - 19.8: RAG, JOURNEY            |
+| A06-22 | Empty-context fallback, error framing, disconnect semantics regression-clean        | Earlier supporting contracts; new Amendment 06 gate | RAG                     | Yes            | PASS - 19.8: RAG                     |
+| A06-23 | No live Gemini claim without a separately authorized and actually executed call     | Earlier supporting contracts; new Amendment 06 gate | DOCS, SECURITY          | Yes            | PASS - 19.8: DOCS, SECURITY          |
+| A06-24 | Full local, packaged and running HTTP integration checks pass                       | Earlier supporting contracts; new Amendment 06 gate | LOCAL, PACKAGE, JOURNEY | Yes            | PASS - 19.8: LOCAL, PACKAGE, JOURNEY |
+| A06-25 | Runtime package equals reviewed source (or exact difference explained/verified)     | Earlier supporting contracts; new Amendment 06 gate | PACKAGE                 | Yes            | PASS - 19.8: PACKAGE                 |
+| A06-26 | CORS precisely GET/POST/PATCH/DELETE and configured origins/headers/credentials     | Earlier supporting contracts; new Amendment 06 gate | PACKAGE, JOURNEY        | Yes            | PASS - 19.8: PACKAGE, JOURNEY        |
+| A06-27 | Security/source-content/token/image/log audits pass                                 | Earlier supporting contracts; new Amendment 06 gate | SECURITY                | Yes            | PASS - 19.8: SECURITY                |
+| A06-28 | Baseline captured before synthetic writes; full PG/Qdrant data+config restored      | Earlier supporting contracts; new Amendment 06 gate | PRESERVE                | Yes            | PASS - 19.8: PRESERVE                |
+| A06-29 | All synthetic data/disposable databases/temporary containers/archives cleaned       | Earlier supporting contracts; new Amendment 06 gate | PRESERVE                | Yes            | PASS - 19.8: PRESERVE                |
+| A06-30 | Datastore images/containers/volumes retained; no unauthorized reset/prune           | Earlier supporting contracts; new Amendment 06 gate | PRESERVE                | Yes            | PASS - 19.8: PRESERVE                |
+| A06-31 | No unapproved migration, service/dependency/RAG architecture/client changes         | Earlier supporting contracts; new Amendment 06 gate | DOCS, PACKAGE           | Yes            | PASS - 19.8: DOCS, PACKAGE           |
+| A06-32 | Current CONTEXT/MANUAL/PHASE/PLAN/AGENTS state accurately reflects evidence         | Earlier supporting contracts; new Amendment 06 gate | DOCS                    | Yes            | PASS - 19.8: DOCS                    |
+| A06-33 | git diff --check and relevant untracked-file formatting checks pass                 | Earlier supporting contracts; new Amendment 06 gate | LOCAL                   | Yes            | PASS - 19.8: LOCAL                   |
+| A06-34 | Accepted limitations documented without falsely promising unavailable recovery      | Earlier supporting contracts; new Amendment 06 gate | DOCS                    | Yes            | PASS - 19.8: DOCS                    |
+| A06-35 | Only then PLAN_02 is marked IMPLEMENTED & VERIFIED; PHASE_02 remains unverified     | Earlier supporting contracts; new Amendment 06 gate | DOCS                    | Yes            | PASS - 19.8: DOCS                    |
+
+### 19.7. Legacy compatibility supersession and closure rule
+
+| Earlier requirement                                        | Approved replacement / evidence                                                                                                                                                                                      | Status     |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| Temporary public `/documents/upload` compatibility adapter | Amendment 03 explicitly removed the route/modules; current PLAN sections 15/26/27/28 already state canonical authenticated `POST /files` only. Preserve the original historical decision and its later supersession. | SUPERSEDED |
+
+Expected: the current PLAN already reconciles legacy removal. Review other current references for consistency; do not rewrite historical CONTEXT or reintroduce a route. The unauthenticated Phase 1 client has not been reverified against these authenticated routes and is not the Phase 2 client handoff.
+
+Expected: both user-selected stages are complete, including the separate Stage 2 green flag. Amendment 06 and PLAN_02 are `IMPLEMENTED & VERIFIED` through the complete matrix and 19.8 evidence. PHASE_02 remains `IMPLEMENTED, UNVERIFIED`; authenticated client plans remain `NOT YET BUILT`. No live Gemini availability is claimed or required by this accepted deterministic-generation boundary.
+
+### 19.8. Executed Stage 2 procedure and final evidence
+
+Both stages are complete. The user supplied a separate Stage 2 green flag after the coding review stop. All active observations in 19.4-19.6 are PASS through the executed evidence below; the earlier adapter row in 19.7 is SUPERSEDED. Historical Amendment columns retain their original meaning. No live Gemini call was made or required.
+
+1. From `server/`, inspect Compose and capture a **new private write-once** full datastore/resource baseline before any synthetic write. Follow the complete-row/catalog/head and all-collection/config/index/paginated-point procedure in sections 18 and 19.2. Do not reuse an earlier Amendment's zero assumption or overwrite a captured baseline. The executed private adapters were `integrated06_resources.py capture` and `integrated06_snapshot.py capture` under `.venv/`.
+
+   Expected: current `0002_drive`; exact resource identities and all five canonical row sets plus full Qdrant fingerprints recorded privately. Existing data must be preserved. Resource capture also records database/image/volume/container inventories for final exact comparison. Ignore/private adapters are local evidence, not runtime application dependencies or tracked fixtures.
+
+2. Compare the retained package first; use the current image if equivalent. The executed private adapter `integrated06_packaged_suite.py` imports `/server/app`, compares complete app/migration inventories, requirements and Alembic input, checks DTO/routes/CORS and installs only `tests/requirements.txt` into a disposable verification container. It runs focused/full regression and all existing real-store helpers followed by `tests.integrated_live`.
+
+```powershell
+$verifyRoot = (Resolve-Path ..).Path
+docker compose --env-file .env -f docker-compose.yml run --rm --no-deps -T -e HF_HUB_OFFLINE=1 -e TRANSFORMERS_OFFLINE=1 -v "${verifyRoot}:/verification:ro" --entrypoint python server /verification/server/.venv/integrated06_packaged_suite.py
+```
+
+Expected: app code is packaged, tests are read-only mounted. Focused/full regression and cached model probes pass. Real-store modules run sequentially: `registration_live`, `verification_live`, `login_live`, `sessions_live`, `postgres_live`, `current_live`, `folders_live`, `drive_live`, `uploads_live`, `files_live`, `rag_live`, `integrated_live`. All migrations/reversals affect guarded generated databases only. No configured DB reset; no Gemini call. The new journey's nonempty ask is deterministic with actual grounding/SSE/citations. See CONTEXT for observed counts/timings; they are not fixed acceptance targets.
+
+3. Compare the full baseline after packaged checks, then exercise the actual running server with host-loopback environment overrides only in the child runner. Executed adapter `.venv/integrated06_http.py` chains existing auth/folder/upload/file/RAG HTTP helpers and `tests.integrated_http`; it collects private credentials/content for the server-log audit. A supplemental disposable packaged adapter checks all public paths/methods, cached model-build input and full migration inventory, then reruns the integrated journey with a private in-process credential/content logging collector.
+
+```powershell
+.venv/Scripts/python.exe .venv/integrated06_snapshot.py compare
+.venv/Scripts/python.exe .venv/integrated06_http.py
+docker compose --env-file .env -f docker-compose.yml run --rm --no-deps -T -e HF_HUB_OFFLINE=1 -e TRANSFORMERS_OFFLINE=1 -v "${verifyRoot}:/verification:ro" --entrypoint python server /verification/server/.venv/integrated06_supplement.py
+```
+
+Expected: actual HTTP register/upload 201, metadata/query 200, deletion/logout empty 204; denied requests ordinary JSON 401/404/409 before SSE, foreign/missing privacy equal, health 200 and exact credentialed CORS. Both owners complete auth through logout; direct-child and exact UUID rules hold. HTTP ask uses denial/empty fallback only; deterministic nonempty generation belongs to packaged TestClient acceptance. Exact metadata/survivor vectors and canonical fingerprints are preserved. Collected private values must not appear in server/captured logs.
+
+4. Audit image history/config and **every** filesystem layer, keeping secret values private and removing the temporary archive in finally. Re-run 19.1 compile/pip/Alembic/Pyright and diff checks as needed for the final source. Finally compare the original full datastore/resource baselines, audit all relevant changed/untracked source and captured logs, and verify no synthetic database/container/archive remains.
+
+```powershell
+.venv/Scripts/python.exe .venv/integrated06_image_audit.py
+.venv/Scripts/python.exe .venv/integrated06_snapshot.py compare
+.venv/Scripts/python.exe .venv/integrated06_resources.py compare
+.venv/Scripts/python.exe .venv/integrated06_audit.py
+git diff --check
+```
+
+Expected: full rows/catalog/head/config/index/point equality, not counts alone; same retained image/layers/container mounts and datastore volumes; unchanged database/image/volume/container inventories; temporary verification containers and image export absent. Synthetic vectors are removed by exact file UUID before canonical test rows; incomplete cleanup must retain recovery state and block closure. All source/log/secret/format checks pass and `.env` stays ignored/untracked. No reset, prune, volume destruction or Git mutation.
+
+5. Resolve each row using the evidence key below and factual source/document review. Update only current-state summaries after all mandatory gates pass; preserve chronological prior-stage entries and superseded compatibility decisions.
+
+| Key      | Fresh executed evidence / observation                                                                                                                                                                                       | Evidence location                                                                                    |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| PERSIST  | Real PostgreSQL schema, owner/composite constraints, enum, names/size, rollback/cascade/RESTRICT, guarded identity/base/head and identity/drive reversibility; normal head preserved                                        | `integrated06_packaged.log`: `postgres_live`, `drive_live`; `integrated06_preservation.log`          |
+| AUTH     | Packaged auth suites and all six auth/current real-store helpers; actual HTTP register/verify/resend/login/refresh/logout/current, races, replay/cookies/CORS and safe errors                                               | `integrated06_packaged.log`, `integrated06_http.log`                                                 |
+| DRIVE    | Packaged folder suite, `folders_live`, `folders_http`, both integrated journeys: hierarchy/direct children, duplicate names, metadata and foreign parent/location privacy                                                   | Same logs; `integrated06_supplement.log`                                                             |
+| UPLOAD   | Packaged upload/storage suites and `uploads_live` including compensation/finalization faults; HTTP root/nested uploads and integrated committed processing/UUID/ready/provenance checks                                     | Same logs                                                                                            |
+| FILE     | Packaged metadata/delete suite and `files_live` real faults/retries/locks; HTTP and integrated full vector equality, exact deletion and unchanged survivor                                                                  | Same logs                                                                                            |
+| RAG      | Packaged retrieval/ask/owner suites, `rag_live`, `rag_http`, integrated journeys: owner/ready gates, no denied side effects, exact scope/score/order, deterministic native SSE/trusted citations, fallback/error/disconnect | Same logs; deterministic provider only for nonempty generation                                       |
+| JOURNEY  | `integrated_live` with real PG/Qdrant/cached ingestion and instrumented pool/side effects; `integrated_http` actual two-client journey; supplemental private logging repeat                                                 | Same three logs                                                                                      |
+| PACKAGE  | Complete 85-file app/content equality, migration inventory/input, requirements, model-build constants/cache, exact 16-path methods/DTOs/CORS/legacy absence; authoritative `/server/app`                                    | `integrated06_packaged.log`, `integrated06_supplement.log`                                           |
+| PRESERVE | Fresh pre-write full fingerprint/resource capture, intermediate and final exact equality, same retained services/volumes/image layers, scoped synthetic cleanup and no temporary resources                                  | Private `integrated06-baseline.json`, `integrated06-resources.json`; `integrated06_preservation.log` |
+| SECURITY | Source/log configured-secret and JWT/hash patterns; actual HTTP private credential/content checks; supplemental integrated private collector; full image history/config/layers                                              | `integrated06_http.log`, `integrated06_supplement.log`, `integrated06_image.log`, final source audit |
+| LOCAL    | Stage 1 final local full/focused/model probes; Stage 2 compile/pip/Alembic/Pyright and final diff/source format checks                                                                                                      | CONTEXT Stage 1 and Stage 2; `integrated06_stage2_static.log`; final source audit                    |
+| DOCS     | All 159 row IDs/contracts reviewed against source PLAN and Amendment; earlier Amendments verified; legacy supersession retained; current state and client/limitations handoff reconciled                                    | This matrix; latest CONTEXT; PHASE/PLAN/root and server AGENTS; Amendment status                     |
+
+Expected: **Amendment 06 and PLAN_02 IMPLEMENTED & VERIFIED**. **PHASE_02 IMPLEMENTED, UNVERIFIED**; PLAN_03 Client Authentication and PLAN_04 Drive Dashboard & Phase Acceptance **NOT YET BUILT**. No production correction or tracked test change was needed in Stage 2. Accepted limits remain transient originals, recoverable cross-store lifecycle without distributed atomicity/background repair, request-start RAG authorization with later-delete race, no movement/folder deletion/sharing/multi-scope RAG and no authenticated client implementation. No current Phase 1 browser compatibility or live Gemini availability is claimed.

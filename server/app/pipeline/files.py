@@ -21,6 +21,22 @@ def owned(session: Session, file_id: UUID, owner_id: UUID) -> File | None:
         File.id == file_id, File.owner_id == owner_id).with_for_update())
 
 
+def ready(owner_id: UUID, file_id: UUID) -> UUID:
+    """Authorize at request start and release the read session before any RAG work."""
+    try:
+        with postgres().session() as session:
+            file = session.scalar(select(File).where(
+                File.id == file_id, File.owner_id == owner_id))
+            if file is None:
+                raise FileNotFoundError()
+            if file.status != "ready":
+                raise FileNotReadyError()
+
+            return file.id
+    except SQLAlchemyError:
+        raise PostgresOperationError() from None
+
+
 def update(owner_id: UUID, file_id: UUID, request: FilePatch) -> FileResponse:
     """Commit only supplied metadata on a ready file without consulting the index."""
     try:

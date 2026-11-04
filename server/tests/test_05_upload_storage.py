@@ -220,7 +220,7 @@ class UploadStorageTests(TestCase):
         for body in responses:
             with self.subTest(file_id=body["id"]):
                 response = self.http.post(
-                    f"/files/{body['id']}/query", json={"question": "What is the policy?", "top_k": 20})
+                    f"/files/{body['id']}/query", headers=self.headers, json={"question": "What is the policy?", "top_k": 20})
                 self.assertEqual(response.status_code, 200, response.text)
                 results = response.json()["results"]
                 payloads = {}

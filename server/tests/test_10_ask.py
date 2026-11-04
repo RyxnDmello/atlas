@@ -1,20 +1,18 @@
 import os
 import json
+import httpx
 import asyncio
 from uuid import UUID, uuid4
 from unittest import TestCase
 from contextlib import ExitStack
 from collections.abc import Iterable
+from qdrant_client import QdrantClient
 from threading import Event, get_ident
+from fastapi.testclient import TestClient
 from unittest.mock import PropertyMock, patch
 
-import httpx
-from fastapi.testclient import TestClient
-from qdrant_client import QdrantClient
-
-from app.core.constants import constants
-
 from app.db.qdrant import store
+from app.core.constants import constants
 
 from app.pipeline.retrieval import retrieve
 from app.pipeline.generation.prompt import FALLBACK
@@ -31,10 +29,11 @@ from app.errors.generation import GenerationError
 
 from app.main import app
 
+from tests.rag import seed
 from tests.smoke_ask import serve
-from tests.postgres import database
-from tests.test_05_upload_storage import Provider as Embedder
+from tests.uploads import environment
 from tests.test_08_generation import completed, delta, start
+from tests.test_05_upload_storage import Provider as Embedder
 from tests.test_09_grounded_generation import Provider, source
 
 
@@ -68,6 +67,9 @@ class AskTests(TestCase):
         self.addCleanup(self.scope.close)
 
         self.file = UUID(int=1)
+        self.database, self.user, self.headers = self.scope.enter_context(
+            environment())
+        seed(self.database, self.user.id, self.file)
         self.chunks = [source(7), source(2)]
         self.provider = Provider(
             ["First ", "part[[ci", "te:7]]", "\nSecond[[cite:2]]"],
@@ -88,6 +90,7 @@ class AskTests(TestCase):
         )
 
         self.http = TestClient(app)
+        self.http.headers.update(self.headers)
         self.addCleanup(self.http.close)
 
     def ground(self, *args) -> GroundedStream:
@@ -369,7 +372,7 @@ class AskTests(TestCase):
         with patch.object(self.provider, "generate", side_effect=generate), serve(lifespan="off") as base:
             try:
                 with (
-                    httpx.Client(base_url=base, timeout=10, trust_env=False) as http,
+                    httpx.Client(base_url=base, timeout=10, trust_env=False, headers=self.headers) as http,
                     http.stream(
                         "POST", f"/files/{self.file}/ask", json={"question": "question"},
                     ) as response,
@@ -420,7 +423,7 @@ class AskTests(TestCase):
             serve(lifespan="off") as base,
         ):
             try:
-                with httpx.Client(base_url=base, timeout=10, trust_env=False) as http:
+                with httpx.Client(base_url=base, timeout=10, trust_env=False, headers=self.headers) as http:
                     with http.stream(
                         "POST", f"/files/{self.file}/ask", json={"question": "question"},
                     ) as response:
@@ -492,7 +495,8 @@ class AskTests(TestCase):
             type="http", asgi={"version": "3.0", "spec_version": "2.3"},
             http_version="1.1", method="POST", scheme="http", path=f"/files/{self.file}/ask",
             raw_path=f"/files/{self.file}/ask".encode(), query_string=b"", root_path="",
-            headers=[(b"content-type", b"application/json")],
+            headers=[(b"content-type", b"application/json"),
+                     (b"authorization", self.headers["Authorization"].encode())],
             client=("127.0.0.1", 1234), server=("127.0.0.1", 80),
         )
 
@@ -517,11 +521,15 @@ class AskIsolationTests(TestCase):
         collection = constants.qdrant.QDRANT_COLLECTION
 
         with (
+            environment() as (database, user, headers),
             patch("app.core.lifespan.get_bge_m3_embedder", return_value=embedder),
             patch("app.core.lifespan.create_client", return_value=client),
-            patch("app.core.lifespan.prepare", return_value=database()),
+            patch("app.core.lifespan.prepare", return_value=database),
             TestClient(app) as http,
         ):
+            http.headers.update(headers)
+            seed(database, user.id, file)
+            seed(database, user.id, other)
             payloads = [
                 Chunk(**source(7, file_id=file).model_dump(exclude={"score"})),
                 Chunk(**source(

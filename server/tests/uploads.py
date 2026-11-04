@@ -42,7 +42,7 @@ def environment() -> Iterator[tuple[Database, User, dict[str, str]]]:
             session.commit()
             session.refresh(user)
             session.expunge(user)
-        for target in ("app.pipeline.upload.postgres", "app.pipeline.auth.current.postgres"):
+        for target in ("app.pipeline.upload.postgres", "app.pipeline.auth.current.postgres", "app.pipeline.files.postgres"):
             scope.enter_context(patch(target, return_value=database))
 
         yield database, user, {"Authorization": "Bearer " + Access().issue(user.id)}

@@ -73,7 +73,7 @@ def acceptance(database: Database, client: Client | TestClient, storage: Storage
                 assert all(point.payload is not None and point.payload["file_id"] == str(identifier)
                            and point.payload["text"] and point.payload["display_text"] for point in points)
                 response = client.post(
-                    f"/files/{identifier}/query", json={"question": "What is retention?"})
+                    f"/files/{identifier}/query", headers=headers[0], json={"question": "What is retention?"})
                 assert response.status_code == 200 and response.json()[
                     "results"]
 

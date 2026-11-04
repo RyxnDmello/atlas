@@ -15,8 +15,8 @@ from app.core.constants import constants
 from app.models.postgres import File
 from app.pipeline.storage import Storage
 
-from tests.folders_acceptance import actors
 from tests.uploads_acceptance import scope
+from tests.folders_acceptance import actors
 
 
 def vectors(storage: Storage, where: Filter | None = None) -> str:
@@ -141,7 +141,7 @@ def acceptance(database: Database, client: Client | TestClient, storage: Storage
                 "/drive", headers=headers[0], params={"folder_id": folder.json()["id"]})
             assert listing.status_code == 200 and listing.json()["files"] == []
             query = client.post("/files/" + str(survivor) + "/query",
-                                json={"question": "How long are records kept?"})
+                                headers=headers[1], json={"question": "How long are records kept?"})
             assert query.status_code == 200 and query.json()["results"]
             assert vectors(storage, scope(survivor)) == preserved
             for origin in [*constants.cors.CORS_ORIGINS, "https://denied-" + uuid4().hex + ".example"]:
