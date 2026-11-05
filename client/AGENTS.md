@@ -62,7 +62,7 @@ register/login/verify
 -> restore authenticated session
 -> dashboard
 -> browse recursive folders
--> upload/update/delete file metadata/content index
+-> upload files / update metadata / permanently delete files
 -> select owned file
 -> reuse verified ask/SSE/citation workflow
 ```
@@ -281,6 +281,8 @@ Phase 2 rules:
 - the shared auth/session boundary is a client coordination mechanism, not an authorization authority;
 - both Axios and native streamed fetch consume the same current access-token/session state;
 - do not build independent token stores for ordinary HTTP and SSE;
+- preserve exact backend folder/file UUIDs as identity; never derive identity, ownership, cache identity, or routing identity from display names;
+- duplicate sibling folder names, duplicate sibling file names, and matching file/folder display names are valid; distinguish resources by type + backend UUID rather than assuming name uniqueness;
 - do not invent backend DTOs/endpoints/session behavior in client code before the server contract exists;
 - preserve the verified SSE parser and citation trust model when adding authenticated transport.
 

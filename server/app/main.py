@@ -4,9 +4,12 @@ from app.core.cors import configure_cors
 from app.core.lifespan import lifespan
 
 from app.routers.auth import router as auth
+from app.routers.drive import router as drive
 from app.routers.files import router as files
 from app.routers.system import router as system
-from app.routers.documents import router as documents
+from app.routers.folders import router as folders
+from app.routers.uploads import router as uploads
+from app.routers.file_mutations import router as file_mutations
 
 from app.errors.api import ApiError
 from app.errors.handlers import cast_handle_api_error, cast_handle_unexpected_error
@@ -16,9 +19,12 @@ app = FastAPI(lifespan=lifespan)
 configure_cors(app)
 
 app.include_router(auth)
+app.include_router(drive)
 app.include_router(files)
 app.include_router(system)
-app.include_router(documents)
+app.include_router(folders)
+app.include_router(uploads)
+app.include_router(file_mutations)
 
 app.add_exception_handler(ApiError, cast_handle_api_error())
 app.add_exception_handler(Exception, cast_handle_unexpected_error())

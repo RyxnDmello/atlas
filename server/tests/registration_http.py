@@ -120,7 +120,7 @@ def main() -> None:
         assert {path for path in body["paths"] if path.startswith(
             "/auth")} == {"/auth/register", "/auth/verify", "/auth/resend", "/auth/login", "/auth/refresh", "/auth/logout", "/auth"}
         assert set(body["paths"]["/auth/register"]) == {"post"}
-        assert {"/documents/upload", "/files/{file_id}/ask", "/files/{file_id}/query",
+        assert {"/files", "/files/{file_id}/ask", "/files/{file_id}/query",
                 "/system/health", "/system/health/databases"} <= set(body["paths"])
         logs = subprocess.run(["docker", "compose", "--env-file", ".env", "-f",
                                "docker-compose.yml", "logs", "--no-color", "server"],

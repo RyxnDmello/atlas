@@ -18,7 +18,7 @@ from alembic.autogenerate import compare_metadata
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.postgresql.base import PGInspector
 from sqlalchemy.orm import Session as OrmSession, sessionmaker
-from sqlalchemy import DateTime, Engine, create_engine, inspect, text
+from sqlalchemy import DateTime, Engine, MetaData, create_engine, inspect, text
 
 from app.core.constants import constants
 
@@ -27,13 +27,17 @@ from app.db.postgres import Database, prepare, url
 from app.models.postgres import Base, User, Verification, Session
 
 
-def schema(engine: Engine) -> None:
-    """Assert the live identity schema, including migration/model agreement."""
+def schema(engine: Engine, revision: str = "0002_drive") -> None:
+    """Assert unchanged identity at the explicit revision or current drive head."""
+    assert revision in {"0001_identity", "0002_drive"}
     inspector = inspect(engine)
     assert isinstance(inspector, PGInspector)
-    assert set(inspector.get_table_names()) == {
+    tables = {
         "alembic_version", "users", "verifications", "sessions",
     }
+    if revision == "0002_drive":
+        tables.update({"folders", "files"})
+    assert set(inspector.get_table_names()) == tables
     expected = {
         "users": {
             "id": "UUID", "name": "TEXT", "email": "TEXT", "password": "TEXT",
@@ -62,7 +66,10 @@ def schema(engine: Engine) -> None:
         assert inspector.get_pk_constraint(
             table)["constrained_columns"] == ["id"]
     enums = {item["name"]: item["labels"] for item in inspector.get_enums()}
-    assert enums == {"verification_type": ["auth", "reset", "forgot"]}
+    expected_enums = {"verification_type": ["auth", "reset", "forgot"]}
+    if revision == "0002_drive":
+        expected_enums["file_status"] = ["processing", "ready", "deleting"]
+    assert enums == expected_enums
     for table, columns in (("users", ["email"]), ("verifications", ["user_id", "type"]), ("sessions", ["token_hash"])):
         assert [item["column_names"]
                 for item in inspector.get_unique_constraints(table)] == [columns]
@@ -78,9 +85,14 @@ def schema(engine: Engine) -> None:
                "user_id"] and not item["unique"] for item in indexes)
     with engine.connect() as connection:
         assert connection.execute(
-            text("SELECT version_num FROM alembic_version")).scalar_one() == "0001_identity"
+            text("SELECT version_num FROM alembic_version")).scalar_one() == revision
+        metadata = Base.metadata
+        if revision == "0001_identity":
+            metadata = MetaData()
+            for name in ("users", "verifications", "sessions"):
+                Base.metadata.tables[name].to_metadata(metadata)
         assert compare_metadata(MigrationContext.configure(
-            connection), Base.metadata) == []
+            connection), metadata) == []
 
 
 def reject(session: OrmSession, record: Base, constraint: str) -> None:

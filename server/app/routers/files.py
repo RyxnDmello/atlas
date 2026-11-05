@@ -1,14 +1,17 @@
 from uuid import UUID
 from typing import Annotated
 from collections.abc import Generator
+from starlette.concurrency import run_in_threadpool
 
 from fastapi import APIRouter, Depends
 from fastapi.sse import EventSourceResponse, ServerSentEvent
-from starlette.concurrency import run_in_threadpool
 
+from app.models.postgres import User
 from app.core.logging import get_logger
 
+from app.pipeline.files import ready
 from app.pipeline.retrieval import retrieve
+from app.pipeline.auth.current import current
 from app.pipeline.generation.prompt import FALLBACK
 from app.pipeline.generation.grounded import GroundedStream
 from app.pipeline.generation.gemini import GeminiFlashProvider
@@ -23,10 +26,15 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/files", tags=["files"])
 
 
+def authorized(file_id: UUID, user: Annotated[User, Depends(current)]) -> UUID:
+    """Resolve an owned ready UUID before retrieval or request-scoped SSE preparation."""
+    return ready(user.id, file_id)
+
+
 @router.post("/{file_id}/query", response_model=QueryResponse)
-async def query(file_id: UUID, request: QueryRequest) -> QueryResponse:
+async def query(file: Annotated[UUID, Depends(authorized)], request: QueryRequest) -> QueryResponse:
     """Return scored file chunks while running blocking inference/search off the event loop."""
-    chunks = await run_in_threadpool(retrieve, request.question, file_id, request.top_k)
+    chunks = await run_in_threadpool(retrieve, request.question, file, request.top_k)
 
     results = [
         ScoredChunk(
@@ -44,9 +52,9 @@ async def query(file_id: UUID, request: QueryRequest) -> QueryResponse:
     return QueryResponse(results=results)
 
 
-def prepare(file_id: UUID, request: AskRequest) -> Generator[GroundedStream | None, None, None]:
+def prepare(file: Annotated[UUID, Depends(authorized)], request: AskRequest) -> Generator[GroundedStream | None, None, None]:
     """Retrieve before commitment and own grounded cleanup for the entire request."""
-    chunks = retrieve(request.question, file_id, request.top_k)
+    chunks = retrieve(request.question, file, request.top_k)
 
     if not chunks:
         yield None

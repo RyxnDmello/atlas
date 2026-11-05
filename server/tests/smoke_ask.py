@@ -1,6 +1,9 @@
+import os
 import sys
 import json
+import httpx
 import socket
+import uvicorn
 import argparse
 from uuid import uuid4
 from typing import Literal
@@ -10,17 +13,18 @@ from time import monotonic, sleep
 from collections.abc import Iterator
 from contextlib import closing, contextmanager
 
-import httpx
-import uvicorn
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import FieldCondition, Filter, MatchValue
 
-from app.core.constants import constants
 from app.core.runtime import storage
+from app.core.constants import constants
 
 from app.pipeline.generation.prompt import FALLBACK
 
 from app.main import app
+
+from tests.rag import seed
+from tests.uploads import environment
 
 
 @contextmanager
@@ -116,9 +120,9 @@ def stream(http: httpx.Client, file: str, question: str, case: str) -> tuple[str
     return answer, citations
 
 
-def check(base: str, file: str, other: str, unindexed: str) -> dict[str, list[dict]]:
+def check(base: str, file: str, other: str, unindexed: str, headers: dict[str, str]) -> dict[str, list[dict]]:
     """Exercise documented synthetic Luma/Vela fixtures without logging generated/source text."""
-    with httpx.Client(base_url=base, timeout=90, trust_env=False) as http:
+    with httpx.Client(base_url=base, timeout=90, trust_env=False, headers=headers) as http:
         for path in ("/system/health", "/system/health/databases"):
             assert http.get(path).status_code == 200
 
@@ -181,7 +185,7 @@ def provenance(observed: dict[str, list[dict]]) -> None:
     print("Ask stored provenance OK")
 
 
-def outage(base: str, file: str) -> None:
+def outage(base: str, file: str, headers: dict[str, str]) -> None:
     """Prove pre-stream HTTP failure through real refused Qdrant transport without stopping it."""
     services = storage()
 
@@ -194,7 +198,7 @@ def outage(base: str, file: str) -> None:
             )) as client,
             patch.object(services, "client", client),
             patch("app.routers.files.GeminiFlashProvider") as provider,
-            httpx.Client(base_url=base, timeout=30, trust_env=False) as http,
+            httpx.Client(base_url=base, timeout=30, trust_env=False, headers=headers) as http,
         ):
             for route in ("query", "ask"):
                 response = http.post(
@@ -213,14 +217,14 @@ def outage(base: str, file: str) -> None:
     print("Ask/query refused Qdrant transport OK status=503 provider_calls=0")
 
 
-def hosted(file: str, other: str, unindexed: str) -> None:
+def hosted(file: str, other: str, unindexed: str, headers: dict[str, str]) -> None:
     """Own the real configured app/HTTP server and verify existing persistent fixtures read-only."""
     with serve() as base:
         services = storage()
         before = services.client.count(services.collection, exact=True).count
 
-        provenance(check(base, file, other, unindexed))
-        outage(base, file)
+        provenance(check(base, file, other, unindexed, headers))
+        outage(base, file, headers)
 
         after = services.client.count(services.collection, exact=True).count
         assert before == after
@@ -234,24 +238,26 @@ def local() -> None:
     """Run the actual app with real BGE/Gemini and isolated ephemeral Qdrant, without Docker."""
     client = QdrantClient(":memory:", force_disable_check_same_thread=True)
 
-    with patch("app.core.lifespan.create_client", return_value=client), serve() as base:
+    with environment() as (database, user, headers), patch("app.core.lifespan.prepare", return_value=database), patch("app.core.lifespan.create_client", return_value=client), serve() as base:
         files = []
         with httpx.Client(base_url=base, timeout=120, trust_env=False) as http:
             for name, body in (
                 ("Luma", "The Luma garden has exactly two silver trees and a blue pond."),
                 ("Vela", "The Vela garden has exactly nine copper trees and a red pond."),
             ):
-                response = http.post("/documents/upload", files={"file": (
+                response = http.post("/files", headers=headers, data={"name": name}, files={"file": (
                     f"ask-{name}-{uuid4()}.md", body.encode(), "text/markdown",
                 )})
-                assert response.status_code == 200
+                assert response.status_code == 201
                 files.append(response.json()["id"])
 
         before = client.count(
             constants.qdrant.QDRANT_COLLECTION, exact=True,
         ).count
 
-        provenance(check(base, files[0], files[1], str(uuid4())))
+        unindexed = uuid4()
+        seed(database, user.id, unindexed)
+        provenance(check(base, files[0], files[1], str(unindexed), headers))
 
         after = client.count(
             constants.qdrant.QDRANT_COLLECTION, exact=True,
@@ -284,10 +290,16 @@ def run() -> int:
     try:
         if args.local:
             local()
-        elif args.serve:
-            hosted(args.file, args.other, args.unindexed)
         else:
-            check(args.base, args.file, args.other, args.unindexed)
+            token = os.environ.get("ATLAS_VERIFY_ACCESS_TOKEN")
+            if not token:
+                raise ValueError(
+                    "Provide a current owner's token through ATLAS_VERIFY_ACCESS_TOKEN")
+            headers = {"Authorization": "Bearer " + token}
+            if args.serve:
+                hosted(args.file, args.other, args.unindexed, headers)
+            else:
+                check(args.base, args.file, args.other, args.unindexed, headers)
     except Exception as error:
         print(
             f"Ask HTTP FAILED category={type(error).__name__}", file=sys.stderr,

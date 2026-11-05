@@ -345,38 +345,18 @@ Meaning:
 
 ### Upload handoff
 
-After confirmed storage:
+Phase 2 PLAN_02 Amendment 03 supersedes the Phase 1 public upload handoff:
 
-```text
-POST /documents/upload
-```
+- canonical authenticated `POST /files` returns HTTP `201` and the canonical File DTO;
+- the caller supplies the application-generated PostgreSQL file UUID to internal ingestion;
+- every chunk payload `file_id` equals that UUID;
+- success is returned only after confirmed storage and durable PostgreSQL `ready`;
+- legacy `POST /documents/upload` is removed, with no alias or adapter;
+- chunk bodies/counts are internal ingestion data, not upload response fields.
 
-returns the same UUID as top-level:
+The returned top-level `id` is used directly with `/files/{file_id}/query` and `/files/{file_id}/ask`. Their owner/ready authorization is a later capability, not part of Amendment 03. Detailed upload lifecycle/metadata contracts belong to the current PLAN/Amendment.
 
-```text
-id
-```
-
-alongside:
-
-- `name`
-- `type`
-- `total`
-- `chunks`
-
-Internal storage/retrieval naming remains:
-
-```text
-file_id
-```
-
-The returned `id` is used directly with:
-
-```text
-/files/{file_id}/query
-```
-
-PLAN_03 is Verified after human acceptance of the retrieval walkthrough.
+Historical Phase 1 returned `id`, `name`, `type`, `total`, and `chunks` from `/documents/upload`. That verified history is preserved in Phase 1 evidence; parsing, chunking, vector payloads, retrieval, generation and citations remain unchanged.
 
 ---
 

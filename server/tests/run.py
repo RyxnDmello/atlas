@@ -2,7 +2,6 @@ import sys
 import unittest
 from time import perf_counter
 from unittest.mock import patch
-
 from qdrant_client import QdrantClient
 from fastapi.testclient import TestClient
 
@@ -12,15 +11,15 @@ from app.pipeline.embeddings.bge_m3 import get_bge_m3_embedder
 
 from app.main import app
 
-from tests.postgres import database
+from tests.uploads import environment
 
 
 def run() -> bool:
-    """Run unchanged upload tests inside a real-model, in-memory lifespan."""
+    """Run canonical upload probes and regression inside a real-model, isolated lifespan."""
     client = QdrantClient(":memory:", force_disable_check_same_thread=True)
 
     started = perf_counter()
-    with patch("app.core.lifespan.prepare", return_value=database()), patch("app.core.lifespan.create_client", return_value=client), patch(
+    with environment() as (database, user, headers), patch("app.core.lifespan.prepare", return_value=database), patch("app.core.lifespan.create_client", return_value=client), patch(
         "app.core.lifespan.get_bge_m3_embedder", wraps=get_bge_m3_embedder
     ) as constructor:
         with TestClient(app) as http:
@@ -43,7 +42,8 @@ def run() -> bool:
                         services.collection, exact=True).count
                     entered = perf_counter()
                     response = http.post(
-                        "/documents/upload",
+                        "/files",
+                        headers=headers, data={"name": "policy.md"},
                         files={
                             "file": (
                                 "policy.md",
@@ -54,8 +54,10 @@ def run() -> bool:
                     )
                     elapsed = perf_counter() - entered
 
-                    assert response.status_code == 200, response.text
-                    total = response.json()["total"]
+                    assert response.status_code == 201, response.text
+                    total = client.count(
+                        services.collection, exact=True).count - before
+                    assert total > 0
                     assert client.count(services.collection,
                                         exact=True).count == before + total
                     assert services.ready <= entered <= calls[-1]

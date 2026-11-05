@@ -164,8 +164,8 @@ class CurrentTests(unittest.TestCase):
                 for method, header, supported in (('GET', 'Authorization', True),
                                                   ('POST', 'Content-Type', True),
                                                   ('PUT', 'Authorization', False),
-                                                  ('PATCH', 'Authorization', False),
-                                                  ('DELETE', 'Authorization', False),
+                                                  ('PATCH', 'Authorization', True),
+                                                  ('DELETE', 'Authorization', True),
                                                   ('GET', 'X-Unapproved', False)):
                     response = client.options('/auth', headers={'Origin': origin,
                                                                 'Access-Control-Request-Method': method, 'Access-Control-Request-Headers': header})

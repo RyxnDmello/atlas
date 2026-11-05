@@ -7,9 +7,8 @@ from pathlib import Path
 from unittest import TestCase
 from threading import get_ident
 from contextlib import ExitStack
-from unittest.mock import Mock, patch
-
 from pydantic import ValidationError
+from unittest.mock import Mock, patch
 from fastapi.testclient import TestClient
 
 from alembic import command
@@ -95,7 +94,8 @@ class PostgresMetadataTests(TestCase):
             "verifications": {"id", "user_id", "type", "otp", "expires_at", "created_at"},
             "sessions": {"id", "user_id", "token_hash", "expires_at", "created_at"},
         }
-        self.assertEqual(set(Base.metadata.tables), set(expected))
+        self.assertEqual(set(Base.metadata.tables),
+                         set(expected) | {"folders", "files"})
         for name, columns in expected.items():
             table = Base.metadata.tables[name]
             self.assertEqual(set(table.columns.keys()), columns)
@@ -150,7 +150,7 @@ class PostgresMetadataTests(TestCase):
                 self.assertIsInstance(key.parent.type, Uuid)
 
         indexes = {index.name: (tuple(index.columns.keys()), index.unique)
-                   for table in Base.metadata.tables.values() for index in table.indexes}
+                   for name in expected for index in Base.metadata.tables[name].indexes}
         self.assertEqual(
             indexes, {"ix_sessions_user_id": (("user_id",), False)})
 
@@ -392,7 +392,7 @@ class PostgresMigrationTests(TestCase):
         buffer = io.StringIO()
         config = Config(
             str(Path(__file__).resolve().parents[1] / "alembic.ini"), output_buffer=buffer)
-        command.upgrade(config, "head", sql=True)
+        command.upgrade(config, "0001_identity", sql=True)
         sql = buffer.getvalue()
         self.assertEqual(sql.count("CREATE TYPE verification_type"), 1)
         self.assertIn("ENUM ('auth', 'reset', 'forgot')", sql)

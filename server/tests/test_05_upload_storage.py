@@ -1,11 +1,9 @@
+from httpx import Response
 from uuid import UUID, uuid4
 from time import perf_counter
-from contextlib import ExitStack
-
 from unittest import TestCase
 from unittest.mock import patch
-
-from httpx import Response
+from contextlib import ExitStack
 from fastapi.testclient import TestClient
 
 from qdrant_client import QdrantClient
@@ -19,15 +17,14 @@ from app.pipeline.chunking import chunk
 from app.pipeline.extraction import extract
 
 from app.db.qdrant import ensure_collection
+from app.schemas.constants import QdrantConstants
 
 from app.errors.api import ApiError
 
-from app.schemas.constants import QdrantConstants
-
 from app.main import app
 
-
 from tests.postgres import database
+from tests.uploads import environment
 
 
 class Provider:
@@ -59,7 +56,8 @@ class UploadStorageTests(TestCase):
         """Prepare an injected provider, in-memory Qdrant, and a real upload client."""
         self.scope = ExitStack()
         self.addCleanup(self.scope.close)
-        self.database = database()
+        self.database, self.user, self.headers = self.scope.enter_context(
+            environment())
         self.scope.enter_context(
             patch("app.core.lifespan.prepare", return_value=self.database))
 
@@ -86,7 +84,7 @@ class UploadStorageTests(TestCase):
     def upload(self) -> Response:
         """Upload the same realistic Markdown fixture through HTTP."""
         return self.http.post(
-            "/documents/upload", files={"file": ("policy.md", self.content, "text/markdown")}
+            "/files", headers=self.headers, data={"name": "policy.md"}, files={"file": ("policy.md", self.content, "text/markdown")}
         )
 
     def test_payloads_match_chunks_and_preserve_both_texts(self) -> None:
@@ -96,27 +94,28 @@ class UploadStorageTests(TestCase):
 
         file_id = uuid4()
 
-        with patch("app.routers.documents.uuid4", return_value=file_id) as identifier:
+        with patch("app.pipeline.upload.uuid4", return_value=file_id) as identifier:
             response = self.upload()
 
         identifier.assert_called_once_with()
 
-        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.status_code, 201, response.text)
 
         body = response.json()
 
-        self.assertEqual(set(body), {"id", "name", "type", "total", "chunks"})
+        self.assertEqual(set(body), {"id", "name", "description", "original_name",
+                         "extension", "size_bytes", "status", "folder_id", "created_at", "updated_at"})
+        total = len(expected)
         self.assertIsInstance(body["id"], str)
         self.assertEqual(UUID(body["id"]), file_id)
         self.assertEqual(body["name"], "policy.md")
-        self.assertEqual(body["type"], ".md")
-        self.assertGreater(body["total"], 1)
-        self.assertEqual(body["total"], len(expected))
+        self.assertEqual(body["extension"], ".md")
+        self.assertGreater(total, 1)
         self.assertEqual(self.client.count(
-            self.collection, exact=True).count, body["total"])
+            self.collection, exact=True).count, total)
 
         points, cursor = self.client.scroll(
-            self.collection, limit=body["total"], with_vectors=True)
+            self.collection, limit=total, with_vectors=True)
 
         self.assertIsNone(cursor)
 
@@ -134,7 +133,7 @@ class UploadStorageTests(TestCase):
         self.assertEqual(len({payload["file_id"] for payload in payloads}), 1)
         self.assertEqual(self.provider.texts, [item.text for item in expected])
 
-        for item, payload, returned in zip(expected, payloads, body["chunks"], strict=True):
+        for item, payload in zip(expected, payloads, strict=True):
             UUID(payload["file_id"])
             self.assertEqual(payload["file_id"], body["id"])
             self.assertEqual(
@@ -151,13 +150,6 @@ class UploadStorageTests(TestCase):
             self.assertEqual(payload["section"], item.section)
             self.assertEqual(payload["text"], item.text)
             self.assertEqual(payload["display_text"], item.display_text)
-            self.assertEqual(
-                returned,
-                {
-                    "text": item.text, "index": item.index, "count": item.count,
-                    "page": item.page, "heading": item.heading, "section": item.section,
-                },
-            )
 
         self.assertTrue(
             any(payload["text"] != payload["display_text"] for payload in payloads))
@@ -172,15 +164,16 @@ class UploadStorageTests(TestCase):
         first = self.upload()
         second = self.upload()
 
-        self.assertEqual(first.status_code, 200)
-        self.assertEqual(second.status_code, 200)
+        self.assertEqual(first.status_code, 201)
+        self.assertEqual(second.status_code, 201)
         self.constructor.assert_called_once_with()
         self.assertLessEqual(self.provider.loaded, ready)
         self.assertLessEqual(ready, entered)
         self.assertTrue(all(entered <= call for call in self.provider.calls))
         self.assertIs(storage().provider, self.provider)
 
-        total = first.json()["total"] + second.json()["total"]
+        total = 2 * \
+            len(chunk(extract(self.content, ".md", "policy.md"), str(uuid4())))
 
         self.assertEqual(self.client.count(
             self.collection, exact=True).count, total)
@@ -202,7 +195,7 @@ class UploadStorageTests(TestCase):
             UUID(file_id)
             count = sum(point.payload["file_id"] == file_id for point in points
                         if isinstance(point.payload, dict))
-            self.assertEqual(count, response.json()["total"])
+            self.assertEqual(count, total // 2)
 
     def test_returned_ids_query_only_their_uploaded_chunks(self) -> None:
         """Use public upload IDs directly and verify distinct fixtures stay scoped."""
@@ -211,13 +204,13 @@ class UploadStorageTests(TestCase):
         for name, text in (("retention.md", "Keep records for seven years."),
                            ("support.md", "Acknowledge support requests within two days.")):
             response = self.http.post(
-                "/documents/upload", files={"file": (name, text.encode(), "text/markdown")})
-            self.assertEqual(response.status_code, 200, response.text)
+                "/files", headers=self.headers, data={"name": name}, files={"file": (name, text.encode(), "text/markdown")})
+            self.assertEqual(response.status_code, 201, response.text)
             responses.append(response.json())
 
         self.assertNotEqual(responses[0]["id"], responses[1]["id"])
 
-        total = sum(body["total"] for body in responses)
+        total = self.client.count(self.collection, exact=True).count
         points, cursor = self.client.scroll(
             self.collection, limit=total, with_vectors=True)
         self.assertIsNone(cursor)
@@ -227,11 +220,9 @@ class UploadStorageTests(TestCase):
         for body in responses:
             with self.subTest(file_id=body["id"]):
                 response = self.http.post(
-                    f"/files/{body['id']}/query", json={"question": "What is the policy?", "top_k": 20})
+                    f"/files/{body['id']}/query", headers=self.headers, json={"question": "What is the policy?", "top_k": 20})
                 self.assertEqual(response.status_code, 200, response.text)
                 results = response.json()["results"]
-                self.assertEqual(len(results), body["total"])
-                chunks = {item["index"]: item for item in body["chunks"]}
                 payloads = {}
 
                 for point in points:
@@ -240,14 +231,14 @@ class UploadStorageTests(TestCase):
                     if point.payload["file_id"] == body["id"]:
                         payloads[point.payload["chunk_index"]] = point.payload
 
-                self.assertEqual(len(payloads), body["total"])
+                self.assertEqual(len(results), len(payloads))
 
                 for result in results:
                     payload = payloads[result["index"]]
                     self.assertEqual(payload["file_id"], body["id"])
                     self.assertEqual(result["text"], payload["text"])
                     self.assertEqual({key: value for key, value in result.items() if key != "score"},
-                                     chunks[result["index"]])
+                                     {"text": payload["text"], "index": payload["chunk_index"], "count": payload["token_count"], "page": payload["page"], "heading": payload["heading"], "section": payload["section"]})
 
         after, cursor = self.client.scroll(
             self.collection, limit=total, with_vectors=True)
@@ -306,6 +297,50 @@ class UploadStorageTests(TestCase):
         self.assertEqual(response.json()["code"], "QDRANT_COLLECTION_ERROR")
         self.assertEqual(set(response.json()), {"error", "code"})
         self.assertTrue(writer.call_args.kwargs["wait"])
+
+    def test_partial_write_compensation_preserves_another_ready_file(self) -> None:
+        """Delete real partial writes by canonical UUID while retaining an earlier upload."""
+        first = self.upload()
+        self.assertEqual(first.status_code, 201)
+        before, _ = self.client.scroll(
+            self.collection, limit=100, with_vectors=True)
+        fingerprint = sorted((point.model_dump(mode="json")
+                             for point in before), key=lambda point: str(point["id"]))
+        write = self.client.upsert
+
+        def partial(*args, **kwargs):
+            write(*args, **kwargs)
+            raise ConnectionError("injected after write")
+
+        with patch.object(self.client, "upsert", side_effect=partial):
+            response = self.upload()
+        self.assertEqual(response.status_code, 503)
+        after, _ = self.client.scroll(
+            self.collection, limit=100, with_vectors=True)
+        self.assertEqual(sorted((point.model_dump(mode="json")
+                         for point in after), key=lambda point: str(point["id"])), fingerprint)
+
+    def test_live_acceptance_helper_with_isolated_local_stores(self) -> None:
+        """Validate the prepared HTTP helper without claiming real PostgreSQL acceptance."""
+        from hashlib import sha256
+        from sqlalchemy import select
+        from app.models.postgres import Base
+        from tests.uploads_acceptance import acceptance
+
+        def fingerprint():
+            digest = sha256()
+            with self.database.engine.connect() as connection:
+                for table in Base.metadata.sorted_tables:
+                    digest.update(repr(connection.execute(
+                        select(table).order_by(table.c.id)).all()).encode())
+            return digest.hexdigest()
+
+        before = fingerprint()
+        result = acceptance(self.database, self.http, storage(), [])
+        self.assertEqual(result["upload_http"], "passed")
+        self.assertEqual(fingerprint(), before)
+        self.assertEqual(self.client.count(
+            self.collection, exact=True).count, 0)
 
     def test_invalid_embeddings_do_not_reach_storage(self) -> None:
         """Reject missing or incorrectly sized vectors before storage."""

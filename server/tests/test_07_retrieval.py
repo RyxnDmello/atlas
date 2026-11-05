@@ -22,7 +22,8 @@ from app.main import app
 
 from tests.test_05_upload_storage import Provider
 
-from tests.postgres import database
+from tests.rag import seed
+from tests.uploads import environment
 
 
 class RetrievalTests(TestCase):
@@ -32,7 +33,8 @@ class RetrievalTests(TestCase):
         """Bind existing lifespan injection patterns to deterministic dense points."""
         self.scope = ExitStack()
         self.addCleanup(self.scope.close)
-        self.database = database()
+        self.database, self.user, self.headers = self.scope.enter_context(
+            environment())
         self.scope.enter_context(
             patch("app.core.lifespan.prepare", return_value=self.database))
         self.provider = Provider()
@@ -46,9 +48,12 @@ class RetrievalTests(TestCase):
             patch("app.core.lifespan.create_client", return_value=self.client)
         )
         self.http = self.scope.enter_context(TestClient(app))
+        self.http.headers.update(self.headers)
         self.collection = constants.qdrant.QDRANT_COLLECTION
         self.file = uuid4()
         self.other = uuid4()
+        seed(self.database, self.user.id, self.file)
+        seed(self.database, self.user.id, self.other)
         self.payloads = [self.payload(self.file, index) for index in range(7)]
         vectors = []
 
@@ -173,8 +178,10 @@ class RetrievalTests(TestCase):
 
     def test_valid_uuid_without_points_is_empty_success(self) -> None:
         """Distinguish zero indexed matches from a missing canonical file."""
+        identifier = uuid4()
+        seed(self.database, self.user.id, identifier)
         response = self.http.post(
-            f"/files/{uuid4()}/query", json={"question": "retention"})
+            f"/files/{identifier}/query", json={"question": "retention"})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"results": []})
 

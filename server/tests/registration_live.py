@@ -195,7 +195,7 @@ def main() -> None:
         schema(source)
         assert counts(
             source_database) == baseline, "Configured database row totals changed"
-        print(json.dumps({**result, "schema": "unchanged", "head": "0001_identity",
+        print(json.dumps({**result, "schema": "unchanged", "head": "0002_drive",
                           "configured_database_counts": "preserved"}, sort_keys=True))
     finally:
         if disposable is not None:

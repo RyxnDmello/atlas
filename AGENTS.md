@@ -134,8 +134,8 @@ Atlas phase state is cumulative. A later phase may extend or deliberately supers
 
 - **Status:** `IMPLEMENTED, UNVERIFIED`
 - **Completed PLAN:** `PHASE_02_PLAN_01 — PostgreSQL Identity & Authentication Foundation` (`IMPLEMENTED & VERIFIED`)
-- **Current PLAN / next destination:** `PHASE_02_PLAN_02 — Authenticated Drive Backend` (`NOT YET BUILT`)
-- **Current branch family:** `phase-02/plan-01`
+- **Current PLAN:** `PHASE_02_PLAN_02 — Authenticated Drive Backend` (`IMPLEMENTED & VERIFIED`; complete integrated backend acceptance passed; authenticated client remains `NOT YET BUILT`)
+- **Current branch family:** `phase-02/plan-02`
 
 Verified Phase 2 foundation:
 
@@ -162,17 +162,23 @@ Current capability state:
 | Refresh rotation / current logout    | IMPLEMENTED & VERIFIED |
 | Credentialed cookie CORS             | IMPLEMENTED & VERIFIED |
 | Bearer current-user resolution       | IMPLEMENTED & VERIFIED |
-| Recursive folder hierarchy           | NOT YET BUILT          |
-| Canonical file metadata / lifecycle  | NOT YET BUILT          |
-| Owner-authorized single-file RAG     | NOT YET BUILT          |
+| Canonical folder/file persistence    | IMPLEMENTED & VERIFIED |
+| Recursive folder hierarchy           | IMPLEMENTED & VERIFIED |
+| Folder metadata / direct-child APIs  | IMPLEMENTED & VERIFIED |
+| Canonical authenticated file upload  | IMPLEMENTED & VERIFIED |
+| File metadata mutation / deletion    | IMPLEMENTED & VERIFIED |
+| Owner-authorized single-file RAG     | IMPLEMENTED & VERIFIED |
 | Authenticated drive client           | NOT YET BUILT          |
 
-Amendments 01–05 are complete. Registration, OTP verification/resend, initial session/access issuance, and login are verified through real PostgreSQL, packaged regression, live API, and datastore-preservation acceptance. Login reuses credential/session primitives, commits optional password rehash with its new independent session, and shares the verified access-token/user response with OTP verification. Amendment 06 is complete. Atomic refresh rotation, idempotent current-session logout, and credentialed CORS passed packaged regression, real PostgreSQL rollback/concurrency, live HTTP/cookie/CORS, image/log security, and datastore-preservation acceptance. Amendment 07 is complete. Bearer current-user resolution and GET /auth are `IMPLEMENTED & VERIFIED` through packaged regression, real PostgreSQL, live authentication/CORS, security scans, and datastore preservation. PLAN_01 is `IMPLEMENTED & VERIFIED`. Next destination: PHASE_02_PLAN_02 — Authenticated Drive Backend (`NOT YET BUILT`).
+Amendments 01–05 are complete. Registration, OTP verification/resend, initial session/access issuance, and login are verified through real PostgreSQL, packaged regression, live API, and datastore-preservation acceptance. Login reuses credential/session primitives, commits optional password rehash with its new independent session, and shares the verified access-token/user response with OTP verification. Amendment 06 is complete. Atomic refresh rotation, idempotent current-session logout, and credentialed CORS passed packaged regression, real PostgreSQL rollback/concurrency, live HTTP/cookie/CORS, image/log security, and datastore-preservation acceptance. Amendment 07 is complete. Bearer current-user resolution and GET /auth are `IMPLEMENTED & VERIFIED` through packaged regression, real PostgreSQL, live authentication/CORS, security scans, and datastore preservation. PLAN_01 is `IMPLEMENTED & VERIFIED`. Current PLAN: PHASE_02_PLAN_02 — Authenticated Drive Backend (`IMPLEMENTED & VERIFIED`); complete backend acceptance passed; next client PLAN is `NOT YET BUILT`.
+
+PLAN_02 Amendment 01 is complete. Canonical Folder/File persistence and `0002_drive` are `IMPLEMENTED & VERIFIED` through local and packaged regression, real PostgreSQL ownership/constraint/reversibility acceptance, live authentication/health, security scans, and datastore preservation. Amendment 02 is complete: authenticated folder creation/update and root/direct-child browsing are `IMPLEMENTED & VERIFIED` through local/packaged regression, real PostgreSQL two-user acceptance, live HTTP/CORS, security scans, and datastore preservation. Amendment 03 is complete: canonical authenticated upload is `IMPLEMENTED & VERIFIED` through packaged regression, real PostgreSQL/Qdrant lifecycle and failure compensation, live HTTP, security scans and the authorized clean-dataset acceptance; Amendment 04 is complete: file metadata mutation and recoverable permanent deletion are `IMPLEMENTED & VERIFIED` through packaged regression, real PostgreSQL locking/transactions, Qdrant failure/retry/isolation, live HTTP/CORS, security and datastore preservation. CORS permits exactly GET/POST/PATCH/DELETE. Amendment 05 is complete: owner-authorized single-file RAG is `IMPLEMENTED & VERIFIED` through local/packaged regression, real PostgreSQL/Qdrant two-owner authorization, deterministic native SSE, live HTTP, security scans and datastore preservation; Amendment 06 is complete: integrated two-owner real PostgreSQL/Qdrant and running HTTP acceptance, packaged regression/equivalence, security and exact datastore/resource preservation passed. PLAN_02 is `IMPLEMENTED & VERIFIED`; PHASE_02 remains `IMPLEMENTED, UNVERIFIED`. PLAN_03 Client Authentication and PLAN_04 Drive Dashboard & Phase Acceptance remain `NOT YET BUILT`.
 
 Evidence:
 
 - [PHASE_02 PLAN_01 CONTEXT](prompts/PHASE_02/PLAN_01/PHASE_02_PLAN_01_CONTEXT.md)
 - [PHASE_02 PLAN_01 MANUAL](prompts/PHASE_02/PLAN_01/PHASE_02_PLAN_01_MANUAL.md)
+- [PHASE_02 PLAN_02 CONTEXT](prompts/PHASE_02/PLAN_02/PHASE_02_PLAN_02_CONTEXT.md)
 
 ## 3. COMPLETED PROJECT HISTORY
 
@@ -573,16 +579,22 @@ Do not re-ask these resolved scope decisions unless a new requirement conflicts 
 
 #### Folders and files
 
+- Phase 2 `folders` and `files` are canonical PostgreSQL records owned by one canonical `users` row.
 - Phase 2 introduces recursive folders through a nullable self-referencing parent relationship.
+- Folder metadata includes user-facing name and description.
 - Folder rename is approved.
 - Folder deletion and folder movement are excluded.
 - File movement is excluded.
-- Canonical file metadata includes at least user-facing name and description.
+- Duplicate sibling folder names are allowed.
+- Duplicate sibling file names are allowed.
+- Files and folders may share the same display name; names are metadata, not identity.
+- Canonical file metadata includes user-facing name and description plus source metadata required by the current PLAN.
 - File metadata update does not imply content replacement or re-embedding.
+- Canonical file lifecycle uses `processing`, `ready`, and `deleting`; only `ready` files may enter retrieval/generation.
+- A known ingestion failure cleans any derived Qdrant state for that exact `file_id` and removes the temporary canonical file row rather than retaining a durable failed-file state.
 - Persistent original-file storage is excluded; uploads are transient input to the existing indexing pipeline.
-- Permanent file deletion removes canonical PostgreSQL metadata and all derived Qdrant points for that `file_id`.
+- Permanent file deletion removes all derived Qdrant points for the exact `file_id` and then removes canonical PostgreSQL metadata; `deleting` is a non-queryable retryable cross-store state.
 - Content/file deduplication is not part of Phase 2 unless explicitly added later.
-- Filename/folder-name uniqueness semantics are not implicitly decided; do not invent them.
 - Owner authorization in PostgreSQL must happen before file-scoped retrieval/generation.
 
 #### Retrieval and infrastructure

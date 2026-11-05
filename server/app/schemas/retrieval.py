@@ -1,7 +1,5 @@
 from pydantic import BaseModel, Field, field_validator
 
-from app.schemas.documents import ResponseChunk
-
 from app.models.qdrant.chunk import Chunk as Payload
 
 
@@ -32,10 +30,16 @@ class RetrievedChunk(Payload):
     score: float = Field(allow_inf_nan=False)
 
 
-class ScoredChunk(ResponseChunk):
+class ScoredChunk(BaseModel):
     """Expose the approved public chunk vocabulary with its raw similarity score."""
 
     score: float
+    text: str
+    index: int
+    count: int
+    page: int | None = None
+    heading: str | None = None
+    section: str | None = None
 
 
 class QueryResponse(BaseModel):

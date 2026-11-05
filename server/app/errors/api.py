@@ -20,6 +20,8 @@ AuthErrorCode = Literal[
     "VERIFICATION_NOT_REQUIRED",
 ]
 FileErrorCode = Literal[
+    "FILE_NOT_FOUND",
+    "FILE_NOT_READY",
     "INVALID_FILE_TYPE",
     "INVALID_FILE_SIZE",
     "FILE_UPLOAD_FAILED",
@@ -35,28 +37,34 @@ PostgresErrorCode = Literal[
 GenerationErrorCode = Literal[
     "GENERATION_FAILED"
 ]
+FolderErrorCode = Literal[
+    "FOLDER_NOT_FOUND"
+]
 
-ErrorCode = CommonErrorCode | FileErrorCode | QdrantErrorCode | GenerationErrorCode | PostgresErrorCode | AuthErrorCode
+ErrorCode = CommonErrorCode | FileErrorCode | QdrantErrorCode | GenerationErrorCode | PostgresErrorCode | AuthErrorCode | FolderErrorCode
 
 STATUS_BY_CODE: dict[ErrorCode, int] = {
-    "INVALID_CREDENTIALS": 401,
-    "VERIFICATION_REQUIRED": 403,
     "BAD_REQUEST": 400,
+    "FILE_NOT_READY": 409,
+    "FILE_NOT_FOUND": 404,
+    "FOLDER_NOT_FOUND": 404,
+    "ACCOUNT_NOT_FOUND": 404,
     "INVALID_FILE_TYPE": 400,
     "INVALID_FILE_SIZE": 400,
     "GENERATION_FAILED": 502,
     "FILE_UPLOAD_FAILED": 400,
+    "INVALID_CREDENTIALS": 401,
+    "INVALID_VERIFICATION": 400,
+    "VERIFICATION_EXPIRED": 400,
     "UNPROCESSABLE_ENTITY": 422,
     "INVALID_ACCESS_TOKEN": 401,
+    "VERIFICATION_REQUIRED": 403,
     "INVALID_REFRESH_TOKEN": 401,
     "INTERNAL_SERVER_ERROR": 500,
     "ACCOUNT_ALREADY_EXISTS": 409,
-    "ACCOUNT_NOT_FOUND": 404,
-    "INVALID_VERIFICATION": 400,
-    "VERIFICATION_EXPIRED": 400,
-    "VERIFICATION_NOT_REQUIRED": 409,
     "QDRANT_COLLECTION_ERROR": 500,
     "QDRANT_CONNECTION_FAILED": 503,
+    "VERIFICATION_NOT_REQUIRED": 409,
     "POSTGRES_OPERATION_FAILED": 500,
     "POSTGRES_CONNECTION_FAILED": 503,
 }
