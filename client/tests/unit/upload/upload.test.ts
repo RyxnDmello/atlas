@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { parseEnvironment } from "@config/environment";
+import { envSchema } from "@schemas/env";
 import { uploadFormSchema, uploadResponseSchema } from "@schemas/upload/upload";
 
 const response = {
@@ -24,6 +24,7 @@ describe("upload boundaries", () => {
   test("preserves the server ID and nullable chunk metadata", () => {
     expect(uploadResponseSchema.parse(response)).toEqual(response);
   });
+
   test("rejects malformed success payloads", () => {
     for (const value of [
       null,
@@ -50,6 +51,7 @@ describe("upload boundaries", () => {
       expect(uploadResponseSchema.safeParse(value).success).toBe(false);
     }
   });
+
   test("requires an actual file", () => {
     expect(uploadFormSchema.safeParse({}).success).toBe(false);
     expect(
@@ -63,29 +65,41 @@ describe("upload boundaries", () => {
       }).success,
     ).toBe(true);
   });
+
   test("evaluates safely when File is unavailable during prerender", () => {
     const original = Object.getOwnPropertyDescriptor(globalThis, "File");
+
     try {
       Object.defineProperty(globalThis, "File", {
         value: undefined,
         configurable: true,
       });
+
       expect(
         uploadFormSchema.safeParse({
           file: {},
         }).success,
       ).toBe(false);
     } finally {
-      if (original) Object.defineProperty(globalThis, "File", original);
+      if (original) {
+        Object.defineProperty(globalThis, "File", original);
+      }
     }
   });
+
   test("normalizes valid API configuration and rejects unsafe or missing values", () => {
-    expect(parseEnvironment("https://api.example/v1/").apiBaseUrl).toBe(
-      "https://api.example/v1",
-    );
-    expect(parseEnvironment(" https://api.example/ ").apiBaseUrl).toBe(
-      "https://api.example",
-    );
+    expect(
+      envSchema.parse({
+        API_BASE_URL: "https://api.example/v1/",
+      }).API_BASE_URL,
+    ).toBe("https://api.example/v1");
+
+    expect(
+      envSchema.parse({
+        API_BASE_URL: " https://api.example/ ",
+      }).API_BASE_URL,
+    ).toBe("https://api.example");
+
     for (const value of [
       undefined,
       "",
@@ -97,9 +111,11 @@ describe("upload boundaries", () => {
       "https://api.example?secret=x",
       "https://api.example#x",
     ]) {
-      expect(() => parseEnvironment(value)).toThrow(
-        "NEXT_PUBLIC_ATLAS_API_BASE_URL",
-      );
+      expect(() =>
+        envSchema.parse({
+          API_BASE_URL: value,
+        }),
+      ).toThrow("NEXT_PUBLIC_ATLAS_API_BASE_URL");
     }
   });
 });

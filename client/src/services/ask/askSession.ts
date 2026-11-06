@@ -39,7 +39,6 @@ const failure =
   "Unable to complete the answer. Check the API connection and try again.";
 const generationFailure = "Generation failed. Try again.";
 
-/** Own one file-scoped request, snapshots, subscriptions, and abort cleanup. */
 export function createAskSession(): AskSession {
   let state = idle;
   let scope: string | undefined;

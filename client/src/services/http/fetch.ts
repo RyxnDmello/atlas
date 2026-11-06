@@ -1,32 +1,145 @@
-import { environment } from "@config/environmentPublic";
+import { authAccess, type AuthLease } from "@services/auth/auth";
+
+import {
+  waitFor,
+  recover,
+  resolveUrl,
+  requiresAuth,
+  invalidAccess,
+} from "@/services/http/policy";
+
+import { env } from "@constants/env";
 
 export interface FetchClient {
-  base(path: string, options?: RequestInit): Promise<Response>;
-  get(path: string, options?: RequestInit): Promise<Response>;
-  post(path: string, data: unknown, options?: RequestInit): Promise<Response>;
+  base(path: string, options?: FetchOptions): Promise<Response>;
+  get(path: string, options?: FetchOptions): Promise<Response>;
+  post(path: string, data: unknown, options?: FetchOptions): Promise<Response>;
 }
 
-/** Resolve an API-relative path and preserve the native response and body stream. */
-function base(path: string, options?: RequestInit): Promise<Response> {
-  const url = `${environment.apiBaseUrl}/${path.replace(/^\/+/, "")}`;
+export interface FetchOptions extends RequestInit {
+  isProtected?: boolean;
+}
 
-  return globalThis.fetch(url, {
+interface AuthenticatedRequest {
+  url: string;
+  options: RequestInit;
+  lease: AuthLease;
+}
+
+const recoverResponse = async (
+  response: Response,
+  request: AuthenticatedRequest,
+): Promise<Response> => {
+  if (response.status !== 401) {
+    return response;
+  }
+
+  let body: unknown;
+
+  try {
+    body = await response.clone().json();
+  } catch {}
+
+  if (invalidAccess(response.status, body)) {
+    const { url, options, lease } = request;
+
+    try {
+      const replacement = await recover(authAccess, lease, options.signal);
+
+      const replayable =
+        (options.method ?? "GET").toUpperCase() === "GET" &&
+        options.body == null &&
+        !new URL(url).pathname.match(/\/auth(?:\/|$)/);
+
+      if (replacement && replayable) {
+        options.signal?.throwIfAborted();
+
+        if (authAccess.current(replacement)) {
+          const headers = new Headers(options.headers);
+
+          headers.set("Authorization", `Bearer ${replacement.token}`);
+
+          return globalThis.fetch(url, {
+            ...options,
+            headers,
+          });
+        } else {
+          return response;
+        }
+      } else {
+        return response;
+      }
+    } catch (error) {
+      if (options.signal?.aborted) {
+        throw error;
+      } else {
+        return response;
+      }
+    }
+  } else {
+    return response;
+  }
+};
+
+const base = async (
+  path: string,
+  options?: FetchOptions,
+): Promise<Response> => {
+  const url = resolveUrl(path, env.API_BASE_URL);
+  const { isProtected, ...native } = options ?? {};
+
+  const settings: RequestInit = {
     credentials: "omit",
-    ...options,
-  });
-}
+    ...native,
+  };
+
+  if (requiresAuth(url, isProtected)) {
+    settings.signal?.throwIfAborted();
+
+    const lease = await waitFor(authAccess.acquire(), settings.signal);
+
+    if (authAccess.current(lease)) {
+      const headers = new Headers(settings.headers);
+
+      headers.set("Authorization", `Bearer ${lease.token}`);
+
+      const response = await globalThis.fetch(url, {
+        ...settings,
+        headers,
+      });
+
+      return recoverResponse(response, {
+        url,
+        options: settings,
+        lease,
+      });
+    } else {
+      throw new Error("Session superseded.");
+    }
+  } else {
+    if (isProtected === false) {
+      const headers = new Headers(settings.headers);
+
+      headers.delete("Authorization");
+
+      settings.headers = headers;
+    }
+
+    return globalThis.fetch(url, settings);
+  }
+};
 
 const client: FetchClient = {
   base,
 
-  get(path, options) {
+  get: (path, options) => {
     return base(path, {
       ...options,
       method: "GET",
     });
   },
 
-  post(path, data, options) {
+  post: (path, data, options) => {
     const headers = new Headers(options?.headers);
 
     if (!headers.has("Content-Type")) {

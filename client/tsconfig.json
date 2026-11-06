@@ -28,9 +28,10 @@
       "@app/*": ["./src/app/*"],
       "@hooks/*": ["./src/hooks/*"],
       "@utils/*": ["./src/utils/*"],
-      "@config/*": ["./src/config/*"],
+      "@stores/*": ["./src/stores/*"],
       "@schemas/*": ["./src/schemas/*"],
       "@services/*": ["./src/services/*"],
+      "@constants/*": ["./src/constants/*"],
       "@providers/*": ["./src/providers/*"],
       "@components/*": ["./src/components/*"]
     }
