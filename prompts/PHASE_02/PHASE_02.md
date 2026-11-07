@@ -60,15 +60,15 @@ flowchart LR
 
 ### PHASE and PLAN maturity
 
-| PLAN               | Status                    | Responsibility                                                                                       |
-| ------------------ | ------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `PHASE_02_PLAN_01` | `IMPLEMENTED & VERIFIED`  | PostgreSQL identity and complete backend authentication/session contracts                            |
-| `PHASE_02_PLAN_02` | `IMPLEMENTED & VERIFIED`  | Owner-scoped drive backend, file lifecycle, and authorized single-file RAG                           |
-| `PHASE_02_PLAN_03` | `IMPLEMENTED, UNVERIFIED` | Shared auth foundation; browser registration, verification, login and protected entry remain unbuilt |
-| `PHASE_02_PLAN_04` | `NOT YET BUILT`           | Drive dashboard, file/folder workflows, selected-file RAG and final acceptance                       |
+| PLAN               | Status                    | Responsibility                                                                                                            |
+| ------------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `PHASE_02_PLAN_01` | `IMPLEMENTED & VERIFIED`  | PostgreSQL identity and complete backend authentication/session contracts                                                 |
+| `PHASE_02_PLAN_02` | `IMPLEMENTED & VERIFIED`  | Owner-scoped drive backend, file lifecycle, and authorized single-file RAG                                                |
+| `PHASE_02_PLAN_03` | `IMPLEMENTED, UNVERIFIED` | Verified auth foundation; registration/verification/resend UI verified; login/logout UI verified; protected entry unbuilt |
+| `PHASE_02_PLAN_04` | `NOT YET BUILT`           | Drive dashboard, file/folder workflows, selected-file RAG and final acceptance                                            |
 
 - **PHASE_02** remains `IMPLEMENTED, UNVERIFIED` until all four PLANS and end-to-end acceptance are verified.
-- **Active PLAN:** `PHASE_02_PLAN_03`; Amendments 01 and 02 are verified; authentication UI and protected entry remain unbuilt.
+- **Active PLAN:** `PHASE_02_PLAN_03`; Amendments 01 and 02 are verified; Amendment 03 registration/verification/resend UI is `IMPLEMENTED & VERIFIED`; Amendment 04 login/logout UI is `IMPLEMENTED & VERIFIED`; protected entry remains unbuilt.
 - **Backend closure:** PLAN_02 Amendment 06 records integrated two-owner real PostgreSQL/Qdrant, running HTTP, packaged regression/equivalence, security and exact resource-preservation acceptance.
 - **Evidence:** The PLAN_02 record reports 159 passing evidence rows; this document does not claim those checks were rerun.
 - **Branch reference:** `phase-02/plan-03` was inspected during current implementation; recheck before each task.
@@ -361,7 +361,7 @@ flowchart TB
 - **Destination:** `/register`, `/verify`, `/login`, protected dashboard entry, session restoration and logout.
 - **Client contracts:** One Zustand auth store, per-endpoint React hooks and literal auth constants; non-React lifecycle in `services/auth/auth.ts`, encrypted-token `token.ts` and IndexedDB-key `key.ts`; direct shared HTTP clients with `isProtected`; encrypted localStorage JWT, IndexedDB key, HttpOnly refresh cookie and shared Axios/native fetch access.
 - **Boundary:** Client route protection is UX only; no full drive CRUD/navigation or selected-file RAG UI.
-- **Architecture:** Amendment 02 supersedes the controller/grouped API design. Typed auth required/none remains independent of cookies; trusted Bearer and once-only bodyless GET replay preserve mutation/SSE behavior.
+- **Architecture:** Amendment 02 supersedes the controller/grouped API design. `isProtected?: boolean` remains independent of cookies; trusted Bearer and once-only bodyless GET replay preserve mutation/SSE behavior.
 - **Specification:** [PLAN_03](PLAN_03/PHASE_02_PLAN_03.md); actual results in its [CONTEXT](PLAN_03/PHASE_02_PLAN_03_CONTEXT.md) and [MANUAL](PLAN_03/PHASE_02_PLAN_03_MANUAL.md).
 
 ### PLAN_04 — Drive Dashboard & Phase Acceptance

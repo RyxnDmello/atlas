@@ -1,6 +1,7 @@
 # PHASE_02 PLAN_03 — Reproduction and Acceptance Manual
 
-- **Current scope:** Amendment 02 Zustand auth and HTTP hooks refactor; Stage 01 and approved Stage 02 are complete.
+- **Current scope:** Amendment 04 login/logout UI is `IMPLEMENTED & VERIFIED`; Stage 01 and explicitly approved Stage 02 Chromium/live acceptance complete. Sections 19 and 20 retain local and browser/live reproduction. Amendment 03 remains verified.
+- **Amendment 03 status:** `IMPLEMENTED & VERIFIED`; Section 17 retains the Stage 01 checkpoint; Section 18 records approved browser/live reproduction.
 - **Amendment 02 status:** `IMPLEMENTED & VERIFIED`; Section 16 records the current browser/live reproduction boundary and final cosmetic review.
 - **Amendment 01 status:** `IMPLEMENTED & VERIFIED` — approved Stage 02 completed; PLAN_03 and PHASE_02 remain `IMPLEMENTED, UNVERIFIED`.
 - Run from the repository root unless a step changes directory. Commands below were exercised on Windows PowerShell with Bun 1.4.3.
@@ -32,7 +33,7 @@ Expected: Bun 1.4.3 in the executed environment; successful frozen install with 
 bun test tests/unit/auth
 ```
 
-Expected: 101 passing tests across six test files after the Amendment 02 types/function-style follow-up. The suite supplies `http://localhost:8080` as a synthetic API origin and intercepts HTTP; a backend need not be listening.
+Expected: 148 passing tests across eight test files after Amendment 04 Stage 01. The suite supplies `http://localhost:8080` as a synthetic API origin and intercepts HTTP; a backend need not be listening.
 
 Expected: coverage includes six actual endpoint hooks plus raw bootstrap/refresh, duplicate submissions, OTP precision, strict DTO/error boundaries, AES-GCM/version-1 compatibility, scoped key deletion/regeneration, storage degradation, restoration, mixed-transport concurrency, stale results, logout, `isProtected`, trusted targets, replay bounds and cancellation.
 
@@ -46,7 +47,7 @@ bun run lint
 bun run typecheck
 ```
 
-Expected: 162 tests pass across 12 files after the Amendment 02 types/function-style follow-up; lint and TypeScript exit successfully. Existing native SSE framing, citation, provisional-output and abort/reset assertions remain intact.
+Expected: 209 tests pass across 14 files after Amendment 04 Stage 01; lint and TypeScript exit successfully. Existing native SSE framing, citation, provisional-output and abort/reset assertions remain intact.
 
 ## 5. Check amendment-file formatting
 
@@ -62,9 +63,9 @@ Expected: the whole-client formatting check passes. Amendment 01 previously norm
 bun run build
 ```
 
-Expected: successful production static export to `out/`; only existing `/` and `/_not-found` route artifacts. The executed build used the existing `.env.local` public API configuration. Browser-only storage/crypto access must not run during static prerendering.
+Expected: successful production static export to `out/`; `/`, `/_not-found`, `/login`, `/register` and `/verify` route artifacts. The executed build used the existing `.env.local` public API configuration. Browser-only storage/crypto access must not run during static prerendering.
 
-Expected: no new auth routes, route guards, Next server runtime or client Docker service. Building does not exercise the exported site in a browser.
+Expected: `/login` is included; no `/dashboard`, route guard, Next server runtime or client Docker service. Building does not exercise the exported site in a browser.
 
 ## 7. Inspect the patch
 
@@ -347,3 +348,175 @@ Expected: **Amendment 01 `IMPLEMENTED & VERIFIED`**. **PLAN_03 and PHASE_02 rema
 10. Check final documentation and worktree.
 
 Expected: current maturity reflects Amendment 02 verification while UI/protected-entry/PLAN_03/PHASE_02 remain incomplete. Preserve old chronology and all existing user edits; no commit/push/branch switch or staging. Chromium/local HTTP acceptance does not claim production HTTPS, other engines or cross-tab coverage.
+
+## 17. Amendment 03 Stage 01 — registration, verification and resend
+
+1. Confirm branch and existing changes with Section 1.
+
+   Expected: `phase-02/plan-03`; the preexisting `.gitignore` edit remains untouched. Amendment 03's existing untracked prompt has only its current status header updated. No commits, staging, pushes or branch operations.
+
+2. From `client/`, run the focused public-hook/form checks:
+
+   ```powershell
+   bun test tests/unit/auth/hooks.test.ts tests/unit/auth/forms.test.tsx
+   bun test tests/unit/auth
+   ```
+
+   Expected: 43 hook/form tests, 0 failures, 216 assertions across two files; 128 full auth tests, 0 failures, 525 assertions across seven files. The focused tests use real endpoint hooks with intercepted HTTP and actual components rendered through SSR. No backend needs to be listening.
+
+   Expected: all six hooks return only named action/state fields. Mutation loading uses isPending, actions preserve mutateAsync behavior, and getAuth preserves manual refetch behavior with fetching state and a safe canonical user. Rendering useAuth does not initiate a request. Registration/resend do not authenticate; verify commits the canonical response without an extra profile GET.
+
+   Expected: SSR checks cover masked registration inputs, working route links, direct-entry email/code input, exact string OTP attributes, canonical Zustand name/email escaping and omission of credential/debug output. Shared schemas and feedback mapping cover invalid inputs and stable error codes. SSR does not prove DOM event handling or subscription rerenders.
+
+3. Reproduce dependency/quality/regression checks using Sections 2–7.
+
+   Expected: successful frozen installation with no package/lock change; 189 full client tests, lint, strict TypeScript, whole-client format check and static build pass. Existing crypto/refresh/logout/transport/SSE/ask/upload regression coverage remains passing. No new dependency or shadcn primitive.
+
+4. From `client/`, inspect generated artifact names:
+
+   ```powershell
+   Get-ChildItem out -Name
+   ```
+
+   Expected: `register.html`, `verify.html` and their static route payloads exist, alongside the existing root/error artifacts. No login/dashboard artifact. Serve `/register` and `/verify` through the host's HTML route mapping during separately approved browser acceptance; no Next production server is required. Artifact existence alone does not verify deep-link/reload behavior.
+
+5. Review the user journey implemented by the two domain components.
+
+   Expected from source plus bounded unit/SSR checks: `/register` validates name/email/password using the existing schema, submits through useRegister and shows a verification-required next step and `/verify` link. Users re-enter email at `/verify`; no URL handoff or persistent form state was added. Registration never displays an authenticated profile.
+
+   Expected from source plus bounded unit/SSR checks: `/verify` accepts email and a six-digit text OTP, preserves leading zeroes, offers resend using only the current valid email, and disables incompatible actions while active. Verify/resend errors use safe code-aware messages; transport uncertainty invites retry. Successful resend clears the old code input. After verify commits Zustand authentication, the page displays the real user's labeled Name/Email. Missing authenticated user state cannot produce a fabricated profile.
+
+   Expected: QueryProvider retains bootstrap ownership. Components do not read JWTs or request GET /auth solely to populate the profile; no login/logout/dashboard page, global guard, root redirect or drive workflow is added.
+
+6. Inspect current evidence and stop for code review.
+
+   Expected: Amendment 03 is `IMPLEMENTED, UNVERIFIED`. PLAN_03/PHASE_02 remain `IMPLEMENTED, UNVERIFIED`. Historical Amendment 01/02 verification remains intact; server AGENTS changes only its stale PLAN_03 status, and PHASE/PLAN use the current `isProtected?: boolean` terminology.
+
+   Expected: no Stage 02 approval has occurred. Actual form interaction, pending/error/success DOM updates, reactive profile rerender, static-host direct visits/reloads, real FastAPI registration/verification/resend replacement and cookies, isolated leading-zero fixture acceptance and exact resource/datastore preservation remain unverified. These require fresh explicit approval before any browser/live/Docker/datastore execution; earlier Amendment approvals do not transfer.
+
+## 18. Amendment 03 approved Stage 02 — actual forms and preserved runtime
+
+1. Confirm branch/worktree with Section 1; read the latest Amendment 03 CONTEXT entry and current scope before a rerun.
+
+   Expected: Amendment 03 is `IMPLEMENTED & VERIFIED`; PLAN_03 and PHASE_02 remain `IMPLEMENTED, UNVERIFIED`. Section 17's pending-approval statements are historical. This execution followed fresh explicit approval; future tasks must follow their own stage boundary.
+
+2. Inspect and reuse the existing containers. Commands actually used from `server/`:
+
+   ```powershell
+   docker compose --env-file .env -f docker-compose.yml ps
+   docker ps -a --format '{{.Names}} {{.Status}} {{.Image}}'
+   docker image ls --format '{{.Repository}}:{{.Tag}} {{.ID}}'
+   docker volume ls --format '{{.Name}}'
+   docker start server-postgres-1 server-qdrant-1 server-server-1
+   docker inspect --format '{{.Name}} {{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{end}}' server-server-1 server-postgres-1 server-qdrant-1
+   ```
+
+   Expected: this run found all three retained containers stopped and started those exact containers. PostgreSQL/Qdrant became healthy; live health and dependency health returned 200. Reuse existing images/volumes; no build/pull/recreation/migration. A read-only packaged hash comparison must use the actual `/server` working directory: all 85 Python files matched after line-ending normalization.
+
+3. Before synthetic registration, take fresh private preservation baselines as described in Section 16 step 3.
+
+   Expected: use distinct paths, never overwrite old evidence. This run copied `integrated06_snapshot.py` and `integrated06_resources.py` to private `auth03_stage02_*` helpers and executed each with `capture`, then later `compare`. Full schema/catalog/rows, Qdrant configurations and all point payloads/vectors, Docker resources/layers/mounts and database inventory must match after cleanup. Counts alone are insufficient. The observed schema was `0002_drive` with zero application rows/points.
+
+4. Serve the built `client/out` on the configured allowed loopback origin, mapping `/register` and `/verify` to their `.html` files. Open isolated Chromium contexts through Playwright MCP.
+
+   Expected: direct visits, both route links and reloads work with static hosting. This run used an ignored temporary Python loopback host at `http://localhost:3000` and a private fixture controller; no Next runtime/dependency was added. Its temporary scripts and credentials were removed after acceptance, so recreate only within an approved rerun. Do not claim a permanent test harness exists.
+
+5. Register a unique synthetic account through the actual UI, using a private password and unique email. Exercise empty/invalid input, duplicate submits while holding the request, 201 success, repeated-account error and verification navigation.
+
+   Expected: RHF validation blocks bad values before HTTP; password is masked; pending fields/buttons are disabled; simultaneous submits dispatch once. Real success clears the password and gives verification-required feedback with no session/cookie. Real duplicate registration shows safe account-exists feedback. No password/OTP URL persistence.
+
+6. Exercise verification and resend with private exact-target development OTP inspection. Include wrong and replaced codes, independent email validation, short OTP, expired fixture, missing account and already verified account in an unauthenticated context.
+
+   Expected: correct stable feedback and usable corrections. Resend dispatches once, blocks incompatible actions, replaces the old code and does not authenticate. Expired-code encounter deletes the expired verification and resend recreates it. Use only recorded synthetic UUID/email targets when adjusting expiry or forcing a leading-zero code; never print OTPs or capture credential-bearing browser output.
+
+7. Before successful verification, change only the synthetic canonical name privately to distinguish it from form input; verify using a private six-character leading-zero OTP.
+
+   Expected: actual Zustand selector rerender shows canonical server name/email, safely escaped, with no user ID/debug/credential payload. Same-tick verification submits dispatch once and block resend. There is no extra `GET /auth` merely to render the success card. PostgreSQL has a verified user, one session and no verification row.
+
+   Expected: browser receives HttpOnly `atlas_refresh`, path `/auth`, SameSite=Lax and Secure=false for this HTTP configuration; JS cannot read it. LocalStorage contains only the version-1 encrypted envelope and IndexedDB a non-extractable AES-GCM-256 key. Return only booleans/schema summaries from inspection. Reload restores the canonical profile with one current-user validation.
+
+8. Inject bounded 422, 500 and network failures separately for register, verify and resend, without forwarding those injected requests to the server.
+
+   Expected: nine synthetic browser error paths show safe feedback, no raw synthetic private-detail sentinel, no automatic duplicate/retry, editable controls afterward and no fabricated authentication. Distinguish injected transport checks from real server outcomes.
+
+9. Run final client checks from Sections 2–7 after any browser-discovered fix.
+
+   Expected: this run passed frozen install (no dependency changes), 128 focused auth tests / 189 total tests, lint, strict types, whole-client format check and final static build. The sole product correction was a synchronous registration pending guard with event-time `handleSubmit`; final duplicate-submit export smoke passed. `/register` and `/verify` artifacts exist; `/login` and `/dashboard` do not.
+
+10. Clean up only the exact recorded fixtures, compare full baselines and close the test environment.
+
+    Expected: assert exact UUID/email pairs and zero owned files/folders; delete only the four recorded users and their FK-owned verification/session rows. This run's full datastore and Docker comparisons matched, with zero rows/points restored. Close all test contexts and stop/remove only this run's private loopback host/helpers/ledger/baselines/logs; retain existing Docker resources, historical helpers/baselines and latest build output. Existing backend containers remain running.
+
+    Expected: strict UTF-8 documentation, `git -c core.safecrlf=false diff --check` and preserved PLAN section/acceptance identifiers. Amendment 03 is `IMPLEMENTED & VERIFIED`; login/logout UI and protected entry remain later PLAN_03 work, and PLAN_04 is not implemented here.
+
+## 19. Amendment 04 Stage 01 local reproduction
+
+1. From the repository root, run `git branch --show-current` and `git status --short`.
+
+   Expected: `phase-02/plan-03`; preserve all existing changes. No Git mutations required.
+
+2. From `client/`, run `bun install --frozen-lockfile`, then `bun test tests/unit/auth/hooks.test.ts tests/unit/auth/forms.test.tsx tests/unit/auth/loginForms.test.tsx`.
+
+   Expected: no dependency changes; 63 focused tests pass with 311 assertions. Tests use SSR and synthetic HTTP/storage fixtures, not a live API.
+
+3. Run `bun test tests/unit/auth`, `bun run test`, `bun run lint`, `bun run typecheck` and `bun run format:check`.
+
+   Expected: 148 auth tests / 620 assertions / 8 files; 209 full tests / 1198 assertions / 14 files; zero failures; lint, strict TypeScript and formatting pass. Existing registration/verification/resend, crypto, logout ordering, shared transports, SSE, ask and upload regressions remain passing.
+
+4. Run `bun run build`; from root inspect `client/out/login.html`, `client/out/register.html` and `client/out/verify.html`.
+
+   Expected: static export includes all three plus existing root/error routes; no `client/out/dashboard.html`, route guard, root redirect or Next runtime introduced. Build output alone does not prove browser navigation.
+
+5. From root run `git -c core.safecrlf=false diff --check`; inspect new files with `git diff --no-index --check -- NUL <path>` and review the file inventory.
+
+   Expected: no whitespace diagnostics; changes limited to Amendment 04 route/panel/feedback/tests and factual documentation, alongside preserved preexisting work.
+
+6. Stop for code review.
+
+   Expected: Amendment 04 `IMPLEMENTED, UNVERIFIED`; fresh explicit approval required before Stage 02. No Docker/Compose, migrations or live datastore verification in Stage 01. Browser DOM events/reactive rerenders, real FastAPI login/logout/cookies, encrypted reload, signout-marker behavior and exact fixture/resource preservation remain pending. Earlier Section 18 acceptance applies to Amendment 03 only.
+
+## 20. Amendment 04 approved Stage 02 browser/live reproduction
+
+1. Obtain fresh task authorization; inspect the expected branch, worktree and applicable server instructions. Inventory existing Docker containers and compare packaged backend Python with local source after newline normalization.
+
+   Expected: this run reused all three running containers without build/pull/recreation/migration; PostgreSQL/Qdrant healthy, both system health endpoints 200 and 85 packaged Python files equivalent. Preserve unrelated work/resources; sandbox Docker inspection may require escalation.
+
+2. Before any fixture creation, copy the existing private snapshot/resource helpers to unique run-specific names with unique baseline paths, then capture using `.venv/Scripts/python.exe .venv/<run>_snapshot.py capture` and `.venv/Scripts/python.exe .venv/<run>_resources.py capture` from `server/`.
+
+   Expected: fresh full PostgreSQL rows/schema/catalog, Qdrant payload/vector/configuration/index and Docker/database inventories captured without overwriting historical files. This run used `auth04stage02` names; its temporary files were removed after closure and must be recreated for another run.
+
+3. Serve the final `client/out` using a temporary allowed-origin loopback static host with login/register/verify HTML deep-link mapping. Create exact private UUID/email fixtures through existing register/verify APIs; record an exact-target ledger. Use accepted synthetic email domains rather than reserved `.test`, which the server rejects. Retrieve development OTP privately for only recorded fixtures.
+
+   Expected: isolated Chromium contexts at `http://localhost:3000`; no Next runtime or public test endpoint. Two accounts suffice: verified canonical-profile fixture and unverified handoff fixture. Never print secrets, take credential screenshots or store them in evidence.
+
+4. Exercise direct login/reload, invalid form inputs, masked password and registration link. Test real wrong-password and missing-email login, and unverified login followed by normal verification link/manual entry.
+
+   Expected: invalid input dispatches no login; both invalid-login cases use the same safe feedback; unverified login offers `/verify` with no credential query parameters. Existing verification succeeds and authenticated direct `/login` shows canonical profile/Logout.
+
+5. Hold the actual login request with an explicit release promise; dispatch two same-tick submit events, then release it. Inspect safe profile/cookie/storage assertions and reload.
+
+   Expected: one request, pending feedback and no conflicting credential action; canonical escaped Name/Email from Zustand, no ID/JWT/debug output and zero extra post-login profile GET. HttpOnly `/auth` SameSite=Lax refresh cookie, encrypted version-1 token envelope and non-extractable AES-GCM-256 key. Reload validates once through `GET /auth`. Holding validation separately shows neutral restoration until completion.
+
+6. Inject bounded 422, 500, network, malformed-200 and unknown-400 login failures without forwarding them; inject a current-user 500 during reload and remove it before explicit retry.
+
+   Expected: editable safe login feedback, one attempt and no private sentinel. Bootstrap uncertainty shows Retry session check without premature form/profile; explicit supported retry restores the real session. Classify injection separately from natural server behavior; do not claim a refresh-failure test if no refresh request occurs.
+
+7. Hold actual logout and dispatch two same-tick clicks. Inspect immediate profile/credential-action removal and auth ciphertext/key deletion, then release. Repeat logout with controlled network and 500 failures in fresh authenticated sessions.
+
+   Expected: one held logout request; real 204 yields distinct confirmed feedback, cookie removal and no resurrection after reload. Injected failures yield local-only unconfirmed feedback; persistent signout intent blocks silent current-user/refresh requests on reload. Explicit login restores encrypted persistence. Do not interpret mutation success as server confirmation or promise early JWT revocation.
+
+8. In isolated contexts, block only token storage writes; separately block signout-marker writes and ciphertext removal during an interrupted logout.
+
+   Expected: memory-only authenticated profile plus persistence warning in the first case; immediate private-profile removal and separate cleanup/marker/reload warnings in the second. No plaintext fallback or unsupported reload guarantee. Close these contexts without relying on their deliberately impaired storage.
+
+9. Run Section 19 local checks and a final smoke against the rebuilt export. Retain existing lifecycle-race tests rather than inventing a new auth controller for browser inspection.
+
+   Expected: 63 focused / 148 auth / 209 total passing tests, zero failures; frozen install, lint, strict types, formatting and static build pass. Final real login/logout plus direct register/verify smoke has zero page errors. No product correction was required in this run.
+
+10. Close all test contexts. Confirm each exact UUID/email pair and zero owned records using actual `folders.owner_id` and `files.owner_id`; delete only those users. Run the fresh snapshot/resource helpers in `compare` mode.
+
+    Expected: full row/catalog/vector/configuration and resource fingerprints match, not just counts. This run restored zero application rows/vector points and retained container/image/mount/layer/volume/database inventories exactly. Stop only the owned temporary host, verify its socket is closed, remove only run-specific private artifacts and retain historical files/resources.
+
+11. Run `git -c core.safecrlf=false diff --check` and verify current documentation, static artifacts and unchanged PLAN identifiers.
+
+    Expected: no whitespace/encoding errors; 13 PLAN sections and 20 PLAN AC identifiers remain. Amendment 04 `IMPLEMENTED & VERIFIED`; PLAN_03 and PHASE_02 `IMPLEMENTED, UNVERIFIED`. Protected entry/navigation, dashboard and PLAN_04 remain unbuilt. Earlier Stage 01 approval-pending statements are historical checkpoints.

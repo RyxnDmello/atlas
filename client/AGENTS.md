@@ -125,7 +125,7 @@ Use these labels exactly; do not infer verification from code existence or docum
 | `PHASE_02_PLAN_03` — Client Authentication        | `IMPLEMENTED, UNVERIFIED` |
 | `PHASE_02_PLAN_04` — Drive Dashboard & Acceptance | `NOT YET BUILT`           |
 
-- **Active PLAN:** `PHASE_02_PLAN_03 — Client Authentication`; Amendments 01 and 02 are verified; authentication UI and protected entry remain unbuilt.
+- **Active PLAN:** `PHASE_02_PLAN_03 — Client Authentication`; Amendments 01 and 02 are verified; Amendment 03 registration/verification/resend UI is `IMPLEMENTED & VERIFIED`; Amendment 04 login/logout UI is `IMPLEMENTED & VERIFIED`; protected entry remains unbuilt.
 - **Last inspected branch:** `phase-02/plan-03`; inspect Git again before each task.
 - PLAN_03 creates auth/session UX and minimal protected dashboard entry; full drive workflows belong to PLAN_04.
 - The current Phase 1 client is not compatible with the removed `/documents/upload` endpoint; canonical upload is authenticated `POST /files`.
@@ -142,7 +142,8 @@ Use these labels exactly; do not infer verification from code existence or docum
 | Client capability                                        | Status                   |
 | -------------------------------------------------------- | ------------------------ |
 | Static Next.js + Bun Phase 1 client                      | `IMPLEMENTED & VERIFIED` |
-| Phase 2 register / verify / resend UI                    | `NOT YET BUILT`          |
+| Phase 2 register / verify / resend UI                    | `IMPLEMENTED & VERIFIED` |
+| Phase 2 login / logout UI                                | `IMPLEMENTED & VERIFIED` |
 | Auth hooks / encrypted persistence / refresh integration | `IMPLEMENTED & VERIFIED` |
 | Shared Zustand auth state and Axios/native fetch access  | `IMPLEMENTED & VERIFIED` |
 | Protected dashboard entry                                | `NOT YET BUILT`          |
@@ -613,6 +614,7 @@ Write nonempty object literals across multiple lines, one property per line, inc
 - User-facing `useRegister`, `useResend`, `useVerify`, `useLogin`, `useLogout`, and explicit `useAuth` own their endpoint contracts; no grouped auth API service or session controller.
 - Hooks MUST import the shared HTTP instance directly and use named, readable actions; do not inject clients/coordination or pass request callbacks through service layers.
 - Each hook owns its input validation, direct awaited request, response validation and safe error handling; duplicate-submission protection stays local to mutations.
+- Auth hooks expose only named actions and operation-prefixed state; mutation loading maps to `isPending`. `useAuth` remains disabled by default with explicit `getAuth`; Zustand owns authentication truth.
 - `services/auth/` contains `auth.ts` (non-React lifecycle), `token.ts` (encrypted persistence), and `key.ts` (IndexedDB CryptoKey); Zustand remains the only user/JWT state owner.
 - `auth.ts` supplies start/finish lifecycle operations for cookie ordering and state commit; hooks own user-triggered HTTP.
 - Non-React bootstrap and refresh use private native-fetch bypass mechanics in `validate.ts`; no extra Axios instance or React hook invocation.
@@ -675,20 +677,20 @@ Write nonempty object literals across multiple lines, one property per line, inc
 
 ### Authentication transport boundary
 
-- Amendment 02 verifies the foundation below in Chromium against the existing backend; auth UI and protected navigation remain planned.
+- Amendment 02 verifies the foundation below in Chromium against the existing backend; Amendment 03 verifies registration/verification/resend UI in Chromium against the existing backend. Amendment 04 login/logout UI is `IMPLEMENTED & VERIFIED`; protected navigation remains planned.
 - AES-GCM/IndexedDB storage retains version-1 compatibility; logout deletes only auth ciphertext and its auth-owned IndexedDB key, and explicit login/verify generates a key when absent.
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'background': '#1e1e2e', 'primaryColor': '#45475a', 'primaryTextColor': '#cdd6f4', 'primaryBorderColor': '#89b4fa', 'lineColor': '#a6adc8', 'secondaryColor': '#313244', 'tertiaryColor': '#181825', 'fontFamily': 'Inter, sans-serif'}}}%%
 flowchart TD
-    UI["Planned auth UI"] --> Hooks["Per-endpoint API hooks"]
+    UI["Registration / verification UI: IMPLEMENTED & VERIFIED"] --> Hooks["Per-endpoint API hooks"]
     Hooks --> Session["Zustand auth store"]
     Session --> Axios["Configured Axios"]
     Session --> Fetch["Native fetch / SSE"]
     Axios --> API["Verified FastAPI auth + drive"]
     Fetch --> API
     API --> Guard["Server-side ownership gate"]
-    class UI planned;
+    class UI verified;
     class Hooks,Session,Axios,Fetch service;
     class API service;
     class Guard verified;

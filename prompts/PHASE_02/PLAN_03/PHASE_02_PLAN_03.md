@@ -2,7 +2,7 @@
 
 - **Document role:** Define the PLAN_03 destination, approved client architecture, backend integration contracts, scope boundaries, requirements, risks, and objective acceptance; implementation sequence belongs in focused Amendments.
 - **PHASE:** `PHASE_02 — Authenticated Personal Drive` — `IMPLEMENTED, UNVERIFIED`.
-- **PLAN:** `PHASE_02_PLAN_03` — `IMPLEMENTED, UNVERIFIED`; auth UI and protected entry remain unbuilt.
+- **PLAN:** `PHASE_02_PLAN_03` — `IMPLEMENTED, UNVERIFIED`; registration/verification/resend UI is `IMPLEMENTED & VERIFIED`; login/logout UI is `IMPLEMENTED & VERIFIED`; protected entry remains unbuilt.
 - **Required branch:** `phase-02/plan-03`; inspected during implementation, recheck before each task.
 - **Verified dependencies:** `PHASE_02_PLAN_01` (identity/auth) and `PHASE_02_PLAN_02` (authenticated drive backend) — both `IMPLEMENTED & VERIFIED`.
 - **Primary subsystem:** Static Next.js browser client, authentication UI, shared session authority, credential persistence, and HTTP transports.
@@ -63,7 +63,7 @@ flowchart LR
 | PHASE_01 client and single-file RAG | `IMPLEMENTED & VERIFIED`  | Static Next.js/Bun client, Axios, native fetch/SSE, Zod and React patterns; earlier unauthenticated browser flow is not compatible with the superseding upload route. |
 | PLAN_01 identity and sessions       | `IMPLEMENTED & VERIFIED`  | Registration, verification/resend, login, refresh rotation, logout, `GET /auth`, Bearer current-user, and explicit credentialed CORS.                                 |
 | PLAN_02 authenticated drive backend | `IMPLEMENTED & VERIFIED`  | Owner-scoped `/drive`, `/folders`, `/files`, exact-file RAG, and canonical upload endpoint; final integrated evidence is in PLAN_02 CONTEXT/MANUAL.                   |
-| PLAN_03 authenticated browser       | `IMPLEMENTED, UNVERIFIED` | Amendments 01 and 02 verify the shared foundation; authentication UI and protected entry remain unbuilt.                                                              |
+| PLAN_03 authenticated browser       | `IMPLEMENTED, UNVERIFIED` | Amendments 01 and 02 verify the foundation; Amendment 03 UI is browser/live verified; login/logout UI is `IMPLEMENTED & VERIFIED`; protected entry remains unbuilt.   |
 | PLAN_04 drive dashboard             | `NOT YET BUILT`           | Will consume PLAN_03 session/transport contracts.                                                                                                                     |
 
 ### Reusable client baseline
@@ -549,7 +549,7 @@ PLAN_03 becomes `IMPLEMENTED & VERIFIED` only if every applicable acceptance ite
 
 ### Transport and logout
 
-11. **AC-11 — Shared transports:** Axios and native fetch obtain JWT from one Zustand store, use typed required/none policy independently of cookies, and share non-React recovery without endpoint-hook recursion.
+11. **AC-11 — Shared transports:** Axios and native fetch obtain JWT from one Zustand store, use `isProtected?: boolean` independently of cookies, and share non-React recovery without endpoint-hook recursion.
 12. **AC-12 — Single flight:** Same-session concurrent expired-token requests cause one refresh; obsolete 401 responses do not trigger duplicate rotation after a new token is available.
 13. **AC-13 — Safe replay:** Eligible GET retries are bounded to one; mutations, uploads, auth-control operations and POST-SSE are never automatically replayed.
 14. **AC-14 — Native SSE compatibility:** Existing fetch `Response`/stream/AbortSignal and Phase 1 SSE parser/citation contracts remain regression-clean.
@@ -598,6 +598,6 @@ PLAN_03 becomes `IMPLEMENTED & VERIFIED` only if every applicable acceptance ite
 - Protected entry and route navigation: auth gates, `/`/`/dashboard`, loading/errors and static deep-link behavior.
 - Integrated acceptance and PLAN closure: deterministic tests, browser/runtime verification, safe cleanup, current-state alignment and evidence-backed status decision.
 
-**Recorded implementation:** Amendment 01 established the historically verified foundation. [Amendment 02](AMENDMENTS/02_ZUSTAND_AUTH_HTTP_HOOKS_REFACTOR.md) supersedes its controller/grouped-service design; coding, local checks and approved Chromium/live acceptance are complete. Authentication UI remains a later task.
+**Recorded implementation:** Amendment 01 established the historically verified foundation. [Amendment 02](AMENDMENTS/02_ZUSTAND_AUTH_HTTP_HOOKS_REFACTOR.md) supersedes its controller/grouped-service design; coding, local checks and approved Chromium/live acceptance are complete. Amendment 03 adds verified registration/verification/resend UI and operation-prefixed hook returns; approved Chromium/live UI acceptance is recorded in CONTEXT/MANUAL. Amendment 04 login/logout UI is `IMPLEMENTED & VERIFIED`; protected entry remains later work.
 
 **Completion gate:** Once all PLAN_03 acceptance criteria are verified, mark PLAN_03 `IMPLEMENTED & VERIFIED`, retain PHASE_02 `IMPLEMENTED, UNVERIFIED`, and hand off the authenticated client foundation to PLAN_04.

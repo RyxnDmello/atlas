@@ -171,33 +171,34 @@ Use these labels exactly; do not infer verification from code existence or docum
 - **Active PHASE:** `PHASE_02 — Authenticated Personal Drive`.
 - **Completed PLAN:** `PHASE_02_PLAN_01 — PostgreSQL Identity & Authentication Foundation`.
 - **Completed PLAN:** `PHASE_02_PLAN_02 — Authenticated Drive Backend`.
-- **Active PLAN:** `PHASE_02_PLAN_03 — Client Authentication` (`IMPLEMENTED, UNVERIFIED`); Amendments 01 and 02 are verified; auth UI and protected navigation remain unbuilt.
+- **Active PLAN:** `PHASE_02_PLAN_03 — Client Authentication` (`IMPLEMENTED, UNVERIFIED`); Amendments 01 and 02 are verified; Amendment 03 registration/verification/resend UI is `IMPLEMENTED & VERIFIED`; Amendment 04 login/logout UI is `IMPLEMENTED & VERIFIED`; protected entry remains unbuilt.
 - **Following PLAN:** `PHASE_02_PLAN_04 — Drive Dashboard & Phase Acceptance` (`NOT YET BUILT`).
 - **Last inspected repository branch:** `phase-02/plan-03`; inspect it again before each task.
 - **Required PLAN_03 branch convention:** `phase-02/plan-03`; do not switch branches automatically.
 - **Branch source of truth:** inspect the current local Git state before work; never switch branches automatically.
-- PLAN_03 now has a shared authentication foundation; authentication pages and protected dashboard entry remain unbuilt.
+- PLAN_03 has a verified shared authentication foundation and registration/verification/resend UI; login/logout UI is `IMPLEMENTED & VERIFIED`; protected dashboard entry remains outstanding.
 
 ### Current capability maturity
 
-| Capability                                            | Status                   |
-| ----------------------------------------------------- | ------------------------ |
-| PostgreSQL identity persistence                       | `IMPLEMENTED & VERIFIED` |
-| Authentication credential primitives                  | `IMPLEMENTED & VERIFIED` |
-| Registration, verification, and resend                | `IMPLEMENTED & VERIFIED` |
-| Initial session/access issuance and login             | `IMPLEMENTED & VERIFIED` |
-| Refresh rotation and current-session logout           | `IMPLEMENTED & VERIFIED` |
-| Credentialed cookie CORS                              | `IMPLEMENTED & VERIFIED` |
-| Bearer current-user resolution and `GET /auth`        | `IMPLEMENTED & VERIFIED` |
-| Canonical folder/file persistence                     | `IMPLEMENTED & VERIFIED` |
-| Recursive folders and direct-child APIs               | `IMPLEMENTED & VERIFIED` |
-| Authenticated canonical file upload                   | `IMPLEMENTED & VERIFIED` |
-| File metadata mutation and permanent deletion         | `IMPLEMENTED & VERIFIED` |
-| Owner-authorized single-file query and ask            | `IMPLEMENTED & VERIFIED` |
-| Phase 2 browser registration, verification, and login | `NOT YET BUILT`          |
-| Shared browser auth/session foundation                | `IMPLEMENTED & VERIFIED` |
-| Protected dashboard entry                             | `NOT YET BUILT`          |
-| Full drive dashboard and file/folder workflows        | `NOT YET BUILT`          |
+| Capability                                             | Status                   |
+| ------------------------------------------------------ | ------------------------ |
+| PostgreSQL identity persistence                        | `IMPLEMENTED & VERIFIED` |
+| Authentication credential primitives                   | `IMPLEMENTED & VERIFIED` |
+| Registration, verification, and resend                 | `IMPLEMENTED & VERIFIED` |
+| Initial session/access issuance and login              | `IMPLEMENTED & VERIFIED` |
+| Refresh rotation and current-session logout            | `IMPLEMENTED & VERIFIED` |
+| Credentialed cookie CORS                               | `IMPLEMENTED & VERIFIED` |
+| Bearer current-user resolution and `GET /auth`         | `IMPLEMENTED & VERIFIED` |
+| Canonical folder/file persistence                      | `IMPLEMENTED & VERIFIED` |
+| Recursive folders and direct-child APIs                | `IMPLEMENTED & VERIFIED` |
+| Authenticated canonical file upload                    | `IMPLEMENTED & VERIFIED` |
+| File metadata mutation and permanent deletion          | `IMPLEMENTED & VERIFIED` |
+| Owner-authorized single-file query and ask             | `IMPLEMENTED & VERIFIED` |
+| Phase 2 browser registration, verification, and resend | `IMPLEMENTED & VERIFIED` |
+| Phase 2 browser login/logout UI                        | `IMPLEMENTED & VERIFIED` |
+| Shared browser auth/session foundation                 | `IMPLEMENTED & VERIFIED` |
+| Protected dashboard entry                              | `NOT YET BUILT`          |
+| Full drive dashboard and file/folder workflows         | `NOT YET BUILT`          |
 
 ### Verified Phase 2 backend evidence
 

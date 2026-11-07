@@ -57,9 +57,16 @@ export default function useLogout() {
     }
   };
 
-  return useMutation({
+  const mutation = useMutation({
     gcTime: 0,
     retry: false,
     mutationFn: onLogout,
   });
+
+  return {
+    logoutError: mutation.error,
+    isLogoutLoading: mutation.isPending,
+    isLogoutSuccess: mutation.isSuccess,
+    logout: mutation.mutateAsync,
+  };
 }

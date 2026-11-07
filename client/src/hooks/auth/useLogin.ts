@@ -57,9 +57,16 @@ export default function useLogin() {
     }
   };
 
-  return useMutation({
+  const mutation = useMutation({
     gcTime: 0,
     retry: false,
     mutationFn: onLogin,
   });
+
+  return {
+    loginError: mutation.error,
+    isLoginLoading: mutation.isPending,
+    isLoginSuccess: mutation.isSuccess,
+    login: mutation.mutateAsync,
+  };
 }

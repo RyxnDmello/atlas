@@ -46,9 +46,16 @@ export default function useResend() {
     }
   };
 
-  return useMutation({
+  const mutation = useMutation({
     gcTime: 0,
     retry: false,
     mutationFn: onResend,
   });
+
+  return {
+    resendError: mutation.error,
+    isResendLoading: mutation.isPending,
+    isResendSuccess: mutation.isSuccess,
+    resend: mutation.mutateAsync,
+  };
 }

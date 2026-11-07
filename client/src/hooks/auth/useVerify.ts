@@ -57,9 +57,16 @@ export default function useVerify() {
     }
   };
 
-  return useMutation({
+  const mutation = useMutation({
     gcTime: 0,
     retry: false,
     mutationFn: onVerify,
   });
+
+  return {
+    verifyError: mutation.error,
+    isVerifyLoading: mutation.isPending,
+    isVerifySuccess: mutation.isSuccess,
+    verify: mutation.mutateAsync,
+  };
 }

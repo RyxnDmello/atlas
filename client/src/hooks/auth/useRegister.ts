@@ -46,9 +46,16 @@ export default function useRegister() {
     }
   };
 
-  return useMutation({
+  const mutation = useMutation({
     gcTime: 0,
     retry: false,
     mutationFn: onRegister,
   });
+
+  return {
+    registerError: mutation.error,
+    isRegisterLoading: mutation.isPending,
+    isRegisterSuccess: mutation.isSuccess,
+    register: mutation.mutateAsync,
+  };
 }

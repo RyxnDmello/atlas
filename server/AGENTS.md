@@ -96,7 +96,7 @@ Use these labels exactly; do not infer verification from code existence or docum
 | `PHASE_02`                                        | `IMPLEMENTED, UNVERIFIED` |
 | `PHASE_02_PLAN_01` — Identity & Authentication    | `IMPLEMENTED & VERIFIED`  |
 | `PHASE_02_PLAN_02` — Authenticated Drive Backend  | `IMPLEMENTED & VERIFIED`  |
-| `PHASE_02_PLAN_03` — Client Authentication        | `NOT YET BUILT`           |
+| `PHASE_02_PLAN_03` — Client Authentication        | `IMPLEMENTED, UNVERIFIED` |
 | `PHASE_02_PLAN_04` — Drive Dashboard & Acceptance | `NOT YET BUILT`           |
 
 - **Backend completion:** PLAN_01 and PLAN_02 passed recorded acceptance.
@@ -107,16 +107,16 @@ Use these labels exactly; do not infer verification from code existence or docum
 
 ### Current server capability maturity
 
-| Backend capability                                        | Status                   |
-| --------------------------------------------------------- | ------------------------ |
-| PostgreSQL identity, credential primitives and migrations | `IMPLEMENTED & VERIFIED` |
-| Register, verify/resend and login                         | `IMPLEMENTED & VERIFIED` |
-| Sessions, refresh rotation and logout                     | `IMPLEMENTED & VERIFIED` |
-| Credentialed cookie CORS and `GET /auth`                  | `IMPLEMENTED & VERIFIED` |
-| Canonical folders, files and direct-child APIs            | `IMPLEMENTED & VERIFIED` |
-| Authenticated upload and file mutation/deletion           | `IMPLEMENTED & VERIFIED` |
-| PostgreSQL owner/ready-state gate before file-scoped RAG  | `IMPLEMENTED & VERIFIED` |
-| Authenticated browser client and dashboard                | `NOT YET BUILT`          |
+| Backend capability                                        | Status                    |
+| --------------------------------------------------------- | ------------------------- |
+| PostgreSQL identity, credential primitives and migrations | `IMPLEMENTED & VERIFIED`  |
+| Register, verify/resend and login                         | `IMPLEMENTED & VERIFIED`  |
+| Sessions, refresh rotation and logout                     | `IMPLEMENTED & VERIFIED`  |
+| Credentialed cookie CORS and `GET /auth`                  | `IMPLEMENTED & VERIFIED`  |
+| Canonical folders, files and direct-child APIs            | `IMPLEMENTED & VERIFIED`  |
+| Authenticated upload and file mutation/deletion           | `IMPLEMENTED & VERIFIED`  |
+| PostgreSQL owner/ready-state gate before file-scoped RAG  | `IMPLEMENTED & VERIFIED`  |
+| Authenticated browser client and dashboard                | `IMPLEMENTED, UNVERIFIED` |
 
 ### Verified Phase 2 evidence
 

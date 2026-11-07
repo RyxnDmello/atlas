@@ -26,11 +26,18 @@ export default function useAuth() {
     }
   };
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ["auth", "current"],
     gcTime: 0,
     retry: false,
     enabled: false,
     queryFn: ({ signal }) => onAuth(signal),
   });
+
+  return {
+    authUser: query.data,
+    authError: query.error,
+    isAuthLoading: query.isFetching,
+    getAuth: query.refetch,
+  };
 }
