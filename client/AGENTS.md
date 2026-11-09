@@ -122,10 +122,10 @@ Use these labels exactly; do not infer verification from code existence or docum
 | `PHASE_02`                                        | `IMPLEMENTED, UNVERIFIED` |
 | `PHASE_02_PLAN_01` — Identity & Authentication    | `IMPLEMENTED & VERIFIED`  |
 | `PHASE_02_PLAN_02` — Authenticated Drive Backend  | `IMPLEMENTED & VERIFIED`  |
-| `PHASE_02_PLAN_03` — Client Authentication        | `IMPLEMENTED, UNVERIFIED` |
+| `PHASE_02_PLAN_03` — Client Authentication        | `IMPLEMENTED & VERIFIED`  |
 | `PHASE_02_PLAN_04` — Drive Dashboard & Acceptance | `NOT YET BUILT`           |
 
-- **Active PLAN:** `PHASE_02_PLAN_03 — Client Authentication`; Amendments 01 and 02 are verified; Amendment 03 registration/verification/resend UI is `IMPLEMENTED & VERIFIED`; Amendment 04 login/logout UI is `IMPLEMENTED & VERIFIED`; protected entry remains unbuilt.
+- **Completed PLAN:** `PHASE_02_PLAN_03 — Client Authentication`; Amendments 01 and 02 are verified; Amendment 03 registration/verification/resend UI is `IMPLEMENTED & VERIFIED`; Amendment 04 login/logout UI is `IMPLEMENTED & VERIFIED`; Amendment 05 protected navigation/minimal dashboard and PLAN_03 are `IMPLEMENTED & VERIFIED` after approved Stage 02 acceptance.
 - **Last inspected branch:** `phase-02/plan-03`; inspect Git again before each task.
 - PLAN_03 creates auth/session UX and minimal protected dashboard entry; full drive workflows belong to PLAN_04.
 - The current Phase 1 client is not compatible with the removed `/documents/upload` endpoint; canonical upload is authenticated `POST /files`.
@@ -146,7 +146,7 @@ Use these labels exactly; do not infer verification from code existence or docum
 | Phase 2 login / logout UI                                | `IMPLEMENTED & VERIFIED` |
 | Auth hooks / encrypted persistence / refresh integration | `IMPLEMENTED & VERIFIED` |
 | Shared Zustand auth state and Axios/native fetch access  | `IMPLEMENTED & VERIFIED` |
-| Protected dashboard entry                                | `NOT YET BUILT`          |
+| Protected dashboard entry                                | `IMPLEMENTED & VERIFIED` |
 | Drive dashboard and recursive folders                    | `NOT YET BUILT`          |
 | File metadata/lifecycle and owner-scoped ask UI          | `NOT YET BUILT`          |
 
@@ -298,7 +298,7 @@ flowchart TD
 Phase 1 responsibilities remain verified:
 
 - `page.tsx` owns route composition only.
-- `RagWorkspace` coordinates upload and ask state across the active file scope.
+- Historical `RagWorkspace` coordinates upload and ask state across the active file scope; it is no longer mounted at `/`.
 - `UploadPanel` owns upload presentation/form interaction.
 - `AskPanel` owns question/answer presentation/form interaction and gates citations on successful completion.
 - `CitationList` renders the validated completed result in backend order, with exact excerpts and only non-null page/heading/section metadata; it owns no transport or stream state.
@@ -308,24 +308,29 @@ Phase 1 responsibilities remain verified:
 - pure stream parsing lives under `utils/stream/`.
 - runtime schemas validate untrusted network/SSE data before trusted state changes.
 
-### Phase 2 intended client boundary
+### Phase 2 client boundary and planned drive integration
+
+- `AuthGate` owns visibility and effect-based replace navigation; `DashboardPanel` consumes canonical Name/Email and invokes existing `useLogout`. Both use safe Zustand selectors; neither initializes auth or requests a profile.
+- QueryProvider remains the sole bootstrap owner. Anonymous panels retain their hook/form owners while gate children change.
+- All five auth routes are `IMPLEMENTED & VERIFIED` after approved Stage 02 browser/history/live acceptance; CONTEXT/MANUAL record the executed evidence.
 
 Legend: one client auth/session authority supplies both ordinary Axios requests and native streamed fetch without moving authorization authority out of FastAPI.
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'background': '#1e1e2e', 'primaryColor': '#45475a', 'primaryTextColor': '#cdd6f4', 'primaryBorderColor': '#89b4fa', 'lineColor': '#a6adc8', 'secondaryColor': '#313244', 'tertiaryColor': '#181825', 'fontFamily': 'Inter, sans-serif'}}}%%
 flowchart TD
-    Routes["Register / Verify / Login / Dashboard"] --> AuthUI["Auth + drive UI"]
+    Routes["Auth routes: IMPLEMENTED & VERIFIED"] --> AuthUI["Auth gate + minimal profile/logout"]
     AuthUI --> Hooks["Per-endpoint auth hooks"]
     Hooks --> Session["Zustand auth store"]
-    AuthUI --> Query["TanStack Query<br/>drive server state"]
+    AuthUI -.-> Query["PLAN_04 planned:<br/>drive server state"]
     Session --> Axios["Configured Axios"]
     Session --> Fetch["Native fetch<br/>POST SSE"]
     Query --> Axios
     Axios --> API["FastAPI"]
     Fetch --> API
     API --> Guard["Server-side auth + ownership"]
-    class Routes,AuthUI,Query planned;
+    class Routes,AuthUI verified;
+    class Query planned;
     class Hooks,Session,Axios,Fetch service;
     class API service;
     class Guard verified;
@@ -644,6 +649,7 @@ Write nonempty object literals across multiple lines, one property per line, inc
 - Use React Hook Form for forms.
 - Use Zod for form validation.
 - Use `stores/auth.ts` Zustand selectors for reactive auth state; transports read that same store through `getState()`.
+- Credential-action errors remain `error` and carry the safe `credential_action` origin so anonymous form handoffs stay usable; bootstrap/refresh uncertainty still requires explicit recovery. No error origin grants protected access.
 - Store actions MUST remain synchronous; no HTTP/crypto/IndexedDB, persist middleware, token devtools, or second token owner.
 - TanStack Query owns approved remote/server state; local UI state remains with the owning route/component/hook.
 - Phase 2 explicitly permits the approved reversibly encrypted access token in `localStorage`.
@@ -677,7 +683,7 @@ Write nonempty object literals across multiple lines, one property per line, inc
 
 ### Authentication transport boundary
 
-- Amendment 02 verifies the foundation below in Chromium against the existing backend; Amendment 03 verifies registration/verification/resend UI in Chromium against the existing backend. Amendment 04 login/logout UI is `IMPLEMENTED & VERIFIED`; protected navigation remains planned.
+- Amendment 02 verifies the foundation below in Chromium against the existing backend; Amendment 03 verifies registration/verification/resend UI in Chromium against the existing backend. Amendment 04 login/logout UI is `IMPLEMENTED & VERIFIED`; Amendment 05 protected navigation/minimal dashboard is `IMPLEMENTED & VERIFIED` after approved Stage 02 acceptance.
 - AES-GCM/IndexedDB storage retains version-1 compatibility; logout deletes only auth ciphertext and its auth-owned IndexedDB key, and explicit login/verify generates a key when absent.
 
 ```mermaid

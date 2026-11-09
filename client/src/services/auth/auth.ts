@@ -252,6 +252,7 @@ export const failCredentials = async (
   context: Coordination = coordination,
   inconsistent = false,
   refreshFailure = false,
+  actionFailure = false,
 ) => {
   if (sessionVersion !== context.sessionVersion) {
     return;
@@ -277,7 +278,11 @@ export const failCredentials = async (
       status: "error",
       accessToken: null,
       user: null,
-      error: inconsistent ? "inconsistent_session" : "session_uncertain",
+      error: inconsistent
+        ? "inconsistent_session"
+        : actionFailure
+          ? "credential_action"
+          : "session_uncertain",
     });
   }
 };

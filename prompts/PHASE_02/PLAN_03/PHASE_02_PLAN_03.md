@@ -2,7 +2,7 @@
 
 - **Document role:** Define the PLAN_03 destination, approved client architecture, backend integration contracts, scope boundaries, requirements, risks, and objective acceptance; implementation sequence belongs in focused Amendments.
 - **PHASE:** `PHASE_02 — Authenticated Personal Drive` — `IMPLEMENTED, UNVERIFIED`.
-- **PLAN:** `PHASE_02_PLAN_03` — `IMPLEMENTED, UNVERIFIED`; registration/verification/resend UI is `IMPLEMENTED & VERIFIED`; login/logout UI is `IMPLEMENTED & VERIFIED`; protected entry remains unbuilt.
+- **PLAN:** `PHASE_02_PLAN_03` — `IMPLEMENTED & VERIFIED`; registration/verification/resend UI is `IMPLEMENTED & VERIFIED`; login/logout UI is `IMPLEMENTED & VERIFIED`; Amendment 05 protected navigation/minimal dashboard and PLAN_03 are `IMPLEMENTED & VERIFIED` after approved Stage 02 acceptance.
 - **Required branch:** `phase-02/plan-03`; inspected during implementation, recheck before each task.
 - **Verified dependencies:** `PHASE_02_PLAN_01` (identity/auth) and `PHASE_02_PLAN_02` (authenticated drive backend) — both `IMPLEMENTED & VERIFIED`.
 - **Primary subsystem:** Static Next.js browser client, authentication UI, shared session authority, credential persistence, and HTTP transports.
@@ -58,20 +58,20 @@ flowchart LR
 
 ## 2. VERIFIED PREREQUISITES & CURRENT BASELINE
 
-| Area                                | Current status            | Relevant evidence / implication                                                                                                                                       |
-| ----------------------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| PHASE_01 client and single-file RAG | `IMPLEMENTED & VERIFIED`  | Static Next.js/Bun client, Axios, native fetch/SSE, Zod and React patterns; earlier unauthenticated browser flow is not compatible with the superseding upload route. |
-| PLAN_01 identity and sessions       | `IMPLEMENTED & VERIFIED`  | Registration, verification/resend, login, refresh rotation, logout, `GET /auth`, Bearer current-user, and explicit credentialed CORS.                                 |
-| PLAN_02 authenticated drive backend | `IMPLEMENTED & VERIFIED`  | Owner-scoped `/drive`, `/folders`, `/files`, exact-file RAG, and canonical upload endpoint; final integrated evidence is in PLAN_02 CONTEXT/MANUAL.                   |
-| PLAN_03 authenticated browser       | `IMPLEMENTED, UNVERIFIED` | Amendments 01 and 02 verify the foundation; Amendment 03 UI is browser/live verified; login/logout UI is `IMPLEMENTED & VERIFIED`; protected entry remains unbuilt.   |
-| PLAN_04 drive dashboard             | `NOT YET BUILT`           | Will consume PLAN_03 session/transport contracts.                                                                                                                     |
+| Area                                | Current status           | Relevant evidence / implication                                                                                                                                                                                                                                     |
+| ----------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PHASE_01 client and single-file RAG | `IMPLEMENTED & VERIFIED` | Static Next.js/Bun client, Axios, native fetch/SSE, Zod and React patterns; earlier unauthenticated browser flow is not compatible with the superseding upload route.                                                                                               |
+| PLAN_01 identity and sessions       | `IMPLEMENTED & VERIFIED` | Registration, verification/resend, login, refresh rotation, logout, `GET /auth`, Bearer current-user, and explicit credentialed CORS.                                                                                                                               |
+| PLAN_02 authenticated drive backend | `IMPLEMENTED & VERIFIED` | Owner-scoped `/drive`, `/folders`, `/files`, exact-file RAG, and canonical upload endpoint; final integrated evidence is in PLAN_02 CONTEXT/MANUAL.                                                                                                                 |
+| PLAN_03 authenticated browser       | `IMPLEMENTED & VERIFIED` | Amendments 01 and 02 verify the foundation; Amendment 03 UI is browser/live verified; login/logout UI is `IMPLEMENTED & VERIFIED`; Amendment 05 protected navigation/minimal dashboard and PLAN_03 are `IMPLEMENTED & VERIFIED` after approved Stage 02 acceptance. |
+| PLAN_04 drive dashboard             | `NOT YET BUILT`          | Will consume PLAN_03 session/transport contracts.                                                                                                                                                                                                                   |
 
 ### Reusable client baseline
 
 - Next.js App Router, strict TypeScript, Bun-only scripts and lockfile, static `output: "export"`.
 - Tailwind CSS + shadcn/ui; React Hook Form + Zod; TanStack Query v5; Axios; native `fetch()` + `ReadableStream` for POST-SSE.
 - Existing Axios/fetch share Zustand auth access and default to no cookies; typed `isProtected` and cookie credentials remain independent.
-- Existing Phase 1 page composes `RagWorkspace`; its upload dependency still targets superseded public `POST /documents/upload`.
+- Historical Phase 1 `RagWorkspace` retains its superseded upload dependency for later PLAN_04 integration; root now composes the auth entry gate.
 - **Do not restore the removed route** or claim the old page works end-to-end against the current Phase 2 backend.
 - Reuse current route, component, hook, schema, provider, alias, naming and formatting conventions documented in `client/AGENTS.md`.
 
@@ -430,6 +430,22 @@ flowchart TD
 | `/dashboard` | Minimal authenticated entry, safe user profile and logout control.                                                           | No drive listing, CRUD, files or ask.                                                                    |
 | `/`          | Explicit redirect/entry behavior according to auth state.                                                                    | Do not silently retain the incompatible legacy Phase 1 workspace as the authenticated home.              |
 
+### Stage 01 route policy (browser acceptance pending)
+
+| Route        | Authenticated + canonical user | Unauthenticated               | Restoring / bootstrap uncertainty            |
+| ------------ | ------------------------------ | ----------------------------- | -------------------------------------------- |
+| `/`          | Replace `/dashboard`           | Replace `/login`              | Wait / explicit recovery                     |
+| `/register`  | Replace `/dashboard`           | Registration form             | Wait / explicit recovery                     |
+| `/verify`    | Replace `/dashboard`           | Verification/resend form      | Wait / explicit recovery                     |
+| `/login`     | Replace `/dashboard`           | Login + stable logout outcome | Wait / explicit recovery                     |
+| `/dashboard` | Canonical Name/Email + Logout  | Replace `/login`              | No private content; wait / explicit recovery |
+
+- Authenticated without canonical user shows safe inconsistency/reload UI; no guessed redirect.
+- Login/verification failures retain `status: error` with safe `credential_action` origin across anonymous-route handoffs; their forms stay editable. Bootstrap/refresh failures retain session uncertainty and supported explicit retry. Protected/root routes remain closed during either error. Retry never clears signout outcomes automatically.
+- `AuthGate` uses safe Zustand selectors; QueryProvider alone bootstraps. Effects recheck live state/path and suppress duplicate replace dispatches; no extra profile request.
+- Dashboard logout uses existing immediate clearance and stable pending/confirmed/unconfirmed store outcome; login renders the outcome after navigation.
+- Static export emits all five routes; deployment MUST resolve deep links to corresponding generated HTML. Actual browser/history acceptance remains Stage 02.
+
 ### Forms and feedback
 
 - Use established React Hook Form + Zod and shadcn/ui patterns; server validation remains authoritative.
@@ -598,6 +614,6 @@ PLAN_03 becomes `IMPLEMENTED & VERIFIED` only if every applicable acceptance ite
 - Protected entry and route navigation: auth gates, `/`/`/dashboard`, loading/errors and static deep-link behavior.
 - Integrated acceptance and PLAN closure: deterministic tests, browser/runtime verification, safe cleanup, current-state alignment and evidence-backed status decision.
 
-**Recorded implementation:** Amendment 01 established the historically verified foundation. [Amendment 02](AMENDMENTS/02_ZUSTAND_AUTH_HTTP_HOOKS_REFACTOR.md) supersedes its controller/grouped-service design; coding, local checks and approved Chromium/live acceptance are complete. Amendment 03 adds verified registration/verification/resend UI and operation-prefixed hook returns; approved Chromium/live UI acceptance is recorded in CONTEXT/MANUAL. Amendment 04 login/logout UI is `IMPLEMENTED & VERIFIED`; protected entry remains later work.
+**Recorded implementation:** Amendment 01 established the historically verified foundation. [Amendment 02](AMENDMENTS/02_ZUSTAND_AUTH_HTTP_HOOKS_REFACTOR.md) supersedes its controller/grouped-service design; coding, local checks and approved Chromium/live acceptance are complete. Amendment 03 adds verified registration/verification/resend UI and operation-prefixed hook returns; approved Chromium/live UI acceptance is recorded in CONTEXT/MANUAL. Amendment 04 login/logout UI is `IMPLEMENTED & VERIFIED`; Amendment 05 protected navigation/minimal dashboard and integrated PLAN closure are `IMPLEMENTED & VERIFIED`; approved Stage 02 evidence is recorded in CONTEXT/MANUAL.
 
 **Completion gate:** Once all PLAN_03 acceptance criteria are verified, mark PLAN_03 `IMPLEMENTED & VERIFIED`, retain PHASE_02 `IMPLEMENTED, UNVERIFIED`, and hand off the authenticated client foundation to PLAN_04.

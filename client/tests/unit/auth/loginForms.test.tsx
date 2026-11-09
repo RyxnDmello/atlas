@@ -1,32 +1,30 @@
 import { afterEach, expect, test } from "bun:test";
-import { renderToStaticMarkup } from "react-dom/server";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import "./environment";
 
+import DashboardPanel from "@components/Auth/DashboardPanel";
 import LoginPanel from "@components/Auth/LoginPanel";
 
-import useAuthStore from "@stores/auth";
-import { loginSchema } from "@schemas/auth/auth";
 import { AuthFailure } from "@services/http/validate";
+
+import { loginSchema } from "@schemas/auth/auth";
+
 import { authFeedback } from "@utils/auth/feedback";
+
+import useAuthStore from "@stores/auth";
+
+import { renderAuth } from "./render";
 
 const initial = useAuthStore.getInitialState();
 const original = {
   ...initial,
 };
 
-const render = () => {
-  const cache = new QueryClient();
-  const html = renderToStaticMarkup(
-    <QueryClientProvider client={cache}>
-      <LoginPanel />
-    </QueryClientProvider>,
+const render = (dashboard = false) => {
+  return renderAuth(
+    dashboard ? <DashboardPanel /> : <LoginPanel />,
+    dashboard ? "/dashboard" : "/login",
   );
-
-  cache.clear();
-
-  return html;
 };
 
 afterEach(() => {
@@ -118,7 +116,7 @@ test.each(["pending", "available", "unavailable"] as const)(
       },
     });
 
-    const html = render();
+    const html = render(true);
 
     expect(html).toContain("Canonical &lt;script&gt;name&lt;/script&gt;");
     expect(html).toContain("canonical@example.test");

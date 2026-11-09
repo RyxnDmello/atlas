@@ -1,9 +1,9 @@
 # PHASE_02 PLAN_03 — Reproduction and Acceptance Manual
 
-- **Current scope:** Amendment 04 login/logout UI is `IMPLEMENTED & VERIFIED`; Stage 01 and explicitly approved Stage 02 Chromium/live acceptance complete. Sections 19 and 20 retain local and browser/live reproduction. Amendment 03 remains verified.
+- **Current scope:** Amendment 05 and PLAN_03 are `IMPLEMENTED & VERIFIED`; Section 23 records approved Stage 02 reproduction and correction. Sections 21–22 retain historical review/approval checkpoints. PHASE_02 remains `IMPLEMENTED, UNVERIFIED`; PLAN_04 remains `NOT YET BUILT`. Amendments 01–04 retain their historical evidence.
 - **Amendment 03 status:** `IMPLEMENTED & VERIFIED`; Section 17 retains the Stage 01 checkpoint; Section 18 records approved browser/live reproduction.
 - **Amendment 02 status:** `IMPLEMENTED & VERIFIED`; Section 16 records the current browser/live reproduction boundary and final cosmetic review.
-- **Amendment 01 status:** `IMPLEMENTED & VERIFIED` — approved Stage 02 completed; PLAN_03 and PHASE_02 remain `IMPLEMENTED, UNVERIFIED`.
+- **Amendment 01 status:** `IMPLEMENTED & VERIFIED` — its approved Stage 02 checkpoint is historical; current PLAN closure is recorded in Section 23.
 - Run from the repository root unless a step changes directory. Commands below were exercised on Windows PowerShell with Bun 1.4.3.
 - Sections 11–15 preserve earlier review checkpoints; their pending-approval statements are historical. Section 16 records their approved completion.
 - Sections 2–7 now reproduce Amendment 02 using synthetic fixtures, real React SSR hook execution, shared-client HTTP adapters/stubs and browser-storage fakes; no Docker/datastore/provider is required. Sections 9–10 retain historical Amendment 01 observations and do not verify Amendment 02.
@@ -33,11 +33,11 @@ Expected: Bun 1.4.3 in the executed environment; successful frozen install with 
 bun test tests/unit/auth
 ```
 
-Expected: 148 passing tests across eight test files after Amendment 04 Stage 01. The suite supplies `http://localhost:8080` as a synthetic API origin and intercepts HTTP; a backend need not be listening.
+Expected: 185 passing tests / 773 assertions across nine files after the Amendment 05 Stage 02 handoff correction. The suite supplies `http://localhost:8080` as a synthetic API origin and intercepts HTTP; a backend need not be listening.
 
 Expected: coverage includes six actual endpoint hooks plus raw bootstrap/refresh, duplicate submissions, OTP precision, strict DTO/error boundaries, AES-GCM/version-1 compatibility, scoped key deletion/regeneration, storage degradation, restoration, mixed-transport concurrency, stale results, logout, `isProtected`, trusted targets, replay bounds and cancellation.
 
-Expected: IndexedDB uses a narrow asynchronous fake and real Bun Web Crypto. Hook operations execute through React SSR and TanStack Query; this does not prove DOM selector rerenders, real-browser IndexedDB/CryptoKey persistence or cookie acceptance. Those require Amendment 02 Stage 02.
+Expected: IndexedDB uses a narrow asynchronous fake and real Bun Web Crypto. Hook operations execute through React SSR and TanStack Query; this does not prove DOM selector rerenders, real-browser IndexedDB/CryptoKey persistence or cookie acceptance. Actual browser acceptance is recorded in Sections 16, 18, 20 and 23.
 
 ## 4. Run the complete client regression and quality checks
 
@@ -47,7 +47,7 @@ bun run lint
 bun run typecheck
 ```
 
-Expected: 209 tests pass across 14 files after Amendment 04 Stage 01; lint and TypeScript exit successfully. Existing native SSE framing, citation, provisional-output and abort/reset assertions remain intact.
+Expected: 246 tests / 1351 assertions pass across 15 files after Amendment 05 Stage 02; lint and TypeScript exit successfully. Existing native SSE framing, citation, provisional-output and abort/reset assertions remain intact.
 
 ## 5. Check amendment-file formatting
 
@@ -520,3 +520,126 @@ Expected: current maturity reflects Amendment 02 verification while UI/protected
 11. Run `git -c core.safecrlf=false diff --check` and verify current documentation, static artifacts and unchanged PLAN identifiers.
 
     Expected: no whitespace/encoding errors; 13 PLAN sections and 20 PLAN AC identifiers remain. Amendment 04 `IMPLEMENTED & VERIFIED`; PLAN_03 and PHASE_02 `IMPLEMENTED, UNVERIFIED`. Protected entry/navigation, dashboard and PLAN_04 remain unbuilt. Earlier Stage 01 approval-pending statements are historical checkpoints.
+
+## 21. Amendment 05 — Stage 01 local reproduction
+
+1. From repository root, inspect `git branch --show-current`, `git status --short`, and relevant diffs. Read root/client AGENTS, PHASE, PLAN, current CONTEXT/MANUAL, then [Amendment 05](AMENDMENTS/05_AUTH_NAVIGATION_PLAN_CLOSURE.md).
+
+   Expected: branch `phase-02/plan-03`; preserve preexisting `.gitignore` edits. No Git mutation. Amendment filename/title shortened to Auth Navigation & PLAN Closure; prior prompts/evidence remain historical.
+
+2. Run from `client/`:
+
+   ```powershell
+   bun install --frozen-lockfile
+   bun test tests/unit/auth/navigation.test.tsx tests/unit/auth/forms.test.tsx tests/unit/auth/loginForms.test.tsx
+   bun test tests/unit/auth
+   bun run test
+   bun run lint
+   bun run typecheck
+   bun run format:check
+   bun run build
+   ```
+
+   Expected: unchanged package/lockfile; 66 focused tests/267 assertions, 182 auth tests/750 assertions, 243 total tests/1328 assertions, zero failures. Lint, strict types, formatting and static export pass. Tests use installed Next router contexts; no added framework/global module mock. Limit any formatter writes to affected files.
+
+3. From repository root inspect artifacts and whitespace:
+
+   ```powershell
+   Get-Item client/out/index.html, client/out/register.html, client/out/verify.html, client/out/login.html, client/out/dashboard.html
+   git -c core.safecrlf=false diff --check
+   ```
+
+   Expected: all five HTML artifacts exist. Initial static HTML shows neutral session checking; no private profile or form credentials. No server runtime/middleware/BFF. Review untracked files separately because Git diff excludes them. Changed/new handwritten client files use valid UTF-8 without BOM and LF.
+
+4. Review PLAN Section 9 and navigation tests.
+
+   Expected: root chooses dashboard/login only after definitive state; anonymous routes replace to dashboard for authenticated canonical user. Dashboard denies profile during restore/error/missing user/logout. Login/verify action errors remain correctable because hook/form owners remain mounted; login renders stable logout outcome. No route bootstrap/extra profile GET; QueryProvider remains sole initializer. SSR/pure dispatch tests do not prove browser effects/events/history, subscriptions, cookie/CORS or reactive privacy.
+
+5. Read the 20-row PLAN AC ledger in CONTEXT and stop for code review.
+
+   Expected: Amendment 05 and PLAN_03 `IMPLEMENTED, UNVERIFIED`; PHASE_02 `IMPLEMENTED, UNVERIFIED`; PLAN_04 `NOT YET BUILT`. No Stage 02 Docker/live/browser/datastore operation performed for this Amendment.
+
+## 22. Amendment 05 — pending Stage 02 approval/acceptance boundary
+
+1. Obtain fresh explicit approval for Amendment 05 Stage 02 before Docker/live datastore/browser acceptance. Follow current Amendment requirements 9–12 and A01–A20 alongside existing PLAN AC-01–AC-20.
+
+   Expected: prior Amendment approvals do not carry over. This section is an unexecuted checklist; historical Sections 16/18/20 do not verify the new routes.
+
+2. After approval, inspect actual retained runtime/health/source equivalence and capture fresh run-unique full datastore/catalog/vector/configuration and Docker resource fingerprints before mutations. Privately ledger exact synthetic accounts. Serve final `out/` at an allowed loopback origin, mapping `/` to `index.html` and each auth/dashboard deep link to its generated HTML.
+
+   Expected: no assumed blank datastore, overwritten baseline, unapproved rebuild/migration/recreation or public fixture endpoint. No Next production server. Exact owned fixture cleanup and full fingerprint equality required afterward; preserve unrelated resources and historical artifacts.
+
+3. Execute the full fresh browser/live matrix: complete registration/verify/resend and login/dashboard/logout; all five direct routes/reload/history; held startup validation; real cookie/encrypted restoration/fallback; terminal versus uncertain failures; explicit retry; confirmed/unconfirmed logout, marker/storage outcomes and stale account isolation; read-only mixed transport checks and explicit CORS.
+
+   Expected: canonical profile only after authenticated state; no credentials/debug IDs in UI, no redundant post-login/verify GET /auth, no automatic logout retry or marker-clearing recovery. Label injected faults separately from natural backend statuses. No upload/RAG/provider/file/folder mutations. Record only safe assertions/counts; never publish OTPs, tokens, passwords, keys or cookies.
+
+4. Update every existing PLAN AC ledger row with actual fresh/historical evidence and limitations; update status only when all required acceptance passes.
+
+   Expected: missing/failed applicable checks leave Amendment 05 and PLAN_03 `IMPLEMENTED, UNVERIFIED`. Only complete acceptance permits `IMPLEMENTED & VERIFIED`; PHASE_02 remains `IMPLEMENTED, UNVERIFIED`, PLAN_04 `NOT YET BUILT`. Preserve earlier evidence and all PLAN identifiers.
+
+## 23. Amendment 05 — approved Stage 02 integrated reproduction and closure
+
+1. Confirm explicit authorization for this run; recheck `git branch --show-current`, `git status --short`, applicable root/client/server instructions and current references. Inspect retained containers before acting.
+
+   ```powershell
+   docker ps -a --format '{{.Names}} {{.Status}} {{.Image}}'
+   ```
+
+   Expected: branch `phase-02/plan-03`; no Git mutation. This run found all three existing containers stopped and used `docker start server-postgres-1 server-qdrant-1 server-server-1`. Reuse actual resources; never build/pull/recreate/migrate/reset/prune for this client acceptance. Sandbox Docker access required approved escalation.
+
+2. Verify live health and newline-normalized packaged/local Python equivalence. Before fixture creation, copy existing private snapshot/resource helpers to NEW unique names and unique baseline paths; run their `capture` modes from `server/`.
+
+   Expected: `/system/health` and `/system/health/databases` 200, PostgreSQL/Qdrant healthy; this run compared 88 app/migration Python files successfully. Full application rows/schema/catalog, Qdrant payload/vector/configuration/index and Docker/image/layer/container/mount/volume/database inventories captured privately. This run measured zero application rows/points. Do not assume emptiness or overwrite historical baselines.
+
+3. Serve final `client/out` on an allowed loopback origin, without a Next runtime. Use isolated Chromium contexts and a private exact UUID/email fixture ledger with accepted unique example.com addresses. Keep development OTP lookup/expiry adjustment restricted to ledger targets in an ignored loopback-only helper.
+
+   Expected: `/` maps to `index.html`; login/register/verify/dashboard map to generated HTML. Normalize an optional trailing slash. Strip query strings for disk resolution and support Next segmented-RSC requests: `/<route>/__next.<route>.__PAGE__.txt` maps to `/<route>/__next.<route>/__PAGE__.txt`; retain other exported assets. This run's first helper omitted segment mapping and returned prefetch 404s; final mapping/link smoke had no static HTTP errors or document reload. Do not treat that helper correction as a production Next/config change.
+
+4. Exercise all five direct routes anonymously, then register through the actual form. Hold register with a release promise and dispatch two same-tick submissions. Test duplicate registration, actual resend replacement, wrong/expired code and resend recreation. Privately change only the fixture's canonical name and force a six-character leading-zero OTP before successful verification.
+
+   Expected: root/dashboard resolve to login, other anonymous forms remain usable; no private profile. Invalid form sends no HTTP; masked password, pending disabled, one registration request, real 201/password clearing/verification-required feedback. Old/expired codes receive stable errors. Successful verification reaches canonical escaped dashboard with no extra profile GET. No credential URL/log/screenshot output.
+
+5. With a second unverified account, test wrong/missing credentials and actual unverified login, then click its `/verify` link using client-side navigation. Hold verification and login separately, dispatching duplicate submits.
+
+   Expected: wrong/missing credentials share editable safe feedback. Verification-required handoff remains usable across routes: `credential_action` identifies explicit credential failure in the existing Zustand error field, while `status` stays `error` and user/token stay null. Root/protected routes remain recovery-only; bootstrap/refresh uncertainty retains explicit retry. During credential mutation the gate hides conflicting forms rather than exposing a disabled Resend button. Each held operation sends once; success reaches the canonical current account without redundant `GET /auth`.
+
+6. Inspect all authenticated direct routes/reloads, hold a real startup GET, and test saved-token restoration plus invalid-access, absent/corrupt ciphertext and missing-key fallback. Return only booleans/counts/storage schema summaries.
+
+   Expected: root/login/register/verify replace to dashboard; dashboard renders validated canonical Name/Email/Logout only. Held restoration exposes neither form nor profile; recovered token validates once without refresh. Fallback performs one real refresh and current-user validation. Version-1 envelope has ciphertext/IV/version; key is non-extractable AES-GCM-256 in auth-owned IndexedDB. HttpOnly refresh cookie has `/auth`, SameSite=Lax and Secure=false for local HTTP; JavaScript cannot read it.
+
+7. Separately inject GET 500, refresh 500/network and exact terminal refresh 401. Remove faults before explicit supported retry. Inject 422/500/network for register/verify/resend/login, plus malformed-success and unknown-error login responses, without forwarding injected attempts.
+
+   Expected: uncertain startup remains safe recovery at the requested route; explicit retry restores. Exact terminal refresh becomes unauthenticated/login. All 14 mutation fault paths are safe, single-attempt and editable; no private sentinel or fabricated authentication. Classify injections separately from real backend behavior.
+
+8. Hold dashboard logout and double-click; then test real 204, separate network/500 outcomes, reload, back/forward and explicit reauthentication/account replacement. Separately block ciphertext writes and marker/removal writes in fresh isolated contexts.
+
+   Expected: one held logout, immediate private-profile/form removal and truthful pending/confirmed/unconfirmed login feedback. Confirmed logout removes cookie/ciphertext/key; reload may make one terminal refresh because confirmed logout clears the marker, but never restores the profile. Unconfirmed logout retains signout intent and suppresses automatic auth requests; no recovery control clears it. Explicit login restores usable persistence. Storage failure gives memory-only warning without plaintext; impaired logout reports cleanup and marker warnings separately with no reload guarantee. Never show previous-account details on history/account replacement.
+
+9. Run a temporary ignored browser probe built from the actual shared Axios/fetch/store/bootstrap modules, with explicit safe API-base define and isolated module scope. Concurrently issue only protected read-only `/drive` GETs; inject invalid-access first responses, then allow real retries. Check allowed/disallowed preflights separately.
+
+   Expected: duplicate initialization shares one Promise/GET; both clients share one real refresh and each GET is attempted twice, returning 200; native fetch returns a raw Response. Allowed origin returns exact allow-origin/credentials; disallowed origin lacks allow-origin. No folder/file mutation/upload/ask/provider operation. Fresh deterministic tests cover non-replay, cancellation, stale generations, cache cleanup and SSE behavior; earlier unchanged-foundation live results remain labeled historical.
+
+10. From `client/`, run the actual final local checks, limiting formatter writes to affected files.
+
+    ```powershell
+    bun install --frozen-lockfile
+    bun test tests/unit/auth/navigation.test.tsx tests/unit/auth/forms.test.tsx tests/unit/auth/loginForms.test.tsx
+    bun test tests/unit/auth
+    bun run test
+    bun run lint
+    bun run typecheck
+    bun run format:check
+    bun run build
+    ```
+
+    Expected: no dependency change; 69 focused tests/279 assertions, 185 auth tests/773 assertions, 246 total tests/1351 assertions, zero failures. Lint/types/format/build pass. Repeat final-export login, five authenticated routes/reload, logout/history and anonymous form smoke: zero product page errors. Temporary probe harness errors and initial host-prefetch errors are recorded in CONTEXT separately.
+
+11. Close only owned browser contexts. Assert both exact ledger UUID/email pairs and zero `folders.owner_id` / `files.owner_id` rows; delete only those users and FK-owned auth rows. Run fresh snapshot/resource helpers in `compare` mode before deleting their private baselines.
+
+    Expected: full fingerprints match, not merely counts. This run removed exactly two users and restored all five tables/vector points to zero; retained Docker image/27 layers/container/mount/volume/project-container/database inventories matched. Stop only owned hosts; verify their socket is closed; remove only run-specific helpers/ledger/baselines/probe. This run removed seven private files and ensured the probe bundle absent. Existing Docker resources and historical artifacts retained; all three containers remain running.
+
+12. Run root `git -c core.safecrlf=false diff --check`; inspect all changed/untracked files for UTF-8/LF/final newline/trailing whitespace, preserve 13 PLAN sections and original 20 PLAN criteria, and read the final CONTEXT acceptance ledger.
+
+    Expected: AC-01–AC-20 and Amendment A01–A20 pass with fresh/historical sources distinguished. Amendment 05 and PLAN_03 `IMPLEMENTED & VERIFIED`; PHASE_02 `IMPLEMENTED, UNVERIFIED`; PLAN_04 `NOT YET BUILT`. Earlier pending-approval/review statements remain historical checkpoints. No commits/pushes/branch operations.
+
+    Expected: PLAN_04 reuses safe Zustand selectors, sole QueryProvider bootstrap, existing endpoint hooks, shared transports and cache/logout boundaries to build owner-scoped drive workflows. Browser gates do not authorize resources. Cross-tab coordination remains excluded; local HTTP evidence does not verify production HTTPS/cross-site cookie policy, and reversible token encryption does not defend against XSS. Existing access JWTs may remain valid until expiry after logout.

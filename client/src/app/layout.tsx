@@ -7,7 +7,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Atlas",
-  description: "Upload a file to Atlas.",
+  description: "Sign in to your Atlas account.",
 };
 
 export interface RootLayoutProps {

@@ -12,6 +12,7 @@ import { registrationSchema, type Registration } from "@schemas/auth/auth";
 import { Label } from "@components/ui/label";
 import { Input } from "@components/ui/input";
 import { Button } from "@components/ui/button";
+import AuthGate from "@components/Auth/AuthGate";
 import { Card, CardTitle, CardHeader, CardContent } from "@components/ui/card";
 
 import { authFeedback } from "@utils/auth/feedback";
@@ -40,6 +41,7 @@ export default function RegisterPanel() {
 
     try {
       await register(input);
+
       form.resetField("password");
     } catch {
     } finally {
@@ -48,84 +50,91 @@ export default function RegisterPanel() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Register account</CardTitle>
-      </CardHeader>
+    <AuthGate mode="anonymous" actionError={Boolean(registerError)}>
+      <Card>
+        <CardHeader>
+          <CardTitle>Register account</CardTitle>
+        </CardHeader>
 
-      <CardContent className="space-y-4">
-        <form
-          className="space-y-4"
-          noValidate
-          onSubmit={(event) => void form.handleSubmit(onRegister)(event)}
-        >
-          <fieldset
+        <CardContent className="space-y-4">
+          <form
             className="space-y-4"
-            disabled={isRegisterLoading || form.formState.isSubmitting}
+            noValidate
+            onSubmit={(event) => void form.handleSubmit(onRegister)(event)}
           >
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input id="name" autoComplete="name" {...form.register("name")} />
-
-              {form.formState.errors.name && (
-                <p role="alert">{form.formState.errors.name.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                {...form.register("email")}
-              />
-
-              {form.formState.errors.email && (
-                <p role="alert">{form.formState.errors.email.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-
-              <Input
-                id="password"
-                type="password"
-                autoComplete="new-password"
-                {...form.register("password")}
-              />
-
-              {form.formState.errors.password && (
-                <p role="alert">{form.formState.errors.password.message}</p>
-              )}
-            </div>
-
-            <Button
-              type="submit"
+            <fieldset
+              className="space-y-4"
               disabled={isRegisterLoading || form.formState.isSubmitting}
             >
-              {isRegisterLoading ? "Registering…" : "Register"}
-            </Button>
-          </fieldset>
+              <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
 
-          {isRegisterLoading && <p role="status">Registering account…</p>}
+                <Input
+                  id="name"
+                  autoComplete="name"
+                  {...form.register("name")}
+                />
 
-          {registerError && <p role="alert">{authFeedback(registerError)}</p>}
+                {form.formState.errors.name && (
+                  <p role="alert">{form.formState.errors.name.message}</p>
+                )}
+              </div>
 
-          {isRegisterSuccess && (
-            <p role="status">
-              Verification required. Continue to Verify account and enter your
-              email and code.
-            </p>
-          )}
-        </form>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
 
-        <Link className="underline" href="/verify">
-          Verify account
-        </Link>
-      </CardContent>
-    </Card>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  {...form.register("email")}
+                />
+
+                {form.formState.errors.email && (
+                  <p role="alert">{form.formState.errors.email.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="new-password"
+                  {...form.register("password")}
+                />
+
+                {form.formState.errors.password && (
+                  <p role="alert">{form.formState.errors.password.message}</p>
+                )}
+              </div>
+
+              <Button
+                type="submit"
+                disabled={isRegisterLoading || form.formState.isSubmitting}
+              >
+                {isRegisterLoading ? "Registering…" : "Register"}
+              </Button>
+            </fieldset>
+
+            {isRegisterLoading && <p role="status">Registering account…</p>}
+
+            {registerError && <p role="alert">{authFeedback(registerError)}</p>}
+
+            {isRegisterSuccess && (
+              <p role="status">
+                Verification required. Continue to Verify account and enter your
+                email and code.
+              </p>
+            )}
+          </form>
+
+          <Link className="underline" href="/verify">
+            Verify account
+          </Link>
+        </CardContent>
+      </Card>
+    </AuthGate>
   );
 }

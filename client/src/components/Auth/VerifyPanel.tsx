@@ -5,8 +5,6 @@ import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import useAuthStore from "@stores/auth";
-
 import useVerify from "@hooks/auth/useVerify";
 import useResend from "@hooks/auth/useResend";
 
@@ -19,6 +17,7 @@ import {
 import { Label } from "@components/ui/label";
 import { Input } from "@components/ui/input";
 import { Button } from "@components/ui/button";
+import AuthGate from "@components/Auth/AuthGate";
 import { Card, CardTitle, CardHeader, CardContent } from "@components/ui/card";
 
 import { authFeedback } from "@utils/auth/feedback";
@@ -30,9 +29,6 @@ export default function VerifyPanel() {
 
   const { verify, isVerifyLoading, isVerifySuccess, verifyError } = useVerify();
   const { resend, isResendLoading, isResendSuccess, resendError } = useResend();
-
-  const user = useAuthStore((state) => state.user);
-  const status = useAuthStore((state) => state.status);
 
   const form = useForm<Verification>({
     resolver: zodResolver(verificationSchema),
@@ -57,6 +53,7 @@ export default function VerifyPanel() {
 
     try {
       await verify(input);
+
       form.resetField("otp");
     } catch {
     } finally {
@@ -96,25 +93,11 @@ export default function VerifyPanel() {
     }
   };
 
-  if (status === "authenticated" && user) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Account authenticated</CardTitle>
-        </CardHeader>
-
-        <CardContent>
-          <dl className="space-y-2">
-            <dt>Name</dt>
-            <dd>{user.name}</dd>
-            <dt>Email</dt>
-            <dd>{user.email}</dd>
-          </dl>
-        </CardContent>
-      </Card>
-    );
-  } else {
-    return (
+  return (
+    <AuthGate
+      mode="anonymous"
+      actionError={Boolean(verifyError || resendError)}
+    >
       <Card>
         <CardHeader>
           <CardTitle>Verify account</CardTitle>
@@ -177,6 +160,7 @@ export default function VerifyPanel() {
             </fieldset>
 
             {isVerifyLoading && <p role="status">Verifying account…</p>}
+
             {verifyError && <p role="alert">{authFeedback(verifyError)}</p>}
 
             {isVerifySuccess && (
@@ -187,6 +171,7 @@ export default function VerifyPanel() {
             )}
 
             {isResendLoading && <p role="status">Requesting another code…</p>}
+
             {resendError && <p role="alert">{authFeedback(resendError)}</p>}
 
             {isResendSuccess && (
@@ -202,6 +187,6 @@ export default function VerifyPanel() {
           </Link>
         </CardContent>
       </Card>
-    );
-  }
+    </AuthGate>
+  );
 }

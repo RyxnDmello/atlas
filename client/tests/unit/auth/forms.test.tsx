@@ -1,39 +1,41 @@
-import { afterEach, expect, test } from "bun:test";
-import { renderToStaticMarkup } from "react-dom/server";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { afterEach, beforeEach, expect, test } from "bun:test";
 
 import "./environment";
 
 import RegisterPanel from "@components/Auth/RegisterPanel";
 import VerifyPanel from "@components/Auth/VerifyPanel";
 
-import useAuthStore from "@stores/auth";
+import { AuthFailure } from "@services/http/validate";
+
 import {
   registrationSchema,
   verificationSchema,
   resendSchema,
 } from "@schemas/auth/auth";
-import { AuthFailure } from "@services/http/validate";
+
 import { authFeedback } from "@utils/auth/feedback";
+
+import useAuthStore from "@stores/auth";
+
+import { renderAuth } from "./render";
 
 const initial = useAuthStore.getInitialState();
 const original = {
   ...initial,
 };
 
-// SSR uses the store's server snapshot; no browser subscription is claimed here.
 const render = (verification = false) => {
-  const cache = new QueryClient();
-  const html = renderToStaticMarkup(
-    <QueryClientProvider client={cache}>
-      {verification ? <VerifyPanel /> : <RegisterPanel />}
-    </QueryClientProvider>,
+  return renderAuth(
+    verification ? <VerifyPanel /> : <RegisterPanel />,
+    verification ? "/verify" : "/register",
   );
-
-  cache.clear();
-
-  return html;
 };
+
+beforeEach(() => {
+  Object.assign(initial, {
+    status: "unauthenticated",
+  });
+});
 
 afterEach(() => {
   Object.assign(initial, original);
@@ -127,7 +129,7 @@ test.each([
   },
 );
 
-test("authenticated verification renders only canonical Zustand name/email as escaped text", () => {
+test("authenticated verification withholds forms/profile while redirecting to dashboard", () => {
   Object.assign(initial, {
     ...original,
     status: "authenticated",
@@ -141,9 +143,9 @@ test("authenticated verification renders only canonical Zustand name/email as es
 
   const html = render(true);
 
-  expect(html).toContain("Account authenticated");
-  expect(html).toContain("Canonical &lt;script&gt;profile&lt;/script&gt;");
-  expect(html).toContain("canonical@example.test");
+  expect(html).toContain("Redirecting");
+  expect(html).not.toContain("Canonical");
+  expect(html).not.toContain("canonical@example.test");
   expect(html).not.toContain("private-access-fixture");
   expect(html).not.toContain("00000000-0000-4000-8000-000000000001");
   expect(html).not.toContain("<script>profile</script>");

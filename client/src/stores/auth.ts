@@ -7,7 +7,8 @@ export type AuthStateType =
 
 export type AuthLogoutResultType = "confirmed" | "unconfirmed";
 export type AuthLogoutType = "none" | "pending" | AuthLogoutResultType;
-export type AuthErrorType = "session_uncertain" | "inconsistent_session";
+export type AuthErrorType =
+  "session_uncertain" | "inconsistent_session" | "credential_action";
 export type AuthPersistenceType = "pending" | "available" | "unavailable";
 
 export interface AuthState {

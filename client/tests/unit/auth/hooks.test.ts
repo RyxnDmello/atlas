@@ -286,6 +286,8 @@ test.each([
     }
 
     expect(h.context.store.getState().accessToken).toBeNull();
+    expect(h.context.store.getState().status).toBe("error");
+    expect(h.context.store.getState().error).toBe("credential_action");
   },
 );
 
@@ -812,6 +814,7 @@ test("register, verify and resend sanitize uncertain network failures without au
   }
 
   expect(h.context.store.getState().user).toBeNull();
+  expect(h.context.store.getState().error).toBe("credential_action");
   expect(h.saved()).toBeUndefined();
 });
 

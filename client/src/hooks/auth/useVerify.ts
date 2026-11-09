@@ -49,7 +49,14 @@ export default function useVerify() {
 
       return await finishLogin(operation, result);
     } catch (error) {
-      await failCredentials(error, operation.sessionVersion);
+      await failCredentials(
+        error,
+        operation.sessionVersion,
+        undefined,
+        false,
+        false,
+        true,
+      );
       throw safeAuthError(error);
     } finally {
       operation.release();

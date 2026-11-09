@@ -1,12 +1,12 @@
 # PHASE_02 — Authenticated Personal Drive
 
-| Field                        | Current baseline                                        |
-| ---------------------------- | ------------------------------------------------------- |
-| PHASE status                 | `IMPLEMENTED, UNVERIFIED`                               |
-| Verified prerequisite        | `PHASE_01 — MVP Core RAG`                               |
-| Completed PLANS              | `PHASE_02_PLAN_01`, `PHASE_02_PLAN_02`                  |
-| Next development destination | `PHASE_02_PLAN_03 — Client Authentication`              |
-| Final milestone              | `PHASE_02_PLAN_04 — Drive Dashboard & Phase Acceptance` |
+| Field                        | Current baseline                                           |
+| ---------------------------- | ---------------------------------------------------------- |
+| PHASE status                 | `IMPLEMENTED, UNVERIFIED`                                  |
+| Verified prerequisite        | `PHASE_01 — MVP Core RAG`                                  |
+| Completed PLANS              | `PHASE_02_PLAN_01`, `PHASE_02_PLAN_02`, `PHASE_02_PLAN_03` |
+| Next development destination | `PHASE_02_PLAN_04 — Drive Dashboard & Phase Acceptance`    |
+| Final milestone              | `PHASE_02_PLAN_04 — Drive Dashboard & Phase Acceptance`    |
 
 - **Authority:** This PHASE defines the destination, cross-PLAN contracts, exclusions, and final acceptance; individual PLANS own their detailed specifications.
 - **Execution:** Verify server contracts before client consumption unless an approved PLAN explicitly provides an exception.
@@ -60,15 +60,15 @@ flowchart LR
 
 ### PHASE and PLAN maturity
 
-| PLAN               | Status                    | Responsibility                                                                                                            |
-| ------------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `PHASE_02_PLAN_01` | `IMPLEMENTED & VERIFIED`  | PostgreSQL identity and complete backend authentication/session contracts                                                 |
-| `PHASE_02_PLAN_02` | `IMPLEMENTED & VERIFIED`  | Owner-scoped drive backend, file lifecycle, and authorized single-file RAG                                                |
-| `PHASE_02_PLAN_03` | `IMPLEMENTED, UNVERIFIED` | Verified auth foundation; registration/verification/resend UI verified; login/logout UI verified; protected entry unbuilt |
-| `PHASE_02_PLAN_04` | `NOT YET BUILT`           | Drive dashboard, file/folder workflows, selected-file RAG and final acceptance                                            |
+| PLAN               | Status                   | Responsibility                                                                                                                                                           |
+| ------------------ | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PHASE_02_PLAN_01` | `IMPLEMENTED & VERIFIED` | PostgreSQL identity and complete backend authentication/session contracts                                                                                                |
+| `PHASE_02_PLAN_02` | `IMPLEMENTED & VERIFIED` | Owner-scoped drive backend, file lifecycle, and authorized single-file RAG                                                                                               |
+| `PHASE_02_PLAN_03` | `IMPLEMENTED & VERIFIED` | Verified auth foundation; registration/verification/resend UI verified; login/logout UI verified; protected navigation/minimal dashboard and integrated closure verified |
+| `PHASE_02_PLAN_04` | `NOT YET BUILT`          | Drive dashboard, file/folder workflows, selected-file RAG and final acceptance                                                                                           |
 
 - **PHASE_02** remains `IMPLEMENTED, UNVERIFIED` until all four PLANS and end-to-end acceptance are verified.
-- **Active PLAN:** `PHASE_02_PLAN_03`; Amendments 01 and 02 are verified; Amendment 03 registration/verification/resend UI is `IMPLEMENTED & VERIFIED`; Amendment 04 login/logout UI is `IMPLEMENTED & VERIFIED`; protected entry remains unbuilt.
+- **Completed PLAN:** `PHASE_02_PLAN_03`; Amendments 01 and 02 are verified; Amendment 03 registration/verification/resend UI is `IMPLEMENTED & VERIFIED`; Amendment 04 login/logout UI is `IMPLEMENTED & VERIFIED`; Amendment 05 protected navigation/minimal dashboard and PLAN_03 are `IMPLEMENTED & VERIFIED` after approved Stage 02 acceptance.
 - **Backend closure:** PLAN_02 Amendment 06 records integrated two-owner real PostgreSQL/Qdrant, running HTTP, packaged regression/equivalence, security and exact resource-preservation acceptance.
 - **Evidence:** The PLAN_02 record reports 159 passing evidence rows; this document does not claim those checks were rerun.
 - **Branch reference:** `phase-02/plan-03` was inspected during current implementation; recheck before each task.
