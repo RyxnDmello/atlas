@@ -1,13 +1,23 @@
 import { z } from "zod";
 
-export const environmentSchema = z.object({
-  apiBaseUrl: z
-    .string()
+const message =
+  "Set NEXT_PUBLIC_ATLAS_API_BASE_URL to an absolute HTTP(S) API URL without credentials, query, or fragment.";
+
+export const envSchema = z.object({
+  API_BASE_URL: z
+    .string({
+      error: message,
+    })
     .trim()
-    .pipe(z.url())
+    .pipe(
+      z.url({
+        error: message,
+      }),
+    )
     .refine((value) => {
       try {
         const url = new URL(value);
+
         return (
           /^https?:\/\/[^/]/i.test(value) &&
           ["http:", "https:"].includes(url.protocol) &&
@@ -21,17 +31,6 @@ export const environmentSchema = z.object({
       } catch {
         return false;
       }
-    }, "API base URL must be HTTP(S) without credentials, query, or fragment")
+    }, message)
     .transform((value) => value.replace(/\/+$/, "")),
 });
-
-export function parseEnvironment(value: unknown) {
-  const result = environmentSchema.safeParse({
-    apiBaseUrl: value,
-  });
-  if (!result.success)
-    throw new Error(
-      "Set NEXT_PUBLIC_ATLAS_API_BASE_URL to an absolute HTTP(S) API URL without credentials, query, or fragment.",
-    );
-  return result.data;
-}

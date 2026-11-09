@@ -1,24 +1,22 @@
 # ENVIRONMENT
-
 .env
 server/.env
 venv/
 .venv/
 
 # SYSTEM
-
 .idea/
 .vscode/
 .DS_Store
 *.py[cod]
 .coverage
+export.ps1
 __pycache__/
 node_modules/
 .pytest_cache/
 qdrant_storage/
 
 # TESTS
-
 server/tests/fixtures/short.md
 server/tests/fixtures/empty.md
 server/tests/fixtures/valid-long.md
@@ -27,7 +25,6 @@ server/tests/fixtures/valid-multipage.pdf
 server/tests/fixtures/blank-middle-page.pdf
 
 # CLIENT BUILDS / LOCAL VERIFICATION
-
 client/out/
 client/.next/
 .playwright-mcp/

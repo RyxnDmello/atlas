@@ -1,17 +1,33 @@
 import { afterEach, expect, test } from "bun:test";
 const previous = process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL;
+
 process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL = "http://localhost:8080";
+
 const { createAskSession } = await import("@services/ask/askSession");
-if (previous === undefined) delete process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL;
-else process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL = previous;
+const { coordination } = await import("@services/auth/auth");
+const { response: authenticated, seedCredentials } =
+  await import("../auth/fixtures");
+
+await seedCredentials(authenticated, coordination);
+
+if (previous === undefined) {
+  delete process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL;
+} else {
+  process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL = previous;
+}
+
 const original = globalThis.fetch;
+
 afterEach(() => {
   globalThis.fetch = original;
 });
+
 const id = "25bca73f-3610-443c-9f74-8c2c2f91a54c";
 const encoder = new TextEncoder();
+
 const event = (name: string, data: unknown) =>
   `event: ${name}\ndata: ${JSON.stringify(data)}\n\n`;
+
 const citation = {
   index: 0,
   page: null,
@@ -19,6 +35,7 @@ const citation = {
   section: null,
   excerpt: "Synthetic evidence",
 };
+
 const answer =
   event("answer", {
     text: "Hello ",
@@ -26,16 +43,20 @@ const answer =
   event("answer", {
     text: "world",
   });
+
 const citations = event("citations", {
   citations: [citation],
 });
+
 const done = event("done", {
   status: "completed",
 });
+
 const error = event("error", {
   error: "Generation failed.",
   code: "GENERATION_FAILED",
 });
+
 function response(text: string) {
   return new Response(text, {
     headers: {
@@ -43,11 +64,15 @@ function response(text: string) {
     },
   });
 }
+
 function session() {
   const value = createAskSession();
+
   value.setScope(id);
+
   return value;
 }
+
 function mock(
   impl: (
     input: string | URL | Request,
@@ -61,17 +86,25 @@ function mock(
 
 test("no file or blank question makes no request", async () => {
   let count = 0;
+
   mock(async () => {
     count++;
+
     return response("");
   });
+
   const ask = createAskSession();
+
   await ask.submit("Question");
+
   ask.setScope(id);
+
   await ask.submit(" \t ");
+
   expect(count).toBe(0);
   expect(ask.getSnapshot().status).toBe("idle");
 });
+
 test("native POST uses exact ID, trimmed body, omitted credentials and signal; retains citations", async () => {
   mock(async (url, init) => {
     expect(url).toBe(`http://localhost:8080/files/${id}/ask`);
@@ -82,12 +115,17 @@ test("native POST uses exact ID, trimmed body, omitted credentials and signal; r
     expect(init?.body).toBe('{"question":"Question"}');
     expect(init?.credentials).toBe("omit");
     expect(init?.signal).toBeInstanceOf(AbortSignal);
+
     return response(answer + citations + done);
   });
+
   const ask = session();
   const snapshots: string[] = [];
+
   ask.subscribe(() => snapshots.push(ask.getSnapshot().answer));
+
   await ask.submit(" Question ");
+
   expect(snapshots).toContain("Hello ");
   expect(ask.getSnapshot()).toEqual({
     status: "success",
@@ -95,9 +133,11 @@ test("native POST uses exact ID, trimmed body, omitted credentials and signal; r
     citations: [citation],
   });
 });
+
 test("canonical fallback with empty citations succeeds", async () => {
   const fallback =
     "I don't have enough information in this file to answer that.";
+
   mock(async () =>
     response(
       event("answer", {
@@ -109,14 +149,18 @@ test("canonical fallback with empty citations succeeds", async () => {
         done,
     ),
   );
+
   const ask = session();
+
   await ask.submit("Question");
+
   expect(ask.getSnapshot()).toEqual({
     status: "success",
     answer: fallback,
     citations: [],
   });
 });
+
 const invalid: [string, string][] = [
   ["early done", done],
   ["duplicate citations", answer + citations + citations + done],
@@ -184,18 +228,24 @@ const invalid: [string, string][] = [
       done,
   ],
 ];
+
 for (const [name, text] of invalid)
   test(`rejects ${name} and clears provisional output`, async () => {
     mock(async () => response(text));
+
     const ask = session();
+
     await ask.submit("Question");
+
     expect(ask.getSnapshot().status).toBe("error");
     expect(ask.getSnapshot().answer).toBe("");
     expect(ask.getSnapshot().citations).toEqual([]);
   });
+
 test("split internal markers never reach subscribers", async () => {
   for (let split = 1; split < "[[cite:123]]".length; split++) {
     const marker = "[[cite:123]]";
+
     mock(async () =>
       response(
         event("answer", {
@@ -208,14 +258,19 @@ test("split internal markers never reach subscribers", async () => {
           done,
       ),
     );
+
     const ask = session();
     const observed: string[] = [];
+
     ask.subscribe(() => observed.push(ask.getSnapshot().answer));
+
     await ask.submit("Question");
+
     expect(observed.every((text) => !text.includes("[[cite:"))).toBe(true);
     expect(ask.getSnapshot().status).toBe("error");
   }
 });
+
 for (const [name, make] of [
   [
     "network",
@@ -243,11 +298,15 @@ for (const [name, make] of [
 ] satisfies [string, () => Response][])
   test(`safe generic failure for ${name}`, async () => {
     mock(async () => make());
+
     const ask = session();
+
     await ask.submit("Question");
+
     expect(ask.getSnapshot().status).toBe("error");
     expect(ask.getSnapshot().error).not.toContain("private");
   });
+
 test("validated structured HTTP error is displayed", async () => {
   mock(async () =>
     Response.json(
@@ -260,59 +319,95 @@ test("validated structured HTTP error is displayed", async () => {
       },
     ),
   );
+
   const ask = session();
+
   await ask.submit("Question");
+
   expect(ask.getSnapshot().error).toBe("File unavailable.");
 });
+
 test("duplicates are guarded synchronously; reset aborts without false error or stale updates", async () => {
   let calls = 0;
   let signal: AbortSignal | null | undefined;
   let resolve!: (value: Response) => void;
+
   mock(async (_url, init) => {
     calls++;
+
     signal = init?.signal;
+
     return new Promise<Response>((done) => {
       resolve = done;
     });
   });
+
   const ask = session();
   const pending = ask.submit("Question");
+
   await ask.submit("Duplicate");
+
+  await Bun.sleep(1);
+
   expect(calls).toBe(1);
+
   ask.reset();
+
   expect(signal?.aborted).toBe(true);
   expect(ask.getSnapshot().status).toBe("idle");
+
   resolve(response(answer + citations + done));
+
   await pending;
+
   expect(ask.getSnapshot().status).toBe("idle");
 });
+
 test("scope replacement aborts, resets and protects newer result from stale callbacks", async () => {
   let signal: AbortSignal | null | undefined;
   let resolve!: (value: Response) => void;
+
   mock(async (_url, init) => {
     signal = init?.signal;
+
     return new Promise<Response>((done) => {
       resolve = done;
     });
   });
+
   const ask = session();
   const pending = ask.submit("Old");
+
+  await Bun.sleep(1);
+
   ask.setScope("replacement");
+
   expect(signal?.aborted).toBe(true);
+
   mock(async (url) => {
     expect(url).toBe("http://localhost:8080/files/replacement/ask");
+
     return response(answer + citations + done);
   });
+
   await ask.submit("New");
+
   resolve(response(error));
+
   await pending;
+
   expect(ask.getSnapshot().status).toBe("success");
 });
+
 test("new request clears successful answer before reading; partial failures clear text", async () => {
   const ask = session();
+
   mock(async () => response(answer + citations + done));
+
   await ask.submit("One");
+
   let controller!: ReadableStreamDefaultController<Uint8Array>;
+
   mock(
     async () =>
       new Response(
@@ -328,17 +423,27 @@ test("new request clears successful answer before reading; partial failures clea
         },
       ),
   );
+
   const pending = ask.submit("Two");
+
   expect(ask.getSnapshot().answer).toBe("");
   expect(ask.getSnapshot().citations).toEqual([]);
-  await Promise.resolve();
-  controller.enqueue(encoder.encode(answer + citations));
+
   await Bun.sleep(1);
+
+  controller.enqueue(encoder.encode(answer + citations));
+
+  await Bun.sleep(1);
+
   expect(ask.getSnapshot().answer).toBe("Hello world");
   expect(ask.getSnapshot().citations).toEqual([]);
+
   controller.enqueue(encoder.encode(error));
+
   controller.close();
+
   await pending;
+
   expect(ask.getSnapshot().answer).toBe("");
   expect(ask.getSnapshot().status).toBe("error");
   expect(ask.getSnapshot().citations).toEqual([]);
@@ -346,6 +451,7 @@ test("new request clears successful answer before reading; partial failures clea
 
 test("done remains provisional until clean EOF and trailing events invalidate it", async () => {
   let controller!: ReadableStreamDefaultController<Uint8Array>;
+
   mock(
     async () =>
       new Response(
@@ -361,13 +467,19 @@ test("done remains provisional until clean EOF and trailing events invalidate it
         },
       ),
   );
+
   const ask = session();
   const pending = ask.submit("Question");
-  await Promise.resolve();
-  controller.enqueue(encoder.encode(answer + citations + done));
+
   await Bun.sleep(1);
+
+  controller.enqueue(encoder.encode(answer + citations + done));
+
+  await Bun.sleep(1);
+
   expect(ask.getSnapshot().status).toBe("streaming");
   expect(ask.getSnapshot().citations).toEqual([]);
+
   controller.enqueue(
     encoder.encode(
       event("answer", {
@@ -375,8 +487,11 @@ test("done remains provisional until clean EOF and trailing events invalidate it
       }),
     ),
   );
+
   controller.close();
+
   await pending;
+
   expect(ask.getSnapshot().status).toBe("error");
   expect(ask.getSnapshot().answer).toBe("");
 });
@@ -384,12 +499,15 @@ test("done remains provisional until clean EOF and trailing events invalidate it
 test("teardown reset aborts a live reader, clears partial text and permits a new request", async () => {
   let controller!: ReadableStreamDefaultController<Uint8Array>;
   let signal: AbortSignal | null | undefined;
+
   mock(async (_url, init) => {
     signal = init?.signal;
+
     return new Response(
       new ReadableStream<Uint8Array>({
         start(value) {
           controller = value;
+
           signal?.addEventListener("abort", () =>
             value.error(new DOMException("Aborted", "AbortError")),
           );
@@ -402,23 +520,34 @@ test("teardown reset aborts a live reader, clears partial text and permits a new
       },
     );
   });
+
   const ask = session();
   const pending = ask.submit("Question");
-  await Promise.resolve();
-  controller.enqueue(encoder.encode(answer + citations));
+
   await Bun.sleep(1);
+
+  controller.enqueue(encoder.encode(answer + citations));
+
+  await Bun.sleep(1);
+
   expect(ask.getSnapshot().answer).toBe("Hello world");
   expect(ask.getSnapshot().citations).toEqual([]);
+
   ask.reset();
+
   await pending;
+
   expect(signal?.aborted).toBe(true);
   expect(ask.getSnapshot()).toEqual({
     status: "idle",
     answer: "",
     citations: [],
   });
+
   mock(async () => response(citations + done));
+
   await ask.submit("Again");
+
   expect(ask.getSnapshot().status).toBe("success");
 });
 
@@ -430,6 +559,7 @@ test("preserves backend citation nullable and integer semantics, including empty
     section: "",
     excerpt: "",
   };
+
   mock(async () =>
     response(
       event("citations", {
@@ -437,8 +567,11 @@ test("preserves backend citation nullable and integer semantics, including empty
       }) + done,
     ),
   );
+
   const ask = session();
+
   await ask.submit("Question");
+
   expect(ask.getSnapshot()).toEqual({
     status: "success",
     answer: "",
@@ -448,12 +581,15 @@ test("preserves backend citation nullable and integer semantics, including empty
 
 test("scope change and reset clear a completed cited result", async () => {
   mock(async () => response(answer + citations + done));
+
   const ask = session();
 
   await ask.submit("First");
+
   expect(ask.getSnapshot().citations).toEqual([citation]);
 
   ask.setScope("replacement");
+
   expect(ask.getSnapshot()).toEqual({
     status: "idle",
     answer: "",
@@ -461,9 +597,11 @@ test("scope change and reset clear a completed cited result", async () => {
   });
 
   await ask.submit("Second");
+
   expect(ask.getSnapshot().citations).toEqual([citation]);
 
   ask.reset();
+
   expect(ask.getSnapshot()).toEqual({
     status: "idle",
     answer: "",

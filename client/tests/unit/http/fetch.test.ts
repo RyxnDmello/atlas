@@ -1,11 +1,21 @@
 import { afterEach, expect, test } from "bun:test";
 
 const previous = process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL;
-process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL = "http://localhost:8080";
-const { default: fetch } = await import("@services/http/fetch");
 
-if (previous === undefined) delete process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL;
-else process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL = previous;
+process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL = "http://localhost:8080";
+
+const { default: fetch } = await import("@services/http/fetch");
+const { coordination } = await import("@services/auth/auth");
+const { response: authenticated, seedCredentials } =
+  await import("../auth/fixtures");
+
+await seedCredentials(authenticated, coordination);
+
+if (previous === undefined) {
+  delete process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL;
+} else {
+  process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL = previous;
+}
 
 const original = globalThis.fetch;
 
@@ -28,6 +38,7 @@ test("get resolves relative paths, preserves options and returns HTTP errors unt
   const response = new Response("unavailable", {
     status: 503,
   });
+
   const owner = new AbortController();
 
   mock(async (url, options) => {
@@ -51,6 +62,7 @@ test("get resolves relative paths, preserves options and returns HTTP errors unt
 
 test("post serializes JSON, merges each native header input and leaves a stream unread", async () => {
   const owner = new AbortController();
+
   const headers: HeadersInit[] = [
     {
       "X-Request": "test",
@@ -119,6 +131,7 @@ test("post honors caller content type and credentials", async () => {
 
 test("base preserves raw multipart bodies without JSON headers or serialization", async () => {
   const body = new FormData();
+
   body.append("file", new File(["synthetic"], "fixture.md"));
 
   mock(async (url, options) => {
@@ -138,10 +151,12 @@ test("base preserves raw multipart bodies without JSON headers or serialization"
 
 test("base forwards network failures and aborts to the owner", async () => {
   const owner = new AbortController();
+
   owner.abort();
 
   mock(async (_url, options) => {
     expect(options?.signal).toBe(owner.signal);
+
     throw new DOMException("Aborted", "AbortError");
   });
 
@@ -149,5 +164,5 @@ test("base forwards network failures and aborts to the owner", async () => {
     fetch.get("/cancelled", {
       signal: owner.signal,
     }),
-  ).rejects.toThrow("Aborted");
+  ).rejects.toThrow(/aborted/i);
 });

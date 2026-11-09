@@ -1,13 +1,12 @@
-# AGENTS.md — Atlas (Intelligent Knowledge Drive)
+# Atlas — Repository Engineering Standards
 
-Repository-wide engineering and operating contract for Atlas.
+Repository-wide engineering contract for Atlas. This file applies to the entire repository.
 
-- Applies to the entire repository.
-- [client/AGENTS.md](client/AGENTS.md) specializes this contract for `client/**`.
-- [server/AGENTS.md](server/AGENTS.md) specializes this contract for `server/**`.
-- [.agents/skills/rag/SKILL.md](.agents/skills/rag/SKILL.md) owns detailed RAG pipeline contracts.
-- Scoped instructions may specialize this file for their subtree; they must not silently weaken or supersede LOCKED repository architecture.
-- Current implementation state must be evidence-based. Planned work is not implemented work.
+- [client/AGENTS.md](client/AGENTS.md): browser-client standards.
+- [server/AGENTS.md](server/AGENTS.md): backend-specific standards.
+- [.agents/skills/rag/SKILL.md](.agents/skills/rag/SKILL.md): detailed RAG pipeline contracts.
+- Scoped instructions may specialize, but MUST NOT weaken, repository-wide LOCKED decisions.
+- Implementation claims MUST be grounded in recorded execution evidence.
 
 ---
 
@@ -43,6 +42,52 @@ Cross-boundary task
 
 When Codex is launched from the repository root, explicitly read the applicable scoped AGENTS file before changing files in that subtree.
 
+### Instruction inheritance
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'background': '#1e1e2e', 'primaryColor': '#45475a', 'primaryTextColor': '#cdd6f4', 'primaryBorderColor': '#89b4fa', 'lineColor': '#a6adc8', 'secondaryColor': '#313244', 'tertiaryColor': '#181825', 'fontFamily': 'Inter, sans-serif'}}}%%
+flowchart TD
+    Root["Root AGENTS.md"] --> Server["server/AGENTS.md"]
+    Root --> Client["client/AGENTS.md"]
+    Server --> Rag["RAG skill — only for pipeline work"]
+    Root --> Plan["Current approved PLAN"]
+    Server -.->|server scope| Plan
+    Client -.->|client scope| Plan
+    class Root service;
+    class Server,Client service;
+    class Rag storage;
+    class Plan caution;
+    classDef client fill:#2b3046,stroke:#89b4fa,stroke-width:1px,color:#cdd6f4;
+    classDef service fill:#2c3642,stroke:#94e2d5,stroke-width:1px,color:#cdd6f4;
+    classDef storage fill:#332e46,stroke:#cba6f7,stroke-width:1px,color:#cdd6f4;
+    classDef verified fill:#2e363c,stroke:#a6e3a1,stroke-width:1px,color:#cdd6f4;
+    classDef planned fill:#30323f,stroke:#b4befe,stroke-width:1px,color:#cdd6f4;
+    classDef caution fill:#38362e,stroke:#f9e2af,stroke-width:1px,color:#cdd6f4;
+    classDef denied fill:#39303d,stroke:#f38ba8,stroke-width:1px,color:#cdd6f4;
+```
+
+- Read root instructions first; then only applicable subtree instructions.
+- Read the RAG skill only for owned pipeline work.
+- Cross-boundary tasks require both server and client instructions.
+
+### Source-of-truth order
+
+Use the strongest available evidence for claims and implementation decisions:
+
+| Priority | Source                                         |
+| -------- | ---------------------------------------------- |
+| 1        | Current repository files and source            |
+| 2        | Executed tests and runtime observations        |
+| 3        | Current authoritative technical documentation  |
+| 4        | Approved PHASE, PLAN, and AMENDMENT artifacts  |
+| 5        | `CONTEXT.md` and `MANUAL.md` recorded evidence |
+| 6        | Explicit current user decisions                |
+| 7        | Historical conversation and older artifacts    |
+| 8        | Inference, labeled as unverified               |
+
+- If evidence conflicts, inspect the relevant scope and report the discrepancy.
+- Never silently substitute inference for a verified repository fact.
+
 ### Reading discipline
 
 - For implementation work, read the current PLAN and targeted source/tests before changing code.
@@ -56,7 +101,7 @@ When Codex is launched from the repository root, explicitly read the applicable 
 
 ---
 
-## 1. PROJECT PURPOSE & ENGINEERING OBJECTIVE
+## 1. PURPOSE & ENGINEERING OBJECTIVES
 
 Atlas is a Google Drive-like file system with scoped semantic RAG.
 
@@ -81,163 +126,168 @@ Optimize in this order:
 9. efficiency;
 10. concision.
 
-### Current engineering principles
+### Engineering principles
 
 - Preserve the verified single-file RAG baseline as the foundation for later drive capabilities.
 - Build only the current approved PHASE/PLAN scope.
 - Keep authentication, authorization, ownership, retrieval scope, and provenance enforcement server-side.
 - Never rely on the LLM to enforce authorization or ignore unauthorized context.
 - Preserve user control over material architecture decisions.
-- Prefer:
-
-```text
-baseline
--> measure
--> targeted change
--> reevaluate
-```
+- Follow an evidence-driven improvement cycle: **baseline → measure → targeted change → reevaluate**.
 
 - Never represent planned work as implemented.
 - Never represent implemented but unverified work as verified.
 
 ---
 
-## 2. CURRENT PROJECT STATE
+## 2. CURRENT STATE & DEVELOPMENT DESTINATION
 
-This section is the compact current-state snapshot. Detailed implementation history belongs in CONTEXT.
+This is the current-state snapshot. Chronological evidence belongs in PLAN `CONTEXT.md`.
 
 ### Status vocabulary
 
-Use exactly:
+Use these labels exactly; do not infer verification from code existence or documentation.
 
-- `NOT YET BUILT`
-- `IMPLEMENTED, UNVERIFIED`
-- `IMPLEMENTED & VERIFIED`
+| Status                    | Meaning                                                                 | Applies when                                        |
+| ------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------- |
+| `NOT YET BUILT`           | Required implementation is absent.                                      | Work remains planned or unstarted.                  |
+| `IMPLEMENTED, UNVERIFIED` | Some or all implementation exists; required acceptance is not complete. | Checks are missing, blocked, or failed.             |
+| `IMPLEMENTED & VERIFIED`  | Required implementation passed the relevant acceptance checks.          | Executed, recorded verification supports the claim. |
 
-With caution:
-
-- `IMPLEMENTED, UNVERIFIED` - Never treat as `IMPLEMENTED & VERIFIED`.
-- `IMPLEMENTED, UNVERIFIED` - Code exists, but the relevant complete acceptance state is not yet verified.
+- Assess PHASE, PLAN, and individual capability maturity independently.
+- A completed PLAN does not make its enclosing PHASE complete.
+- A written specification or passing isolated unit test is not automatically full acceptance.
+- If required verification cannot run, identify the unverified scope.
 
 ### Phase roadmap
 
-Atlas phase state is cumulative. A later phase may extend or deliberately supersede a verified earlier contract, but it must not rewrite the earlier implementation/verification record.
+| PHASE                                   | Objective                                                      | Current maturity          |
+| --------------------------------------- | -------------------------------------------------------------- | ------------------------- |
+| PHASE_01 — MVP Core RAG                 | Single-file RAG baseline                                       | `IMPLEMENTED & VERIFIED`  |
+| PHASE_02 — Authenticated Personal Drive | Identity, canonical drive, scoped ownership, browser workflows | `IMPLEMENTED, UNVERIFIED` |
 
-| Phase                                   | Objective                                          | Status                  |
-| --------------------------------------- | -------------------------------------------------- | ----------------------- |
-| PHASE_01 — MVP Core RAG                 | Prove the single-file RAG baseline                 | IMPLEMENTED & VERIFIED  |
-| PHASE_02 — Authenticated Personal Drive | Add identity, canonical drive state, and ownership | IMPLEMENTED, UNVERIFIED |
+### Development destination
 
-### Active phase
+- **Active PHASE:** `PHASE_02 — Authenticated Personal Drive`.
+- **Completed PLAN:** `PHASE_02_PLAN_01 — PostgreSQL Identity & Authentication Foundation`.
+- **Completed PLAN:** `PHASE_02_PLAN_02 — Authenticated Drive Backend`.
+- **Completed PLAN:** `PHASE_02_PLAN_03 — Client Authentication` (`IMPLEMENTED & VERIFIED`); Amendments 01 and 02 are verified; Amendment 03 registration/verification/resend UI is `IMPLEMENTED & VERIFIED`; Amendment 04 login/logout UI is `IMPLEMENTED & VERIFIED`; Amendment 05 protected navigation/minimal dashboard and PLAN_03 are `IMPLEMENTED & VERIFIED` after approved Stage 02 acceptance.
+- **Following PLAN:** `PHASE_02_PLAN_04 — Drive Dashboard & Phase Acceptance` (`NOT YET BUILT`).
+- **Last inspected repository branch:** `phase-02/plan-03`; inspect it again before each task.
+- **Required PLAN_03 branch convention:** `phase-02/plan-03`; do not switch branches automatically.
+- **Branch source of truth:** inspect the current local Git state before work; never switch branches automatically.
+- PLAN_03 has a verified shared authentication foundation and registration/verification/resend UI; login/logout UI is `IMPLEMENTED & VERIFIED`; protected dashboard entry is `IMPLEMENTED & VERIFIED`. PLAN_04 remains `NOT YET BUILT`.
 
-#### PHASE_02 — AUTHENTICATED PERSONAL DRIVE
+### Current capability maturity
 
-- **Status:** `IMPLEMENTED, UNVERIFIED`
-- **Completed PLAN:** `PHASE_02_PLAN_01 — PostgreSQL Identity & Authentication Foundation` (`IMPLEMENTED & VERIFIED`)
-- **Current PLAN:** `PHASE_02_PLAN_02 — Authenticated Drive Backend` (`IMPLEMENTED & VERIFIED`; complete integrated backend acceptance passed; authenticated client remains `NOT YET BUILT`)
-- **Current branch family:** `phase-02/plan-02`
+| Capability                                             | Status                   |
+| ------------------------------------------------------ | ------------------------ |
+| PostgreSQL identity persistence                        | `IMPLEMENTED & VERIFIED` |
+| Authentication credential primitives                   | `IMPLEMENTED & VERIFIED` |
+| Registration, verification, and resend                 | `IMPLEMENTED & VERIFIED` |
+| Initial session/access issuance and login              | `IMPLEMENTED & VERIFIED` |
+| Refresh rotation and current-session logout            | `IMPLEMENTED & VERIFIED` |
+| Credentialed cookie CORS                               | `IMPLEMENTED & VERIFIED` |
+| Bearer current-user resolution and `GET /auth`         | `IMPLEMENTED & VERIFIED` |
+| Canonical folder/file persistence                      | `IMPLEMENTED & VERIFIED` |
+| Recursive folders and direct-child APIs                | `IMPLEMENTED & VERIFIED` |
+| Authenticated canonical file upload                    | `IMPLEMENTED & VERIFIED` |
+| File metadata mutation and permanent deletion          | `IMPLEMENTED & VERIFIED` |
+| Owner-authorized single-file query and ask             | `IMPLEMENTED & VERIFIED` |
+| Phase 2 browser registration, verification, and resend | `IMPLEMENTED & VERIFIED` |
+| Phase 2 browser login/logout UI                        | `IMPLEMENTED & VERIFIED` |
+| Shared browser auth/session foundation                 | `IMPLEMENTED & VERIFIED` |
+| Protected dashboard entry                              | `IMPLEMENTED & VERIFIED` |
+| Full drive dashboard and file/folder workflows         | `NOT YET BUILT`          |
 
-Verified Phase 2 foundation:
+### Verified Phase 2 backend evidence
 
-```text
-PostgreSQL identity persistence
--> explicit Alembic migration/runtime ownership
--> PostgreSQL lifecycle + health verification
--> Argon2id password primitives
--> HS256 access-JWT primitives
--> opaque refresh-token generation/hash
--> secure six-digit OTP generation
-```
-
-Current capability state:
-
-| Capability                           | Status                 |
-| ------------------------------------ | ---------------------- |
-| PostgreSQL identity persistence      | IMPLEMENTED & VERIFIED |
-| Authentication credential primitives | IMPLEMENTED & VERIFIED |
-| User registration                    | IMPLEMENTED & VERIFIED |
-| OTP verification / resend            | IMPLEMENTED & VERIFIED |
-| Initial session / access issuance    | IMPLEMENTED & VERIFIED |
-| User login                           | IMPLEMENTED & VERIFIED |
-| Refresh rotation / current logout    | IMPLEMENTED & VERIFIED |
-| Credentialed cookie CORS             | IMPLEMENTED & VERIFIED |
-| Bearer current-user resolution       | IMPLEMENTED & VERIFIED |
-| Canonical folder/file persistence    | IMPLEMENTED & VERIFIED |
-| Recursive folder hierarchy           | IMPLEMENTED & VERIFIED |
-| Folder metadata / direct-child APIs  | IMPLEMENTED & VERIFIED |
-| Canonical authenticated file upload  | IMPLEMENTED & VERIFIED |
-| File metadata mutation / deletion    | IMPLEMENTED & VERIFIED |
-| Owner-authorized single-file RAG     | IMPLEMENTED & VERIFIED |
-| Authenticated drive client           | NOT YET BUILT          |
-
-Amendments 01–05 are complete. Registration, OTP verification/resend, initial session/access issuance, and login are verified through real PostgreSQL, packaged regression, live API, and datastore-preservation acceptance. Login reuses credential/session primitives, commits optional password rehash with its new independent session, and shares the verified access-token/user response with OTP verification. Amendment 06 is complete. Atomic refresh rotation, idempotent current-session logout, and credentialed CORS passed packaged regression, real PostgreSQL rollback/concurrency, live HTTP/cookie/CORS, image/log security, and datastore-preservation acceptance. Amendment 07 is complete. Bearer current-user resolution and GET /auth are `IMPLEMENTED & VERIFIED` through packaged regression, real PostgreSQL, live authentication/CORS, security scans, and datastore preservation. PLAN_01 is `IMPLEMENTED & VERIFIED`. Current PLAN: PHASE_02_PLAN_02 — Authenticated Drive Backend (`IMPLEMENTED & VERIFIED`); complete backend acceptance passed; next client PLAN is `NOT YET BUILT`.
-
-PLAN_02 Amendment 01 is complete. Canonical Folder/File persistence and `0002_drive` are `IMPLEMENTED & VERIFIED` through local and packaged regression, real PostgreSQL ownership/constraint/reversibility acceptance, live authentication/health, security scans, and datastore preservation. Amendment 02 is complete: authenticated folder creation/update and root/direct-child browsing are `IMPLEMENTED & VERIFIED` through local/packaged regression, real PostgreSQL two-user acceptance, live HTTP/CORS, security scans, and datastore preservation. Amendment 03 is complete: canonical authenticated upload is `IMPLEMENTED & VERIFIED` through packaged regression, real PostgreSQL/Qdrant lifecycle and failure compensation, live HTTP, security scans and the authorized clean-dataset acceptance; Amendment 04 is complete: file metadata mutation and recoverable permanent deletion are `IMPLEMENTED & VERIFIED` through packaged regression, real PostgreSQL locking/transactions, Qdrant failure/retry/isolation, live HTTP/CORS, security and datastore preservation. CORS permits exactly GET/POST/PATCH/DELETE. Amendment 05 is complete: owner-authorized single-file RAG is `IMPLEMENTED & VERIFIED` through local/packaged regression, real PostgreSQL/Qdrant two-owner authorization, deterministic native SSE, live HTTP, security scans and datastore preservation; Amendment 06 is complete: integrated two-owner real PostgreSQL/Qdrant and running HTTP acceptance, packaged regression/equivalence, security and exact datastore/resource preservation passed. PLAN_02 is `IMPLEMENTED & VERIFIED`; PHASE_02 remains `IMPLEMENTED, UNVERIFIED`. PLAN_03 Client Authentication and PLAN_04 Drive Dashboard & Phase Acceptance remain `NOT YET BUILT`.
+- PLAN_01 Amendments 01–07 completed registration, verification/resend, login, session rotation, logout, current-user resolution and `GET /auth`.
+- PLAN_01 verification includes packaged regression, real PostgreSQL, live API/cookie/CORS, concurrency/rollback, security and data-preservation checks.
+- PLAN_02 Amendment 01: canonical folders/files, `0002_drive`, real PostgreSQL acceptance.
+- PLAN_02 Amendment 02: authenticated folders, root/direct-child browsing, two-user ownership tests.
+- PLAN_02 Amendment 03: `POST /files`, transient ingestion, PostgreSQL/Qdrant lifecycle and compensation; supersedes legacy upload.
+- PLAN_02 Amendment 04: file metadata mutation, recoverable cross-store permanent deletion.
+- PLAN_02 Amendment 05: PostgreSQL owner/ready authorization before exact-file RAG; deterministic streamed ask checks.
+- PLAN_02 Amendment 06: complete two-owner integrated PostgreSQL/Qdrant/live-HTTP, packaged regression, security, and resource-preservation acceptance; 159 evidence rows passed.
+- The counts and outcomes above are recorded evidence, **not** a claim of fresh test execution.
 
 Evidence:
 
 - [PHASE_02 PLAN_01 CONTEXT](prompts/PHASE_02/PLAN_01/PHASE_02_PLAN_01_CONTEXT.md)
 - [PHASE_02 PLAN_01 MANUAL](prompts/PHASE_02/PLAN_01/PHASE_02_PLAN_01_MANUAL.md)
 - [PHASE_02 PLAN_02 CONTEXT](prompts/PHASE_02/PLAN_02/PHASE_02_PLAN_02_CONTEXT.md)
+- [PHASE_02 PLAN_02 MANUAL](prompts/PHASE_02/PLAN_02/PHASE_02_PLAN_02_MANUAL.md)
 
-## 3. COMPLETED PROJECT HISTORY
+---
 
-This section records the durable verified baselines of completed Atlas phases.
+## 3. COMPLETED HISTORY & VERIFIED BASELINES
 
-It is not a chronological implementation log. Detailed Amendment history, failures, timings, versions, hashes, test counts, and corrective work remain in the corresponding CONTEXT files.
+This section admits **completed PHASES only**. Every capability listed here belongs to a verified historical baseline; individual status labels are redundant.
 
-Completed phases are appended here in order when the entire PHASE reaches `IMPLEMENTED & VERIFIED`.
+- Do not record ongoing Phase 2 as a completed PHASE.
+- Use Section 2 for current and incomplete maturity.
+- Use PLAN `CONTEXT.md` for dated Amendment chronology, failures, timings and test counts.
+- Later PHASES may explicitly supersede an endpoint without undoing its historical verification.
 
-### PHASE_01 — MVP CORE RAG
+### PHASE_01 — MVP Core RAG
 
-- **Status:** `IMPLEMENTED & VERIFIED`
-- **Brief:** Established the complete single-file RAG baseline from ingestion through grounded generation, native streaming, trusted citations, and the static browser client.
+**Objective:** End-to-end single-file ingestion, retrieval, grounded generation, native SSE, trusted citations and static browser delivery.
 
-#### VERIFIED BASELINE
+#### Verified baseline
 
-```text
-upload
--> Docling parse / OCR / chunk
--> BGE-M3 embed
--> Qdrant
--> exact file-scoped retrieval
--> grounded Gemini generation
--> native SSE
--> trusted citations
--> static Next.js client
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'background': '#1e1e2e', 'primaryColor': '#45475a', 'primaryTextColor': '#cdd6f4', 'primaryBorderColor': '#89b4fa', 'lineColor': '#a6adc8', 'secondaryColor': '#313244', 'tertiaryColor': '#181825', 'fontFamily': 'Inter, sans-serif'}}}%%
+flowchart LR
+    Upload["Upload"] --> Parse["Docling parse / OCR / chunk"]
+    Parse --> Embed["BGE-M3 embeddings"]
+    Embed --> Qdrant[("Qdrant vectors")]
+    Qdrant --> Search["Exact file-scoped retrieval"]
+    Search --> Ground["Grounded Gemini generation"]
+    Ground --> SSE["Native SSE"]
+    SSE --> Cite["Trusted citations"]
+    Cite --> Client["Static Next.js client"]
+    class Upload,Client client;
+    class Parse,Embed,Search,Ground,SSE,Cite service;
+    class Qdrant storage;
+    classDef client fill:#2b3046,stroke:#89b4fa,stroke-width:1px,color:#cdd6f4;
+    classDef service fill:#2c3642,stroke:#94e2d5,stroke-width:1px,color:#cdd6f4;
+    classDef storage fill:#332e46,stroke:#cba6f7,stroke-width:1px,color:#cdd6f4;
+    classDef verified fill:#2e363c,stroke:#a6e3a1,stroke-width:1px,color:#cdd6f4;
+    classDef planned fill:#30323f,stroke:#b4befe,stroke-width:1px,color:#cdd6f4;
+    classDef caution fill:#38362e,stroke:#f9e2af,stroke-width:1px,color:#cdd6f4;
+    classDef denied fill:#39303d,stroke:#f38ba8,stroke-width:1px,color:#cdd6f4;
 ```
 
-#### VERIFIED MATURITY
+#### Verified maturity
 
-| Capability                   | Status                 |
-| ---------------------------- | ---------------------- |
-| Upload endpoint              | IMPLEMENTED & VERIFIED |
-| Extraction & chunking        | IMPLEMENTED & VERIFIED |
-| Embedding                    | IMPLEMENTED & VERIFIED |
-| Qdrant vector storage        | IMPLEMENTED & VERIFIED |
-| File-scoped retrieval        | IMPLEMENTED & VERIFIED |
-| Grounded generation          | IMPLEMENTED & VERIFIED |
-| Native SSE streaming         | IMPLEMENTED & VERIFIED |
-| Trusted citations            | IMPLEMENTED & VERIFIED |
-| Static client foundation     | IMPLEMENTED & VERIFIED |
-| Upload / returned-ID handoff | IMPLEMENTED & VERIFIED |
-| Ask / streamed answer        | IMPLEMENTED & VERIFIED |
-| Citation display             | IMPLEMENTED & VERIFIED |
+| Capability              | Delivered behavior                                             |
+| ----------------------- | -------------------------------------------------------------- |
+| Upload endpoint         | Phase 1 upload/returned-ID handoff; endpoint later superseded. |
+| Extraction and chunking | Docling structure/OCR and source provenance.                   |
+| Embeddings              | BGE-M3 tokenizer/embedding integration.                        |
+| Vector storage          | Qdrant dense index and metadata payloads.                      |
+| Retrieval               | Exact file-scoped query filtering.                             |
+| Grounded generation     | Gemini with Atlas-controlled context.                          |
+| Native SSE              | Incremental streamed answer transport.                         |
+| Trusted citations       | Provenance-based citation output and display.                  |
+| Static client           | Verified Next.js/Bun browser foundation.                       |
+| Ask workflow            | Selected file ID to streamed answer.                           |
 
-#### COMPLETION BOUNDARY
+#### Completion boundary
 
-Phase 1 intentionally remains:
+Phase 1 intentionally remained:
 
 - single-file;
 - unauthenticated;
 - single-user;
 - without folders;
-- without PostgreSQL canonical drive state;
-- without multi-file/folder/drive retrieval.
+- without canonical PostgreSQL drive state;
+- without multi-file, folder, or drive retrieval.
 
-Later phases build on this verified baseline unless an approved contract explicitly supersedes part of it.
+Phase 2 extends or explicitly supersedes these contracts; Phase 1 evidence remains historical.
 
-#### EVIDENCE
+#### Evidence
 
 - [PLAN_01 CONTEXT](prompts/PHASE_01/PLAN_01/PHASE_01_PLAN_01_CONTEXT.md)
 - [PLAN_01 MANUAL](prompts/PHASE_01/PLAN_01/PHASE_01_PLAN_01_MANUAL.md)
@@ -250,11 +300,9 @@ Later phases build on this verified baseline unless an approved contract explici
 - [PLAN_05 CONTEXT](prompts/PHASE_01/PLAN_05/PHASE_01_PLAN_05_CONTEXT.md)
 - [PLAN_05 MANUAL](prompts/PHASE_01/PLAN_05/PHASE_01_PLAN_05_MANUAL.md)
 
-Do not duplicate the complete historical implementation log here.
-
 ---
 
-## 4. LOCKED PROJECT ARCHITECTURE
+## 4. ARCHITECTURE & DATA FLOW
 
 ### Stack
 
@@ -282,6 +330,37 @@ Do not introduce LangChain by default.
 Detailed client mechanics belong in `client/AGENTS.md`.
 Detailed backend mechanics belong in `server/AGENTS.md`.
 Detailed RAG mechanics belong in `.agents/skills/rag/SKILL.md`.
+
+### System boundaries
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'background': '#1e1e2e', 'primaryColor': '#45475a', 'primaryTextColor': '#cdd6f4', 'primaryBorderColor': '#89b4fa', 'lineColor': '#a6adc8', 'secondaryColor': '#313244', 'tertiaryColor': '#181825', 'fontFamily': 'Inter, sans-serif'}}}%%
+flowchart LR
+    Client["Static Next.js browser"] -->|"Bearer + direct API / SSE"| API["FastAPI"]
+    Client -.->|"refresh cookie, /auth only"| API
+    API --> Auth["Auth + owner checks"]
+    Auth --> PG[("PostgreSQL canonical state")]
+    API --> Ingest["Docling + BGE-M3 indexing"]
+    Ingest --> Q[("Qdrant derived index")]
+    Auth --> Retrieve["Exact file_id retrieval"]
+    Retrieve --> Q
+    Retrieve --> LLM["Grounded Gemini"]
+    LLM --> API
+    class Client client;
+    class API,Auth,Ingest,Retrieve,LLM service;
+    class PG,Q storage;
+    classDef client fill:#2b3046,stroke:#89b4fa,stroke-width:1px,color:#cdd6f4;
+    classDef service fill:#2c3642,stroke:#94e2d5,stroke-width:1px,color:#cdd6f4;
+    classDef storage fill:#332e46,stroke:#cba6f7,stroke-width:1px,color:#cdd6f4;
+    classDef verified fill:#2e363c,stroke:#a6e3a1,stroke-width:1px,color:#cdd6f4;
+    classDef planned fill:#30323f,stroke:#b4befe,stroke-width:1px,color:#cdd6f4;
+    classDef caution fill:#38362e,stroke:#f9e2af,stroke-width:1px,color:#cdd6f4;
+    classDef denied fill:#39303d,stroke:#f38ba8,stroke-width:1px,color:#cdd6f4;
+```
+
+- PostgreSQL authorizes ownership and readiness before Qdrant retrieval.
+- Browser-visible session state is not an authorization authority.
+- Original uploaded bytes remain transient in Phase 2.
 
 ### Canonical state and datastore ownership
 
@@ -317,7 +396,7 @@ Rules:
 - Never retrieve broadly from Qdrant and post-filter ownership afterward.
 - Never let the LLM decide authorization or retrieval scope.
 - Citations come from trusted Atlas retrieval/provenance metadata, not model-authored metadata.
-- Phase 2 refresh credentials are server-controlled single-use sessions; detailed mechanics belong in `server/AGENTS.md` and the current PLAN.
+- Phase 2 refresh credentials are server-controlled single-use sessions; mechanics belong in `server/AGENTS.md` and the completed PLAN_01 contract.
 - Material architecture decisions remain human-controlled.
 
 ### RAG authority
@@ -344,7 +423,7 @@ If this high-level summary conflicts with the RAG skill, stop and report the dis
 
 ---
 
-## 5. REPOSITORY ORGANIZATION
+## 5. REPOSITORY STRUCTURE & OWNERSHIP
 
 ### Repository structure
 
@@ -406,11 +485,14 @@ Use:
 
 Do not introduce new `document_id` vocabulary.
 
-`/documents/upload` is a legacy Phase 1 route name from the earlier product framing. A current PLAN may deliberately supersede that route while preserving canonical `file` / `file_id` vocabulary.
+- Phase 1 `POST /documents/upload` is **historical** and was removed in PLAN_02 Amendment 03.
+- Canonical Phase 2 upload is authenticated `POST /files`.
+- Do not restore the removed upload endpoint or introduce an alias.
+- Public file IDs and Qdrant payload `file_id` use the same immutable canonical UUID.
 
 ---
 
-## 6. PROJECT DOCUMENTATION MODEL
+## 6. ENGINEERING & DOCUMENTATION CONVENTIONS
 
 Atlas uses exactly:
 
@@ -471,11 +553,11 @@ PLAN artifacts live under:
 prompts/PHASE_<NN>/PLAN_<NN>/
 ```
 
-Each PLAN has:
+A PLAN's approved artifact set uses these names, created only at the proper lifecycle stage:
 
-- `PHASE_<NN>_PLAN_<NN>.md`
-- `PHASE_<NN>_PLAN_<NN>_CONTEXT.md`
-- `PHASE_<NN>_PLAN_<NN>_MANUAL.md`
+- `PHASE_<NN>_PLAN_<NN>.md`: destination specification; planning-owned.
+- `PHASE_<NN>_PLAN_<NN>_CONTEXT.md`: created by Codex when implementation begins.
+- `PHASE_<NN>_PLAN_<NN>_MANUAL.md`: created by Codex for verified reproduction/acceptance.
 
 Focused Amendment prompts live under that PLAN's `AMENDMENTS/` folder.
 
@@ -493,12 +575,23 @@ Focused Amendment prompts live under that PLAN's `AMENDMENTS/` folder.
 - Preserve dead ends, reversed decisions, and historical failures rather than rewriting chronology.
 - Emergent decisions must not be retroactively presented as if predicted.
 
-### Documentation style
+### Documentation style (agent-facing)
 
-- Prefer short bullets, compact tables, and useful Mermaid diagrams.
+- Prefer definitive one-line bullets, compact tables, and useful Mermaid diagrams.
+- Express one invariant per bullet; avoid long paragraphs.
+- Prefer two- or three-column tables with short cells.
+- Use `MUST`, `MUST NOT`, and `REQUIRES APPROVAL` for binding rules.
+- Preserve exact file/endpoint/config identifiers and decision terminology.
 - Preserve meaningful rationale, including the “because.”
 - Keep rationale concise rather than burying it in large tables.
-- Use at most three Mermaid diagrams per normal agent-facing document unless a PLAN materially benefits from more.
+- Include Mermaid diagrams where they clarify authority, flow, state, lifecycle, or trust boundaries; no arbitrary diagram-count ceiling.
+- Every Mermaid diagram MUST use the Catppuccin Mocha palette and consistent semantic node classes:
+  - `#1e1e2e` base, `#cdd6f4` text, `#45475a` default surfaces;
+  - `#89b4fa` browser/entry, `#94e2d5` services/processing, `#cba6f7` persistence;
+  - `#a6e3a1` completed, `#b4befe` planned, `#f9e2af` caution, `#f38ba8` failure/denial.
+- Set Mermaid `theme: base` with explicit background, text, border, and line colors.
+- Use semantic Mermaid classes; label planned features explicitly.
+- Avoid adding a diagram that only repeats nearby text.
 - Give each Mermaid diagram short context/legend text.
 - Folder trees remain plain text.
 - Preserve stable referenced headings when practical.
@@ -510,53 +603,33 @@ Focused Amendment prompts live under that PLAN's `AMENDMENTS/` folder.
 
 ---
 
-## 7. SCOPE & ARCHITECTURE GOVERNANCE
+### General code principles
 
-### Always allowed
+- Prefer single-word variable/function/parameter names where clear.
+- Use multiple words when necessary to avoid ambiguity.
+- Follow the applicable scoped language/framework conventions.
+- Do not scatter inline comments that explain individual code lines.
+- Use function/method documentation when it materially clarifies behavior, parameters, returns, lifecycle, or non-obvious contracts.
+- New files mirror the latest established file in the same ownership area unless a documented convention deliberately supersedes it.
+- Reuse established abstractions instead of creating parallel ownership paths.
+- Keep failures explicit.
+- Avoid speculative generalization and “future-proofing” without current requirements.
 
-Without additional approval:
+### Scoped conventions
 
-- implement within already-decided architecture in root AGENTS + applicable scoped AGENTS + relevant skill/PLAN;
-- reuse established abstractions and ownership boundaries;
-- surface failures explicitly;
-- preserve security and scope boundaries;
-- keep implementation proportional to the current PLAN;
-- update current-state documentation only as implementation facts actually land;
-- perform proportional verification.
+- Backend/Python/API details: `server/AGENTS.md`
+- Frontend/TypeScript/client details: `client/AGENTS.md`
+- RAG pipeline details: `.agents/skills/rag/SKILL.md`
 
-### Requires approval
+---
 
-Do not choose silently:
+## 7. TECHNICAL CONTRACTS & RUNTIME BEHAVIOR
 
-- a new third-party library/service/API outside the fixed stack;
-- a new frontend state/form/network/component library;
-- a new backend framework or material service boundary;
-- a new queue/cache/storage architecture;
-- a DB schema change not already specified by the current PLAN;
-- a public API shape change not already specified by the current PLAN;
-- chunk-size/overlap policy;
-- embedding model;
-- similarity metric;
-- retrieval policy;
-- hybrid retrieval/reranking;
-- LLM provider;
-- approved authentication/session architecture changes;
-- provider/resource lifecycle redesign;
-- material architecture not already resolved in AGENTS/skill/PLAN.
+The following are existing **LOCKED Phase 2 contracts**. Do not treat them as proposed PLAN_03 decisions.
 
-### Prohibited
-
-- Pull scope beyond the currently approved PHASE/PLAN without explicit approval.
-- Scaffold future stages merely because later work will need them.
-- Perform unrelated cleanup/refactors.
-- Introduce multi-file/folder/tree/drive RAG without approval.
-- Introduce sharing/teams/ACLs beyond approved owner-only Phase 2 scope.
-- Introduce persistent original-file storage during Phase 2.
-- Introduce folder deletion/movement, file movement, trash/recovery, or versioning during Phase 2.
-- Use Gemini File Search or another managed RAG-as-a-service.
-- Silently weaken server-side authentication, ownership, retrieval scope, provenance, or trust boundaries.
-- Treat client route state or client-supplied `user_id` / `owner_id` as authorization.
-- Rewrite historical evidence to make chronology appear cleaner.
+- The detailed API/auth implementation is owned by `server/AGENTS.md` and completed PLAN_01/02 specifications.
+- Browser integration conventions are owned by `client/AGENTS.md`.
+- Extraction, retrieval, grounding, SSE, and citation internals are owned by the RAG skill.
 
 ### Current phase locks — PHASE_02
 
@@ -654,39 +727,90 @@ Authentication identifies the user; it does not replace resource authorization.
 
 ---
 
-## 9. ENGINEERING CONVENTIONS
+### Authorization flow
 
-### General code principles
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'background': '#1e1e2e', 'primaryColor': '#45475a', 'primaryTextColor': '#cdd6f4', 'primaryBorderColor': '#89b4fa', 'lineColor': '#a6adc8', 'secondaryColor': '#313244', 'tertiaryColor': '#181825', 'fontFamily': 'Inter, sans-serif'}}}%%
+flowchart LR
+    Cred["Validated credential"] --> User["Authenticated user"]
+    User --> Owner["PostgreSQL ownership + ready"]
+    Owner --> Scope["Exact Qdrant file_id filter"]
+    Scope --> Gen["Grounded generation"]
+    Owner -.->|unauthorized| Deny["Deny before retrieval"]
+    class Cred client;
+    class User,Owner,Scope,Gen service;
+    class Deny denied;
+    classDef client fill:#2b3046,stroke:#89b4fa,stroke-width:1px,color:#cdd6f4;
+    classDef service fill:#2c3642,stroke:#94e2d5,stroke-width:1px,color:#cdd6f4;
+    classDef storage fill:#332e46,stroke:#cba6f7,stroke-width:1px,color:#cdd6f4;
+    classDef verified fill:#2e363c,stroke:#a6e3a1,stroke-width:1px,color:#cdd6f4;
+    classDef planned fill:#30323f,stroke:#b4befe,stroke-width:1px,color:#cdd6f4;
+    classDef caution fill:#38362e,stroke:#f9e2af,stroke-width:1px,color:#cdd6f4;
+    classDef denied fill:#39303d,stroke:#f38ba8,stroke-width:1px,color:#cdd6f4;
+```
 
-- Prefer single-word variable/function/parameter names where clear.
-- Use multiple words when necessary to avoid ambiguity.
-- Follow the applicable scoped language/framework conventions.
-- Do not scatter inline comments that explain individual code lines.
-- Use function/method documentation when it materially clarifies behavior, parameters, returns, lifecycle, or non-obvious contracts.
-- New files mirror the latest established file in the same ownership area unless a documented convention deliberately supersedes it.
-- Reuse established abstractions instead of creating parallel ownership paths.
-- Keep failures explicit.
-- Avoid speculative generalization and “future-proofing” without current requirements.
+---
 
-### Server-first cross-boundary sequencing
+## 9. SCOPE & ARCHITECTURE GOVERNANCE
 
-For a capability spanning server and client:
+### Always allowed
 
-1. define/confirm the server contract in the applicable PLAN;
-2. implement server-side data/domain/API behavior;
-3. verify the server contract at the appropriate level;
-4. implement the client against that established contract;
-5. run cross-boundary acceptance after both sides exist.
+Without additional approval:
 
-Exceptions require an explicit PLAN/task reason.
+- implement within already-decided architecture in root AGENTS + applicable scoped AGENTS + relevant skill/PLAN;
+- reuse established abstractions and ownership boundaries;
+- surface failures explicitly;
+- preserve security and scope boundaries;
+- keep implementation proportional to the current PLAN;
+- update current-state documentation only as implementation facts actually land;
+- perform proportional verification.
 
-Do not use speculative frontend mocks, DTOs, endpoints, storage semantics, or auth behavior to silently decide backend architecture.
+### Requires approval
 
-### Scoped conventions
+Do not choose silently:
 
-- Backend/Python/API details: `server/AGENTS.md`
-- Frontend/TypeScript/client details: `client/AGENTS.md`
-- RAG pipeline details: `.agents/skills/rag/SKILL.md`
+- a new third-party library/service/API outside the fixed stack;
+- a new frontend state/form/network/component library;
+- a new backend framework or material service boundary;
+- a new queue/cache/storage architecture;
+- a DB schema change not already specified by the current PLAN;
+- a public API shape change not already specified by the current PLAN;
+- chunk-size/overlap policy;
+- embedding model;
+- similarity metric;
+- retrieval policy;
+- hybrid retrieval/reranking;
+- LLM provider;
+- approved authentication/session architecture changes;
+- provider/resource lifecycle redesign;
+- material architecture not already resolved in AGENTS/skill/PLAN.
+
+### Prohibited
+
+- Pull scope beyond the currently approved PHASE/PLAN without explicit approval.
+- Scaffold future stages merely because later work will need them.
+- Perform unrelated cleanup/refactors.
+- Introduce multi-file/folder/tree/drive RAG without approval.
+- Introduce sharing/teams/ACLs beyond approved owner-only Phase 2 scope.
+- Introduce persistent original-file storage during Phase 2.
+- Introduce folder deletion/movement, file movement, trash/recovery, or versioning during Phase 2.
+- Use Gemini File Search or another managed RAG-as-a-service.
+- Silently weaken server-side authentication, ownership, retrieval scope, provenance, or trust boundaries.
+- Treat client route state or client-supplied `user_id` / `owner_id` as authorization.
+- Rewrite historical evidence to make chronology appear cleaner.
+
+### Decision states
+
+| State         | Meaning                                                 |
+| ------------- | ------------------------------------------------------- |
+| `LOCKED`      | Approved; MUST NOT change without human authorization.  |
+| `PROVISIONAL` | Suggested; not an implementation mandate.               |
+| `OPEN`        | Material choice awaits the user.                        |
+| `SUPERSEDED`  | Earlier decision explicitly replaced; preserve history. |
+
+- Codex MUST NOT silently choose material architecture decisions.
+- An unresolved material `OPEN` decision blocks the affected implementation contract.
+- Completed PLAN_01/02 contracts remain binding until explicitly superseded.
 
 ---
 
@@ -731,6 +855,13 @@ A genuinely new pipeline stage/capability milestone gets a new PLAN/branch.
 
 Cleanup, refactors, conventions, fixes, and documentation alignment remain on the current PLAN branch unless an approved PLAN boundary says otherwise.
 
+### Remote connector policy
+
+- GitHub-connected plugins/connectors are **read-only reference tools** for this project workflow.
+- Do not use a GitHub plugin/connector for repository mutation, commits, pushes, PR creation, or file edits.
+- Authorized code changes occur through the user's local repository workflow.
+- Inspect actual local Git state before making any implementation claim about the checked-out branch.
+
 ### Status effect
 
 Behavior/pipeline/contract changes remain `IMPLEMENTED, UNVERIFIED` until the required verification runs.
@@ -739,7 +870,7 @@ Documentation-only or cosmetic work follows proportional verification and does n
 
 ---
 
-## 11. VERIFICATION MODEL
+## 11. VERIFICATION & ACCEPTANCE
 
 Verification effort must match change risk.
 
@@ -788,6 +919,45 @@ Do not convert a blocked check into a success claim.
 
 ## 12. STANDARD ENGINEERING WORKFLOW
 
+### Server-first cross-boundary sequencing
+
+For a capability spanning server and client:
+
+1. define/confirm the server contract in the applicable PLAN;
+2. implement server-side data/domain/API behavior;
+3. verify the server contract at the appropriate level;
+4. implement the client against that established contract;
+5. run cross-boundary acceptance after both sides exist.
+
+Exceptions require an explicit PLAN/task reason.
+
+Do not use speculative frontend mocks, DTOs, endpoints, storage semantics, or auth behavior to silently decide backend architecture.
+
+### Workflow diagram
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'background': '#1e1e2e', 'primaryColor': '#45475a', 'primaryTextColor': '#cdd6f4', 'primaryBorderColor': '#89b4fa', 'lineColor': '#a6adc8', 'secondaryColor': '#313244', 'tertiaryColor': '#181825', 'fontFamily': 'Inter, sans-serif'}}}%%
+flowchart LR
+    Instructions["Instructions + Git"] --> Plan["Approved PLAN"]
+    Plan --> Inspect["Targeted source + tests"]
+    Inspect --> Amend["Focused AMENDMENT"]
+    Amend --> Verify["Execute relevant checks"]
+    Verify --> Evidence["CONTEXT / MANUAL evidence"]
+    Evidence --> Explain["Explain-back"]
+    Verify -. "blocked / failed" .-> Incomplete["Unverified scope"]
+    class Instructions,Plan,Inspect,Amend service;
+    class Verify caution;
+    class Evidence,Explain verified;
+    class Incomplete denied;
+    classDef client fill:#2b3046,stroke:#89b4fa,stroke-width:1px,color:#cdd6f4;
+    classDef service fill:#2c3642,stroke:#94e2d5,stroke-width:1px,color:#cdd6f4;
+    classDef storage fill:#332e46,stroke:#cba6f7,stroke-width:1px,color:#cdd6f4;
+    classDef verified fill:#2e363c,stroke:#a6e3a1,stroke-width:1px,color:#cdd6f4;
+    classDef planned fill:#30323f,stroke:#b4befe,stroke-width:1px,color:#cdd6f4;
+    classDef caution fill:#38362e,stroke:#f9e2af,stroke-width:1px,color:#cdd6f4;
+    classDef denied fill:#39303d,stroke:#f38ba8,stroke-width:1px,color:#cdd6f4;
+```
+
 ### Before implementation
 
 ```text
@@ -831,7 +1001,41 @@ Do not update status because code merely exists.
 
 ---
 
-## 13. COMMAND ROUTING
+## 13. MCP USAGE GUIDELINES
+
+These are **user-configured custom MCP integrations for Codex CLI**, not automatic dependencies. Confirm tool availability in the active session.
+
+### Tool selection
+
+| MCP               | Purpose                                                      | Use only when                                                                   |
+| ----------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| `context7`        | Version-specific library/API documentation.                  | Repo and trusted docs do not resolve a material API question.                   |
+| `playwright`      | Browser interaction and end-to-end acceptance.               | UI, navigation, forms, auth restoration, or browser journeys require execution. |
+| `chrome-devtools` | Browser network, console, runtime and performance diagnosis. | A specific browser failure or verification requirement needs inspection.        |
+
+### Invocation rules
+
+- MCP usage is **optional**; prefer current source, existing tests, and authoritative project documentation.
+- Use the smallest tool surface and fewest calls sufficient for the task.
+- `context7` does not override the installed version, repository code, or a LOCKED decision.
+- Prefer `playwright` for reproducible browser acceptance; use `chrome-devtools` for targeted diagnostics.
+- Do not launch both browser MCPs for the same check without a concrete reason.
+- Server-only work normally requires neither browser MCP.
+- Do not install tools, start external services, modify account state, or widen test scope without approval.
+- Never expose passwords, OTPs, JWTs, cookies, API keys, encryption keys, or uploaded content in tool output, screenshots, recordings, reports, CONTEXT, or MANUAL.
+- Use test accounts/data only within the authorized environment and preserve unrelated user/datastore state.
+- Record significant observed results in Codex-owned CONTEXT; distinguish observations from inferences.
+- If an MCP is unavailable, state the limitation and use an approved alternative; never claim the MCP ran.
+
+### Scope ownership
+
+- Root: global invocation, safety, and evidence policy.
+- Server AGENTS: backend-specific exceptions and tool relevance.
+- Client AGENTS: browser checks, auth/cookie/CORS, navigation, hydration, SSE and static-export acceptance.
+
+---
+
+## 14. COMMANDS & TOOLING
 
 Root AGENTS does not duplicate scoped command inventories.
 
@@ -867,7 +1071,7 @@ Do not infer current exact commands or implementation mechanics from historical 
 
 ---
 
-## 14. EXPLAIN-BACK REQUIREMENT
+## 15. EXPLAIN-BACK REQUIREMENT
 
 Every non-trivial task ends with a concise explain-back covering:
 

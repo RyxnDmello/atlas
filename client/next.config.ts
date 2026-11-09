@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
 
-import { parseEnvironment } from "./src/config/environment";
+import { envSchema } from "./src/schemas/env";
 
-parseEnvironment(process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL);
+envSchema.parse({
+  API_BASE_URL: process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL,
+});
 
 const config: NextConfig = {
   agentRules: false,
