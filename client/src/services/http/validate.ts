@@ -2,6 +2,7 @@ import axios from "axios";
 import type { z } from "zod";
 
 import { authErrorSchema } from "@schemas/auth/auth";
+
 import { env } from "@constants/env";
 
 type HttpMethodType = "GET" | "POST";
@@ -48,9 +49,9 @@ export const safeAuthError = (error: unknown): AuthFailure => {
       error.response.status,
       parsed.success ? parsed.data.code : "INVALID_RESPONSE",
     );
-  } else {
-    return new AuthFailure(0, "TRANSPORT_ERROR");
   }
+
+  return new AuthFailure(0, "TRANSPORT_ERROR");
 };
 
 export const validatedResponse = <T>(
@@ -63,17 +64,17 @@ export const validatedResponse = <T>(
 
     if (parsed.success) {
       return parsed.data;
-    } else {
-      throw new AuthFailure(status, "INVALID_RESPONSE");
     }
-  } else {
-    const parsed = authErrorSchema.safeParse(response.data);
 
-    throw new AuthFailure(
-      response.status,
-      parsed.success ? parsed.data.code : "INVALID_RESPONSE",
-    );
+    throw new AuthFailure(status, "INVALID_RESPONSE");
   }
+
+  const parsed = authErrorSchema.safeParse(response.data);
+
+  throw new AuthFailure(
+    response.status,
+    parsed.success ? parsed.data.code : "INVALID_RESPONSE",
+  );
 };
 
 export const validatedRequest = async <T>(

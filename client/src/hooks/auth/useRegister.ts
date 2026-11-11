@@ -1,15 +1,12 @@
-"use client";
-
 import { useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 
 import http from "@services/http/axios";
-
 import {
   AuthFailure,
   safeAuthError,
   validatedResponse,
-} from "@/services/http/validate";
+} from "@services/http/validate";
 
 import {
   registrationSchema,
@@ -46,16 +43,16 @@ export default function useRegister() {
     }
   };
 
-  const mutation = useMutation({
+  const { error, isPending, isSuccess, mutateAsync } = useMutation({
     gcTime: 0,
     retry: false,
     mutationFn: onRegister,
   });
 
   return {
-    registerError: mutation.error,
-    isRegisterLoading: mutation.isPending,
-    isRegisterSuccess: mutation.isSuccess,
-    register: mutation.mutateAsync,
+    registerError: error,
+    isRegisterLoading: isPending,
+    isRegisterSuccess: isSuccess,
+    register: mutateAsync,
   };
 }

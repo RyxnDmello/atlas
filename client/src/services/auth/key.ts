@@ -107,9 +107,9 @@ export const createKeyStore = (factory: () => IDBFactory): KeyStore => {
 
       if (key) {
         return key;
-      } else {
-        throw new Error("Key storage unavailable.");
       }
+
+      throw new Error("Key storage unavailable.");
     },
   };
 };

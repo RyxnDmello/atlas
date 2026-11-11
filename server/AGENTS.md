@@ -100,9 +100,9 @@ Use these labels exactly; do not infer verification from code existence or docum
 | `PHASE_02_PLAN_04` — Drive Dashboard & Acceptance | `NOT YET BUILT`           |
 
 - **Backend completion:** PLAN_01 and PLAN_02 passed recorded acceptance.
-- **Client milestone:** PLAN_03 client authentication is verified; PLAN_04 drive dashboard is the next destination. No new backend protocol is authorized by this status update.
+- **Client milestone:** PLAN_03 Next.js client authentication is verified; PLAN_04 approves a Vite/TanStack Router migration and drive workflows (NOT YET BUILT). The only newly approved backend API surface is owner-scoped file-detail `GET /files/{file_id}`; it is not implemented yet.
 - **Last verified branch reference:** `phase-02/plan-02`.
-- **Planned branch convention:** `phase-02/plan-03`; inspect local Git state and do not assume checkout/existence.
+- **Planned next branch convention:** `phase-02/plan-04`; inspect local Git state and do not assume checkout/existence.
 - Server-only changes are not automatically required by client planning.
 
 ### Current server capability maturity
@@ -116,7 +116,8 @@ Use these labels exactly; do not infer verification from code existence or docum
 | Canonical folders, files and direct-child APIs            | `IMPLEMENTED & VERIFIED` |
 | Authenticated upload and file mutation/deletion           | `IMPLEMENTED & VERIFIED` |
 | PostgreSQL owner/ready-state gate before file-scoped RAG  | `IMPLEMENTED & VERIFIED` |
-| Authenticated browser client and minimal dashboard entry  | `IMPLEMENTED & VERIFIED` |
+| Next.js browser auth and minimal dashboard entry          | `IMPLEMENTED & VERIFIED` |
+| Owner-scoped file detail `GET /files/{file_id}`           | `NOT YET BUILT`          |
 
 ### Verified Phase 2 evidence
 
@@ -243,6 +244,7 @@ Do not reopen a verified backend contract merely because a later phase consumes 
 - Citation metadata comes from trusted Atlas retrieval/provenance data.
 - Existing verified public RAG contracts remain authoritative unless a PLAN explicitly changes them.
 - Persistent original-file storage is not part of Phase 2; uploaded bytes are transient input to ingestion/indexing only.
+- PLAN_04 approves a metadata-only file read API; it must reuse PostgreSQL ownership enforcement and must not access Qdrant, generation, or original upload bytes.
 
 Legend: PostgreSQL establishes identity/ownership; Qdrant remains the derived RAG index.
 
@@ -589,6 +591,8 @@ flowchart LR
 - Duplicate sibling folder names and duplicate sibling file names are allowed, and files/folders may share the same display name. UUIDs establish identity; names do not.
 - Original file bytes are not persistently stored in Phase 2.
 - File name/description metadata changes do not imply content replacement or Qdrant reindexing.
+- **Approved PLAN_04 extension (NOT YET BUILT):** `GET /files/{file_id}` returns the existing canonical File DTO for the authenticated owner. Missing and foreign IDs produce the same privacy-safe `404 FILE_NOT_FOUND`. File metadata reads are permitted for `processing`, `ready`, and `deleting`; only the `/query` and `/ask` paths require `ready`. Do not add a schema migration, Qdrant call, download, preview, or RAG operation for this endpoint.
+- Do not claim this public API is verified until backend tests and separately authorized integrated acceptance actually run.
 - Canonical file lifecycle states are `processing`, `ready`, and `deleting`.
 - Canonical upload creates the file UUID/`processing` row before ingestion, uses that exact UUID for Qdrant `file_id`, and transitions to `ready` only after confirmed indexing success.
 - Known ingestion failure cleans any exact-file Qdrant writes and removes the temporary PostgreSQL file row; Phase 2 does not retain a durable `failed` file state.
@@ -766,7 +770,7 @@ Security boundaries:
 - new service boundary;
 - new queue/cache/storage architecture;
 - changes to the approved auth/session architecture;
-- DB schema/public API changes;
+- DB schema/public API changes other than the specifically approved PLAN_04 owner-scoped file detail GET contract;
 - embedding/retrieval/generation policy changes;
 - provider/resource lifecycle redesign;
 - Docker/Compose topology changes.

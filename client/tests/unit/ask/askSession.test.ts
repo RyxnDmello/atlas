@@ -1,7 +1,8 @@
 import { afterEach, expect, test } from "bun:test";
-const previous = process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL;
 
-process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL = "http://localhost:8080";
+const previous = process.env.VITE_ATLAS_API_BASE_URL;
+
+process.env.VITE_ATLAS_API_BASE_URL = "http://localhost:8080";
 
 const { createAskSession } = await import("@services/ask/askSession");
 const { coordination } = await import("@services/auth/auth");
@@ -11,9 +12,9 @@ const { response: authenticated, seedCredentials } =
 await seedCredentials(authenticated, coordination);
 
 if (previous === undefined) {
-  delete process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL;
+  delete process.env.VITE_ATLAS_API_BASE_URL;
 } else {
-  process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL = previous;
+  process.env.VITE_ATLAS_API_BASE_URL = previous;
 }
 
 const original = globalThis.fetch;
@@ -57,32 +58,32 @@ const error = event("error", {
   code: "GENERATION_FAILED",
 });
 
-function response(text: string) {
+const response = (text: string) => {
   return new Response(text, {
     headers: {
       "Content-Type": "text/event-stream; charset=utf-8",
     },
   });
-}
+};
 
-function session() {
+const session = () => {
   const value = createAskSession();
 
   value.setScope(id);
 
   return value;
-}
+};
 
-function mock(
+const mock = (
   impl: (
     input: string | URL | Request,
     init?: RequestInit,
   ) => Promise<Response>,
-) {
+) => {
   globalThis.fetch = Object.assign(impl, {
     preconnect: original.preconnect,
   });
-}
+};
 
 test("no file or blank question makes no request", async () => {
   let count = 0;
@@ -229,7 +230,7 @@ const invalid: [string, string][] = [
   ],
 ];
 
-for (const [name, text] of invalid)
+for (const [name, text] of invalid) {
   test(`rejects ${name} and clears provisional output`, async () => {
     mock(async () => response(text));
 
@@ -241,6 +242,7 @@ for (const [name, text] of invalid)
     expect(ask.getSnapshot().answer).toBe("");
     expect(ask.getSnapshot().citations).toEqual([]);
   });
+}
 
 test("split internal markers never reach subscribers", async () => {
   for (let split = 1; split < "[[cite:123]]".length; split++) {
@@ -295,7 +297,7 @@ for (const [name, make] of [
         },
       }),
   ],
-] satisfies [string, () => Response][])
+] satisfies [string, () => Response][]) {
   test(`safe generic failure for ${name}`, async () => {
     mock(async () => make());
 
@@ -306,6 +308,7 @@ for (const [name, make] of [
     expect(ask.getSnapshot().status).toBe("error");
     expect(ask.getSnapshot().error).not.toContain("private");
   });
+}
 
 test("validated structured HTTP error is displayed", async () => {
   mock(async () =>
@@ -412,7 +415,7 @@ test("new request clears successful answer before reading; partial failures clea
     async () =>
       new Response(
         new ReadableStream<Uint8Array>({
-          start(value) {
+          start: (value) => {
             controller = value;
           },
         }),
@@ -456,7 +459,7 @@ test("done remains provisional until clean EOF and trailing events invalidate it
     async () =>
       new Response(
         new ReadableStream<Uint8Array>({
-          start(value) {
+          start: (value) => {
             controller = value;
           },
         }),
@@ -505,7 +508,7 @@ test("teardown reset aborts a live reader, clears partial text and permits a new
 
     return new Response(
       new ReadableStream<Uint8Array>({
-        start(value) {
+        start: (value) => {
           controller = value;
 
           signal?.addEventListener("abort", () =>

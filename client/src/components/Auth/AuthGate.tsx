@@ -1,19 +1,17 @@
-"use client";
-
-import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, type ReactNode } from "react";
+import { useLocation, useNavigate } from "@tanstack/react-router";
+
+import { Button } from "@components/ui/button";
 
 import { retryAuth } from "@services/auth/auth";
 
-import { Button } from "@components/ui/button";
+import useAuthStore from "@stores/auth";
 
 import {
   authRoute,
   replaceAuthRoute,
   type AuthRouteMode,
 } from "@utils/auth/navigation";
-
-import useAuthStore from "@stores/auth";
 
 interface AuthGateProps {
   mode: AuthRouteMode;
@@ -23,11 +21,14 @@ interface AuthGateProps {
 
 export default function AuthGate({
   mode,
-  actionError = false,
   children,
+  actionError = false,
 }: AuthGateProps) {
-  const router = useRouter();
-  const pathname = usePathname();
+  const navigate = useNavigate();
+
+  const pathname = useLocation({
+    select: (location) => location.pathname,
+  });
 
   const pending = useRef(false);
   const previous = useRef<string | null>(null);
@@ -58,12 +59,17 @@ export default function AuthGate({
         useAuthStore.getState(),
         window.location.pathname,
         previous.current,
-        (destination) => router.replace(destination),
+        (destination) => {
+          void navigate({
+            to: destination,
+            replace: true,
+          });
+        },
       );
     } else {
       previous.current = null;
     }
-  }, [actionError, mode, decision.destination, pathname, router]);
+  }, [actionError, mode, decision.destination, pathname, navigate]);
 
   const onRetry = async () => {
     if (
@@ -86,7 +92,9 @@ export default function AuthGate({
 
   if (decision.view === "content") {
     return children;
-  } else if (decision.view === "inconsistent") {
+  }
+
+  if (decision.view === "inconsistent") {
     return (
       <div className="space-y-4">
         <p role="alert">
@@ -97,7 +105,9 @@ export default function AuthGate({
         <Button onClick={() => window.location.reload()}>Reload session</Button>
       </div>
     );
-  } else if (decision.view === "recovery") {
+  }
+
+  if (decision.view === "recovery") {
     return (
       <div className="space-y-4">
         <p role="alert">
@@ -109,11 +119,11 @@ export default function AuthGate({
         )}
       </div>
     );
-  } else {
-    return (
-      <p role="status">
-        {decision.view === "loading" ? "Checking session…" : "Redirecting…"}
-      </p>
-    );
   }
+
+  return (
+    <p role="status">
+      {decision.view === "loading" ? "Checking session…" : "Redirecting…"}
+    </p>
+  );
 }

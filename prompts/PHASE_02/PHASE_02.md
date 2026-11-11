@@ -1,12 +1,12 @@
 # PHASE_02 — Authenticated Personal Drive
 
-| Field                        | Current baseline                                           |
-| ---------------------------- | ---------------------------------------------------------- |
-| PHASE status                 | `IMPLEMENTED, UNVERIFIED`                                  |
-| Verified prerequisite        | `PHASE_01 — MVP Core RAG`                                  |
-| Completed PLANS              | `PHASE_02_PLAN_01`, `PHASE_02_PLAN_02`, `PHASE_02_PLAN_03` |
-| Next development destination | `PHASE_02_PLAN_04 — Drive Dashboard & Phase Acceptance`    |
-| Final milestone              | `PHASE_02_PLAN_04 — Drive Dashboard & Phase Acceptance`    |
+| Field                    | Current baseline                                           |
+| ------------------------ | ---------------------------------------------------------- |
+| PHASE status             | `IMPLEMENTED, UNVERIFIED`                                  |
+| Verified prerequisite    | `PHASE_01 — MVP Core RAG`                                  |
+| Completed PLANS          | `PHASE_02_PLAN_01`, `PHASE_02_PLAN_02`, `PHASE_02_PLAN_03` |
+| Current development PLAN | `PHASE_02_PLAN_04 — Drive Dashboard & Phase Acceptance`    |
+| Final milestone          | `PHASE_02_PLAN_04 — Drive Dashboard & Phase Acceptance`    |
 
 - **Authority:** This PHASE defines the destination, cross-PLAN contracts, exclusions, and final acceptance; individual PLANS own their detailed specifications.
 - **Execution:** Verify server contracts before client consumption unless an approved PLAN explicitly provides an exception.
@@ -19,15 +19,15 @@
 ### Verified Phase 1 baseline
 
 - Preserve **upload → Docling parse/OCR/chunk → BGE-M3 embedding → Qdrant exact-file retrieval → grounded Gemini generation → native SSE → trusted citations**.
-- Preserve the verified static Next.js client foundation and reusable stream/citation behavior.
+- Preserve the verified Next.js/static-export client as the historical PLAN_03 baseline and migrate its approved authentication, HTTP, SSE, and citation behavior into the PLAN_04 React/Vite SPA; the migration is `IMPLEMENTED & VERIFIED` after Amendment 01 Stage 02 browser/live equivalence acceptance.
 - Historical Phase 1 interfaces may be explicitly superseded by Phase 2 without erasing their verification records.
 
 ### Phase 2 extension
 
 - Add PostgreSQL-backed identity, authentication sessions, canonical folder/file metadata, and immutable file UUIDs.
 - Add recursive owner-scoped drive navigation and server-authorized single-file RAG.
-- Add authenticated browser workflows to the static client, after stable server contracts are verified.
-- Require the server to establish ownership **before** any owned file content reaches retrieval or generation.
+- Deliver authenticated browser workflows through the approved React + Vite SPA with TanStack Router file-based routing and separately verified migration from the completed Next.js client. The original client was preserved through acceptance, then retired with separate user approval. The migration and minimal `/drive` entry are `IMPLEMENTED & VERIFIED`; full drive workflows remain `NOT YET BUILT`.
+- Require the server to establish ownership **before** any owned file content reaches retrieval or generation. PLAN_04 also approves an owner-scoped metadata-only `GET /files/{file_id}`; it is NOT YET BUILT and does not require the `ready` gate.
 
 ### Phase boundary diagram
 
@@ -39,7 +39,7 @@ flowchart LR
     Drive["Folders + files"] --> PG[("PostgreSQL<br/>canonical state")]
     PG --> API
     API --> RAG
-    RAG --> UI["Authenticated static client<br/>PLAN_03 / PLAN_04"]
+    RAG --> UI["Browser client<br/>PLAN_03 legacy / PLAN_04 Vite target"]
     class P1 verified;
     class Identity,API service;
     class Drive,PG storage;
@@ -60,18 +60,20 @@ flowchart LR
 
 ### PHASE and PLAN maturity
 
-| PLAN               | Status                   | Responsibility                                                                                                                                                           |
-| ------------------ | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `PHASE_02_PLAN_01` | `IMPLEMENTED & VERIFIED` | PostgreSQL identity and complete backend authentication/session contracts                                                                                                |
-| `PHASE_02_PLAN_02` | `IMPLEMENTED & VERIFIED` | Owner-scoped drive backend, file lifecycle, and authorized single-file RAG                                                                                               |
-| `PHASE_02_PLAN_03` | `IMPLEMENTED & VERIFIED` | Verified auth foundation; registration/verification/resend UI verified; login/logout UI verified; protected navigation/minimal dashboard and integrated closure verified |
-| `PHASE_02_PLAN_04` | `NOT YET BUILT`          | Drive dashboard, file/folder workflows, selected-file RAG and final acceptance                                                                                           |
+| PLAN               | Status                    | Responsibility                                                                                                                                                           |
+| ------------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PHASE_02_PLAN_01` | `IMPLEMENTED & VERIFIED`  | PostgreSQL identity and complete backend authentication/session contracts                                                                                                |
+| `PHASE_02_PLAN_02` | `IMPLEMENTED & VERIFIED`  | Owner-scoped drive backend, file lifecycle, and authorized single-file RAG                                                                                               |
+| `PHASE_02_PLAN_03` | `IMPLEMENTED & VERIFIED`  | Verified auth foundation; registration/verification/resend UI verified; login/logout UI verified; protected navigation/minimal dashboard and integrated closure verified |
+| `PHASE_02_PLAN_04` | `IMPLEMENTED, UNVERIFIED` | Vite/TanStack Router migration, owner-scoped file-detail GET, drive/folder/file pages and workflows, selected-file RAG and final acceptance                              |
 
 - **PHASE_02** remains `IMPLEMENTED, UNVERIFIED` until all four PLANS and end-to-end acceptance are verified.
 - **Completed PLAN:** `PHASE_02_PLAN_03`; Amendments 01 and 02 are verified; Amendment 03 registration/verification/resend UI is `IMPLEMENTED & VERIFIED`; Amendment 04 login/logout UI is `IMPLEMENTED & VERIFIED`; Amendment 05 protected navigation/minimal dashboard and PLAN_03 are `IMPLEMENTED & VERIFIED` after approved Stage 02 acceptance.
 - **Backend closure:** PLAN_02 Amendment 06 records integrated two-owner real PostgreSQL/Qdrant, running HTTP, packaged regression/equivalence, security and exact resource-preservation acceptance.
 - **Evidence:** The PLAN_02 record reports 159 passing evidence rows; this document does not claim those checks were rerun.
-- **Branch reference:** `phase-02/plan-03` was inspected during current implementation; recheck before each task.
+- **Last inspected branch:** `phase-02/plan-04` during Amendment 01 Stage 01; inspect Git before work and do not switch branches automatically.
+- **PLAN_04 frontend:** React + Vite, Bun, strict TypeScript and TanStack Router are implemented locally; only `/`, `/login`, `/register`, `/verify` and minimal `/drive` are registered. `/dashboard` is retired. Folder/file routes remain unbuilt; approved Stage 02 verified static-host/browser equivalence for the implemented routes and neutral future URLs.
+- **Migration boundary:** the original client was preserved as `client-legacy/` through approved Stage 02, then removed with separate user approval; the canonical `client/` contains the selected auth/HTTP/stream/citation/UI foundations. PLAN_03 remains historical verified evidence; the SPA migration is verified; full PLAN_04 acceptance remains pending.
 
 ### Evidence sources
 
@@ -79,6 +81,7 @@ flowchart LR
 | ------- | --------------------------------------------------------------------------------------------- |
 | PLAN_01 | [CONTEXT](PLAN_01/PHASE_02_PLAN_01_CONTEXT.md) · [MANUAL](PLAN_01/PHASE_02_PLAN_01_MANUAL.md) |
 | PLAN_02 | [CONTEXT](PLAN_02/PHASE_02_PLAN_02_CONTEXT.md) · [MANUAL](PLAN_02/PHASE_02_PLAN_02_MANUAL.md) |
+| PLAN_03 | [CONTEXT](PLAN_03/PHASE_02_PLAN_03_CONTEXT.md) · [MANUAL](PLAN_03/PHASE_02_PLAN_03_MANUAL.md) |
 
 - The PHASE overview reports maturity; a PLAN specification or AMENDMENT prompt alone never establishes completion.
 
@@ -104,8 +107,12 @@ flowchart LR
 **Authorized RAG and browser**
 
 - PostgreSQL owner/ready authorization before exact-file Qdrant retrieval and grounded generation.
-- Authenticated browser routes, session restoration, and root/folder dashboard navigation.
-- File selection and reuse of verified `/query` and `/ask` behavior.
+- Verified PLAN_03 authentication/session restoration preserved through the approved Vite/TanStack Router migration and new protected `/drive` entry.
+- Exact client-only routes `/drive` (root), `/drive/$folderId` (direct-child folder view) and `/drive/file/$fileId` (owned file metadata and Ask); retire `/dashboard` from the active client.
+- Reuse existing owner-scoped `/drive`, `/folders`, `/files` and file-RAG APIs; additionally implement the approved authenticated owner-scoped `GET /files/{file_id}` with the existing File DTO, without a new schema or retrieval operation.
+- File selection and reuse of verified single-file `/ask` SSE and trusted citations; `/query` remains a backend contract without a required standalone UI.
+- Use RHF/Zod and modal forms for create/edit/upload; require an explicit irreversible-delete confirmation dialog; keep Zustand for user/auth only, TanStack Query for remote drive data, Axios for ordinary requests and native fetch for POST-SSE.
+- Invalidate drive-related TanStack Query cache after confirmed mutations and refetch active views without hard reload; use in-memory cache only (initial freshness target 60 seconds), with account-switch/logout privacy and stale-response guards.
 - Two-user ownership-isolation and complete cross-boundary acceptance.
 
 ### Explicit exclusions
@@ -133,7 +140,7 @@ flowchart LR
 - **Qdrant is derived** chunk/vector retrieval state; it never decides application identity or ownership.
 - **FastAPI is authoritative** for authentication, file/folder ownership, and ready-state authorization.
 - **The LLM never authorizes access** or supplies trusted provenance metadata.
-- Preserve the existing Docling/BGE-M3/Qdrant/Gemini pipeline and exact `file_id` query filter.
+- Preserve the existing Docling/BGE-M3/Qdrant/Gemini pipeline and exact `file_id` query filter. The new file-detail GET is PostgreSQL metadata-only and does not change the RAG pipeline.
 
 ### Immutable file identity
 
@@ -146,7 +153,7 @@ flowchart LR
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'background': '#1e1e2e', 'primaryColor': '#45475a', 'primaryTextColor': '#cdd6f4', 'primaryBorderColor': '#89b4fa', 'lineColor': '#a6adc8', 'secondaryColor': '#313244', 'tertiaryColor': '#181825', 'fontFamily': 'Inter, sans-serif'}}}%%
 flowchart TB
-    Browser["Static browser client"] --> API["FastAPI"]
+    Browser["Static-hosted React/Vite SPA<br/>(approved PLAN_04 target)"] --> API["FastAPI"]
     API --> PG[("PostgreSQL<br/>canonical identity + drive")]
     PG --> Users["users / verifications / sessions"]
     PG --> Files["folders / files"]
@@ -210,14 +217,14 @@ flowchart TB
 
 ### Browser integration boundary
 
-- PLAN_03 owns `/register`, `/verify`, `/login`, minimal protected dashboard entry, session restoration, and logout.
+- Verified PLAN_03 delivered `/register`, `/verify`, `/login`, minimal protected `/dashboard` entry, session restoration, and logout in the historical Next.js client. PLAN_04 will preserve the auth behavior while retiring `/dashboard` and replacing the frontend with the approved `/drive` React/Vite SPA.
 - Use an active in-memory access JWT and the approved reversibly encrypted access-token copy in `localStorage`.
 - Do not store refresh tokens, passwords, OTPs, or encryption key material in `localStorage`.
 - Restore encrypted JWT first through raw `GET /auth`; missing/corrupt/rejected JWT falls back to one cookie refresh, then startup `GET /auth` validation.
 - Zustand owns one in-memory auth state for per-endpoint hooks, Axios and native fetch/SSE; automatic bootstrap/refresh remain non-React helpers.
 - Treat client-side route guards and token encryption as UX/defense-in-depth, **not** server authorization or an XSS boundary.
 - **LOCKED:** Non-extractable AES-256-GCM key in IndexedDB; version-1 encrypted JWT in localStorage. Logout deletes auth ciphertext and its key; subsequent explicit login/verify regenerates an absent key.
-- **Accepted limitation:** Single-flight and cookie ordering apply within one browser session; cross-tab arbitration remains excluded.
+- **Accepted limitation:** Single-flight and cookie ordering apply within one browser session; cross-tab arbitration remains excluded. The Vite migration must reproduce the accepted `credential_action` verification handoff, refresh-cookie lifecycle, safe GET-only replay, and confirmed/unconfirmed logout handling before any drive workflow is accepted.
 
 ---
 
@@ -239,7 +246,7 @@ flowchart TB
 - Folder depth need not be stored; no materialized path/tree table is required.
 - Keep folder `parent_id` immutable after creation; movement is excluded.
 - Rename/description changes update metadata only.
-- Dashboard browsing fetches direct children of the selected folder/root, not the entire subtree.
+- Drive browsing fetches direct children of the selected folder/root, not the entire subtree. PLAN_04 routes are `/drive` and `/drive/$folderId`; a folder page navigates by its UUID and supports Root/Up via the selected folder’s `parent_id`, without inventing a full-tree API or assuming unique names.
 
 ### Illustrative hierarchy
 
@@ -330,7 +337,7 @@ flowchart TB
 - No download, preview, or reprocessing from stored original bytes.
 - Reprocessing requires another upload; no durable binary/object-store lifecycle exists.
 - File name/description updates do not replace content or trigger reindexing.
-- Metadata renaming has no binary-storage rename operation.
+- Metadata renaming has no binary-storage rename operation. PLAN_04 dialogs must show the backend `processing`, `ready`, and `deleting` states truthfully; uncertain uploads and failed deletes are reconciled through canonical reads, never automatically replayed.
 
 ---
 
@@ -356,9 +363,9 @@ flowchart TB
 
 ### PLAN_03 — Client Authentication
 
-- **Planned branch:** `phase-02/plan-03`.
-- **Dependency:** Verified server authentication APIs from PLAN_01.
-- **Destination:** `/register`, `/verify`, `/login`, protected dashboard entry, session restoration and logout.
+- **Recorded implementation branch:** `phase-02/plan-03`.
+- **Dependencies:** Verified PLAN_01 authentication and PLAN_02 drive backend contracts.
+- **Delivered:** Next.js `/register`, `/verify`, `/login`, protected minimal `/dashboard` entry, session restoration and logout (`IMPLEMENTED & VERIFIED`). The approved PLAN_04 migration supersedes the frontend framework and dashboard destination, not these historical acceptance results.
 - **Client contracts:** One Zustand auth store, per-endpoint React hooks and literal auth constants; non-React lifecycle in `services/auth/auth.ts`, encrypted-token `token.ts` and IndexedDB-key `key.ts`; direct shared HTTP clients with `isProtected`; encrypted localStorage JWT, IndexedDB key, HttpOnly refresh cookie and shared Axios/native fetch access.
 - **Boundary:** Client route protection is UX only; no full drive CRUD/navigation or selected-file RAG UI.
 - **Architecture:** Amendment 02 supersedes the controller/grouped API design. `isProtected?: boolean` remains independent of cookies; trusted Bearer and once-only bodyless GET replay preserve mutation/SSE behavior.
@@ -366,11 +373,14 @@ flowchart TB
 
 ### PLAN_04 — Drive Dashboard & Phase Acceptance
 
-- **Planned branch:** `phase-02/plan-04`.
-- **Dependency:** PLAN_02 and PLAN_03 verified and ready to integrate.
-- **Destination:** Root/child listings, lazy folder navigation, folder create/rename, upload with name/description, file metadata edit, permanent-delete confirmation, current-folder query invalidation/refetch, file selection, and authenticated native POST-SSE ask/citations.
-- **Acceptance:** Complete static-client workflow against real backend and two-user ownership/persistence isolation.
-- **Boundary:** No new Phase 2 excluded functionality.
+- **Inspected branch:** `phase-02/plan-04`.
+- **Dependencies:** PLAN_02 and PLAN_03 are `IMPLEMENTED & VERIFIED`. Amendment 01 implements and verifies the migration through approved Stage 02; remaining PLAN_04 capabilities are pending. Actual evidence is in [CONTEXT](PLAN_04/PHASE_02_PLAN_04_CONTEXT.md) and [MANUAL](PLAN_04/PHASE_02_PLAN_04_MANUAL.md).
+- **Approved architecture (migration `IMPLEMENTED & VERIFIED`; folder/file routes unbuilt):** React + Vite SPA, TanStack Router file-based routing with `/drive`, `/drive/$folderId`, `/drive/file/$fileId`, Bun/strict TypeScript, static hosting with deep-link history fallback. Migration preserved the original Next.js client and selectively transferred verified authentication and SSE foundations into a clean `client/`; the legacy reference was separately approved for removal after acceptance and is now retired.
+- **Backend extension (NOT YET BUILT):** authenticated owner-scoped `GET /files/{file_id}` returning the existing canonical File DTO, `404 FILE_NOT_FOUND` for missing or foreign IDs; metadata access allowed for `processing`, `ready`, and `deleting`; no migration, Qdrant, original-byte or RAG processing. Implement and verify before its file-page consumer.
+- **Browser destination:** Root/direct-child listings, lazy folder navigation with Root/Up, create/edit folder dialogs, authenticated file-upload/edit/delete dialogs, explicit `processing`/`ready`/`deleting`, confirmation of irreversible delete and retryable `deleting`, TanStack Query drive-scope invalidation/refetch without a hard refresh, separate owned `ready` file Ask page reusing native POST-SSE/citations, and safe account/session cleanup. No persistent drive cache or second Zustand data store.
+- **Approved five-Amendment sequence:** (01) Vite/TanStack Router migration with baseline, safe rename/scaffold, selective foundation migration, route composition and final equivalence checkpoints; (02) owner-scoped file-detail GET; (03) drive and folder browser; (04) file lifecycle UI; (05) file RAG and full PHASE acceptance. Amendment 01 has completed approved Stages 01 and 02; later workstreams remain planned.
+- **Acceptance:** Bun/format/lint/strict-TypeScript/test/Vite `dist/` build; real SPA history-fallback direct links and browser/session equivalence; actual FastAPI/PostgreSQL/Qdrant, two-user isolation, SSE and citation fidelity, exact datastore/resource preservation, and all 15 PHASE criteria. Stage 01 local verification/review and separately authorized Stage 02 live/browser checks apply to each Amendment.
+- **Boundary:** No new Phase 2 excluded functionality, Next.js runtime/BFF, TanStack Start, client application server, new datastore, provider redesign or broad backend API expansion.
 
 ---
 
@@ -381,9 +391,9 @@ flowchart TB
 - Define and approve the authoritative server contract in the relevant PLAN.
 - Implement and verify the server before building its browser consumer.
 - Stabilize DTOs, errors, cookie/session behavior and ownership semantics.
-- Implement the static client consumer and run cross-boundary acceptance.
+- Implement the approved React/Vite static-hosted SPA consumer and run cross-boundary acceptance; a separately verified frontend-only migration may precede a new backend endpoint, but that endpoint must be verified before its client integration.
 - An explicit PLAN may authorize a justified exception; client mocks do not authorize backend design changes.
-- Do not mark client work complete from mock-only verification.
+- Do not mark client work complete from mock-only verification. Protect existing repository work and `client-legacy/` during PLAN_04 migration; no automatic Git commits, branches, or destructive operations.
 
 ### Sequencing diagram
 
@@ -447,7 +457,7 @@ flowchart LR
 
 - Access-token encryption in localStorage is defense-in-depth/obfuscation, not an XSS security boundary.
 - Do not persist refresh credentials, passwords, OTPs or encryption key material in localStorage.
-- Never infer ownership from client-side route guards, file IDs, or cached UI state.
+- Never infer ownership from client-side route guards, file IDs, or cached UI state. TanStack Router handles navigation, TanStack Query handles scoped remote data, and authenticated identity changes must cancel/clear private in-flight queries and streams without leaking stale owner data.
 - Preserve verified cookie attributes, explicit credentialed CORS, and native POST-SSE transport expectations.
 
 ---
@@ -456,20 +466,20 @@ flowchart LR
 
 ### Verification by boundary
 
-| Area         | Required evidence                                                           |
-| ------------ | --------------------------------------------------------------------------- |
-| Logic        | Deterministic unit tests and targeted regressions                           |
-| Persistence  | PostgreSQL schema/migrations, constraints, transaction and ownership tests  |
-| Runtime      | Docker/Compose for dependency, topology and configuration changes           |
-| HTTP/session | Public DTO/error checks, Bearer/cookie lifecycle, refresh rotation and CORS |
-| Retrieval    | Exact-file Qdrant scope, cleanup, deletion and owner isolation              |
-| Browser      | Format, lint, type, unit tests, static build and real browser/session flows |
-| Repository   | `git diff --check` and preservation of unrelated changes                    |
+| Area         | Required evidence                                                                                                                         |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Logic        | Deterministic unit tests and targeted regressions                                                                                         |
+| Persistence  | PostgreSQL schema/migrations, constraints, transaction and ownership tests                                                                |
+| Runtime      | Docker/Compose for dependency, topology and configuration changes                                                                         |
+| HTTP/session | Public DTO/error checks, Bearer/cookie lifecycle, refresh rotation and CORS                                                               |
+| Retrieval    | Exact-file Qdrant scope, cleanup, deletion and owner isolation                                                                            |
+| Browser      | Bun format/lint/strict TypeScript/tests, Vite `dist/` build, real SPA deep links/history fallback and authenticated browser/session flows |
+| Repository   | `git diff --check` and preservation of unrelated changes                                                                                  |
 
 - Run two-user authorization-isolation acceptance at the real PostgreSQL/Qdrant/HTTP boundary where required.
 - Preserve verified Phase 1 behavior when shared server/client contracts are touched.
 - Do not substitute mocked success for full trust-boundary acceptance.
-- Record executed commands, outcomes and environmental blockers in the appropriate CONTEXT/MANUAL.
+- Record executed commands, outcomes and environmental blockers in the appropriate CONTEXT/MANUAL. The PLAN_04 migration must establish and record legacy Next.js baseline/equivalence before treating the new Vite client as verified; historical test counts are not new acceptance targets.
 - Never claim a check passed unless it actually ran; report incomplete verification explicitly.
 
 ---
@@ -502,7 +512,7 @@ flowchart LR
 
 ### Client, exclusions and evidence acceptance
 
-13. **AC-13 — Client:** The static browser completes the end-to-end workflow against verified backend services.
+13. **AC-13 — Client:** The statically hosted browser SPA completes the end-to-end workflow, including real deep-link/reload handling, against verified backend services.
 14. **AC-14 — Scope:** No explicitly excluded Phase 2 capability is silently introduced.
 15. **AC-15 — Evidence:** Codex records actual verification in the corresponding PLAN CONTEXT/MANUAL files.
 
@@ -513,7 +523,7 @@ flowchart LR
 flowchart LR
     Register["Register"] --> OTP["Inspect database OTP<br/>and verify"]
     OTP --> Session["Login + refresh<br/>session"]
-    Session --> Dashboard["Authenticated dashboard"]
+    Session --> Dashboard["Authenticated drive root<br/>/drive"]
     Dashboard --> Folders["Create / navigate<br/>nested folders"]
     Folders --> Upload["Upload + ready file"]
     Upload --> Metadata["Refresh listing +<br/>update metadata"]
@@ -537,6 +547,6 @@ flowchart LR
 
 ### Completion gate
 
-- Confirm the full workflow: **register → inspect OTP → verify → dashboard → nested folders → upload → refresh listing → edit metadata → ask → refresh session → logout/login → cross-user denial → delete → PostgreSQL/Qdrant cleanup**.
+- Confirm the full workflow: **register → inspect OTP → verify → authenticated `/drive` → `/drive/$folderId` nested folders → upload → refetch listing → edit metadata → `/drive/file/$fileId` selected-file Ask → refresh/restore session → logout/login → cross-user denial → delete → PostgreSQL/Qdrant cleanup**. Verify fresh direct-link/reload and browser history behavior with real static-SPA hosting.
 - Treat the completed PLAN_01/02 evidence as prerequisites, not proof of unbuilt client workflows.
 - Until the final acceptance gate passes, PHASE_01 remains the verified baseline and PHASE_02 remains `IMPLEMENTED, UNVERIFIED`.

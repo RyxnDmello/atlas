@@ -1,9 +1,9 @@
 {
   "$schema": "https://ui.shadcn.com/schema.json",
-  "style": "base-nova",
-  "rsc": true,
   "tsx": true,
+  "rsc": false,
   "rtl": false,
+  "style": "base-nova",
   "menuColor": "default",
   "menuAccent": "subtle",
   "iconLibrary": "lucide",
@@ -12,7 +12,7 @@
     "prefix": "",
     "cssVariables": true,
     "baseColor": "neutral",
-    "css": "src/app/globals.css"
+    "css": "src/styles.css"
   },
   "aliases": {
     "lib": "@/lib",

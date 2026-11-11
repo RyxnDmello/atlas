@@ -48,19 +48,18 @@ export const protectedUrl = (
     target.origin === base.origin && !target.username && !target.password;
   const withinBase = !prefix || target.pathname.startsWith(`${prefix}/`);
 
-  if (trusted && withinBase) {
-    const path = target.pathname.slice(prefix.length);
-
-    return (
-      path !== "/auth" &&
-      !path.startsWith("/auth/") &&
-      path !== "/system" &&
-      !path.startsWith("/system/") &&
-      path !== "/documents/upload"
-    );
-  } else {
+  if (!trusted || !withinBase) {
     return false;
   }
+
+  const path = target.pathname.slice(prefix.length);
+
+  return (
+    path !== "/auth" &&
+    !path.startsWith("/auth/") &&
+    path !== "/system" &&
+    !path.startsWith("/system/")
+  );
 };
 
 export const invalidAccess = (status: number, body: unknown): boolean => {
@@ -83,19 +82,19 @@ export const waitFor = <T>(
 
   if (signal.aborted) {
     return Promise.reject(new DOMException("Aborted", "AbortError"));
-  } else {
-    return new Promise((resolve, reject) => {
-      const abort = () => reject(new DOMException("Aborted", "AbortError"));
-
-      signal.addEventListener("abort", abort, {
-        once: true,
-      });
-
-      operation
-        .then(resolve, reject)
-        .finally(() => signal.removeEventListener("abort", abort));
-    });
   }
+
+  return new Promise((resolve, reject) => {
+    const abort = () => reject(new DOMException("Aborted", "AbortError"));
+
+    signal.addEventListener("abort", abort, {
+      once: true,
+    });
+
+    operation
+      .then(resolve, reject)
+      .finally(() => signal.removeEventListener("abort", abort));
+  });
 };
 
 export const recover = async (
@@ -105,13 +104,13 @@ export const recover = async (
 ): Promise<AuthLease | undefined> => {
   await waitFor(session.refresh(lease), signal);
 
-  if (session.current(lease)) {
-    const replacement = await waitFor(session.acquire(), signal);
-
-    return replacement.sessionVersion === lease.sessionVersion
-      ? replacement
-      : undefined;
-  } else {
+  if (!session.current(lease)) {
     return undefined;
   }
+
+  const replacement = await waitFor(session.acquire(), signal);
+
+  return replacement.sessionVersion === lease.sessionVersion
+    ? replacement
+    : undefined;
 };

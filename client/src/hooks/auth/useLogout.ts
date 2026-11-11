@@ -1,13 +1,10 @@
-"use client";
-
 import { z } from "zod";
 import { useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 
 import http from "@services/http/axios";
 import { startAuth, finishLogout } from "@services/auth/auth";
-
-import { AuthFailure, validatedResponse } from "@/services/http/validate";
+import { AuthFailure, validatedResponse } from "@services/http/validate";
 
 import { AUTH_ENDPOINTS } from "@constants/auth";
 
@@ -57,16 +54,16 @@ export default function useLogout() {
     }
   };
 
-  const mutation = useMutation({
+  const { error, isPending, isSuccess, mutateAsync } = useMutation({
     gcTime: 0,
     retry: false,
     mutationFn: onLogout,
   });
 
   return {
-    logoutError: mutation.error,
-    isLogoutLoading: mutation.isPending,
-    isLogoutSuccess: mutation.isSuccess,
-    logout: mutation.mutateAsync,
+    logoutError: error,
+    isLogoutLoading: isPending,
+    isLogoutSuccess: isSuccess,
+    logout: mutateAsync,
   };
 }

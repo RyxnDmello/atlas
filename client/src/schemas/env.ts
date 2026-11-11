@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 const message =
-  "Set NEXT_PUBLIC_ATLAS_API_BASE_URL to an absolute HTTP(S) API URL without credentials, query, or fragment.";
+  "Set VITE_ATLAS_API_BASE_URL to an absolute HTTP(S) API URL without credentials, query, or fragment.";
 
 export const envSchema = z.object({
   API_BASE_URL: z

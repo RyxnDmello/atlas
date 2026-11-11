@@ -535,9 +535,9 @@ test("destroy is ordered between an obsolete encryption and a newer login write"
 
         if (reads === 1) {
           return pending.promise;
-        } else {
-          return context.keys.get();
         }
+
+        return context.keys.get();
       },
     },
   });

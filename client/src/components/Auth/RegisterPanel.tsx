@@ -1,8 +1,6 @@
-"use client";
-
-import Link from "next/link";
 import { useRef } from "react";
 import { useForm } from "react-hook-form";
+import { Link } from "@tanstack/react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import useRegister from "@hooks/auth/useRegister";
@@ -130,7 +128,7 @@ export default function RegisterPanel() {
             )}
           </form>
 
-          <Link className="underline" href="/verify">
+          <Link className="underline" to="/verify">
             Verify account
           </Link>
         </CardContent>

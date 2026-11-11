@@ -354,7 +354,7 @@ Phase 2 PLAN_02 Amendment 03 supersedes the Phase 1 public upload handoff:
 - legacy `POST /documents/upload` is removed, with no alias or adapter;
 - chunk bodies/counts are internal ingestion data, not upload response fields.
 
-The returned top-level `id` is used directly with `/files/{file_id}/query` and `/files/{file_id}/ask`. Their owner/ready authorization is a later capability, not part of Amendment 03. Detailed upload lifecycle/metadata contracts belong to the current PLAN/Amendment.
+The returned top-level `id` is used directly with `/files/{file_id}/query` and `/files/{file_id}/ask`. Their owner/ready authorization was subsequently implemented and verified in PHASE_02_PLAN_02 Amendment 05; it was not part of Amendment 03. Detailed upload lifecycle/metadata contracts belong to the current PLAN/Amendment.
 
 Historical Phase 1 returned `id`, `name`, `type`, `total`, and `chunks` from `/documents/upload`. That verified history is preserved in Phase 1 evidence; parsing, chunking, vector payloads, retrieval, generation and citations remain unchanged.
 
@@ -417,7 +417,7 @@ Do not:
 
 ### Scope rationale
 
-Phase 1 currently has one file per session, so file scoping is simple today. The retrieval contract still requires an explicit `file_id` filter now so later multi-file scope does not require a retrieval-interface rewrite.
+Historically, the Phase 1 browser held one active file. In Phase 2, PostgreSQL first authorizes ownership and `ready` status; retrieval then applies the exact `file_id` filter in Qdrant. Multi-file retrieval remains excluded.
 
 ### Runtime reuse
 
@@ -459,11 +459,11 @@ Public fields:
 - `heading`
 - `section`
 
-Do not expose `display_text` through PLAN_03's public query response.
+Do not expose `display_text` through the public `/files/{file_id}/query` response.
 
 ### Empty result
 
-A valid UUID with no indexed matches returns:
+An authenticated, owner-authorized `ready` file with no indexed matches returns:
 
 ```json
 { "results": [] }
@@ -471,7 +471,7 @@ A valid UUID with no indexed matches returns:
 
 with HTTP 200.
 
-Qdrant is not canonical file state; zero points do not prove the file does not exist.
+Qdrant is not canonical file state; zero points do not prove the file does not exist. Missing or foreign files return `404 FILE_NOT_FOUND`; owned non-ready files return `409 FILE_NOT_READY`. Authentication and ownership checks occur before retrieval.
 
 ### Read-only invariant
 
@@ -656,7 +656,7 @@ The internal generation/citation core is implemented with:
 - live Gemini checks;
 - Docker upload/retrieval-to-citation evidence.
 
-PLAN_04 is `Verified`: provider, grounding, citations, and public transport passed acceptance, including Docker and live Gemini. The agent performed final acceptance under explicit user delegation; evidence is in PLAN_04 CONTEXT.
+PHASE_01_PLAN_04 is `IMPLEMENTED & VERIFIED`: provider, grounding, citations, and public transport passed acceptance, including Docker and live Gemini. The agent performed final acceptance under explicit user delegation; evidence is in `PHASE_01_PLAN_04_CONTEXT.md`.
 
 ### Public transport contract
 
@@ -766,7 +766,7 @@ Do not invent a justification. Resolve it explicitly when needed.
 Only these remain open in this skill:
 
 - Any future tuning of the implemented `top_k=5` retrieval baseline requires measured evidence and explicit approval.
-- Redis caching strategy — what is cached and TTL policy — remains out of scope until the Phase 1 core pipeline works end to end.
+- Redis caching remains excluded from PHASE_02. Any later cache scope and TTL policy requires explicit approval based on a concrete need.
 
 Do not reopen already-resolved:
 

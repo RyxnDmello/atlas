@@ -1,5 +1,4 @@
 # DEPENDENCIES
-
 /.pnp
 .pnp.*
 .yarn/*
@@ -9,37 +8,30 @@
 !.yarn/releases
 !.yarn/versions
 
-# TESTING
-
-/coverage
-
-# NEXT.JS
-
-/.next/
-/out/
-
 # PRODUCTION
-
+dist/
 /build
+.tanstack/
 
-# MISCELLANEOUS
-
-.DS_Store
-*.pem
+# ENVIRONMENT
+.env*
+*.local
+*.tsbuildinfo
+!.env.example
 
 # DEBUG
-
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# ENVIRONMENT
-
-.env*
-!.env.example
-
 # TYPESCRIPT
-
 *.tsbuildinfo
 next-env.d.ts
+
+# TESTING
+/coverage
+
+# MISCELLANEOUS
+*.pem
+.DS_Store

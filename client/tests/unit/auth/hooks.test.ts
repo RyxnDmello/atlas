@@ -22,7 +22,7 @@ import {
   startAuth,
   finishLogout,
 } from "@services/auth/auth";
-import { AuthFailure } from "@/services/http/validate";
+import { AuthFailure } from "@services/http/validate";
 
 import { fixture, response, user, deferred, seedCredentials } from "./fixtures";
 
@@ -48,9 +48,9 @@ const renderHook = <T>(hook: () => T, cache = new QueryClient()) => {
 
   if (result === undefined) {
     throw new Error("Hook did not render.");
-  } else {
-    return result;
   }
+
+  return result;
 };
 
 interface Reply {
@@ -666,13 +666,17 @@ test.each([
     const dispatch = () => {
       if ("register" in result && "name" in input) {
         return result.register(input);
-      } else if ("resend" in result) {
-        return result.resend(input);
-      } else if ("verify" in result && "otp" in input) {
-        return result.verify(input);
-      } else {
-        throw new Error("Mismatched fixture.");
       }
+
+      if ("resend" in result) {
+        return result.resend(input);
+      }
+
+      if ("verify" in result && "otp" in input) {
+        return result.verify(input);
+      }
+
+      throw new Error("Mismatched fixture.");
     };
 
     const first = dispatch();

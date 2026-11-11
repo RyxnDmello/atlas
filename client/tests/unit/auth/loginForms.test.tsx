@@ -2,7 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 
 import "./environment";
 
-import DashboardPanel from "@components/Auth/DashboardPanel";
+import DrivePanel from "@components/Drive/DrivePanel";
 import LoginPanel from "@components/Auth/LoginPanel";
 
 import { AuthFailure } from "@services/http/validate";
@@ -20,10 +20,10 @@ const original = {
   ...initial,
 };
 
-const render = (dashboard = false) => {
+const render = (drive = false) => {
   return renderAuth(
-    dashboard ? <DashboardPanel /> : <LoginPanel />,
-    dashboard ? "/dashboard" : "/login",
+    drive ? <DrivePanel /> : <LoginPanel />,
+    drive ? "/drive" : "/login",
   );
 };
 
@@ -44,7 +44,7 @@ test("terminal unauthenticated login has labeled masked fields and a normal regi
   expect(html).toContain('autoComplete="current-password"');
   expect(html).toContain('href="/register"');
   expect(html).not.toContain("Account authenticated");
-  expect(html).not.toContain("/dashboard");
+  expect(html).not.toContain("/drive");
 });
 
 test("login schema normalizes email and preserves password exactly", () => {

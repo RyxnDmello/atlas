@@ -1,16 +1,13 @@
-"use client";
-
 import { useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 
 import http from "@services/http/axios";
 import { startAuth, finishLogin, failCredentials } from "@services/auth/auth";
-
 import {
   AuthFailure,
   safeAuthError,
   validatedResponse,
-} from "@/services/http/validate";
+} from "@services/http/validate";
 
 import {
   verificationSchema,
@@ -64,16 +61,16 @@ export default function useVerify() {
     }
   };
 
-  const mutation = useMutation({
+  const { error, isPending, isSuccess, mutateAsync } = useMutation({
     gcTime: 0,
     retry: false,
     mutationFn: onVerify,
   });
 
   return {
-    verifyError: mutation.error,
-    isVerifyLoading: mutation.isPending,
-    isVerifySuccess: mutation.isSuccess,
-    verify: mutation.mutateAsync,
+    verifyError: error,
+    isVerifyLoading: isPending,
+    isVerifySuccess: isSuccess,
+    verify: mutateAsync,
   };
 }

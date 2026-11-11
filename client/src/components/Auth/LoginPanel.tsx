@@ -1,8 +1,6 @@
-"use client";
-
-import Link from "next/link";
 import { useRef } from "react";
 import { useForm } from "react-hook-form";
+import { Link } from "@tanstack/react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import useAuthStore from "@stores/auth";
@@ -116,13 +114,13 @@ export default function LoginPanel() {
 
               {loginError instanceof AuthFailure &&
                 loginError.code === "VERIFICATION_REQUIRED" && (
-                  <Link className="underline" href="/verify">
+                  <Link className="underline" to="/verify">
                     Verify account
                   </Link>
                 )}
 
               <p>
-                <Link className="underline" href="/register">
+                <Link className="underline" to="/register">
                   Register account
                 </Link>
               </p>

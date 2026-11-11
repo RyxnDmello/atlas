@@ -1,5 +1,3 @@
-"use client";
-
 import { useRef } from "react";
 
 import useAuthStore from "@stores/auth";
@@ -10,7 +8,7 @@ import { Button } from "@components/ui/button";
 import AuthGate from "@components/Auth/AuthGate";
 import { Card, CardHeader, CardTitle, CardContent } from "@components/ui/card";
 
-export default function DashboardPanel() {
+export default function DrivePanel() {
   const pending = useRef(false);
 
   const { logout, isLogoutLoading } = useLogout();
@@ -37,7 +35,7 @@ export default function DashboardPanel() {
     <AuthGate mode="protected">
       <Card>
         <CardHeader>
-          <CardTitle>Dashboard</CardTitle>
+          <CardTitle>Drive</CardTitle>
         </CardHeader>
 
         <CardContent className="space-y-4">

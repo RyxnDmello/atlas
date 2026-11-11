@@ -2,7 +2,7 @@
 
 Repository-wide engineering contract for Atlas. This file applies to the entire repository.
 
-- [client/AGENTS.md](client/AGENTS.md): browser-client standards.
+- [client/AGENTS.md](client/AGENTS.md): React/Vite/TanStack Router client standards (PLAN_04 Amendment 01 migration `IMPLEMENTED & VERIFIED`; drive workflows pending).
 - [server/AGENTS.md](server/AGENTS.md): backend-specific standards.
 - [.agents/skills/rag/SKILL.md](.agents/skills/rag/SKILL.md): detailed RAG pipeline contracts.
 - Scoped instructions may specialize, but MUST NOT weaken, repository-wide LOCKED decisions.
@@ -172,11 +172,11 @@ Use these labels exactly; do not infer verification from code existence or docum
 - **Completed PLAN:** `PHASE_02_PLAN_01 — PostgreSQL Identity & Authentication Foundation`.
 - **Completed PLAN:** `PHASE_02_PLAN_02 — Authenticated Drive Backend`.
 - **Completed PLAN:** `PHASE_02_PLAN_03 — Client Authentication` (`IMPLEMENTED & VERIFIED`); Amendments 01 and 02 are verified; Amendment 03 registration/verification/resend UI is `IMPLEMENTED & VERIFIED`; Amendment 04 login/logout UI is `IMPLEMENTED & VERIFIED`; Amendment 05 protected navigation/minimal dashboard and PLAN_03 are `IMPLEMENTED & VERIFIED` after approved Stage 02 acceptance.
-- **Following PLAN:** `PHASE_02_PLAN_04 — Drive Dashboard & Phase Acceptance` (`NOT YET BUILT`).
-- **Last inspected repository branch:** `phase-02/plan-03`; inspect it again before each task.
-- **Required PLAN_03 branch convention:** `phase-02/plan-03`; do not switch branches automatically.
+- **Current PLAN:** `PHASE_02_PLAN_04 — Drive Dashboard & Phase Acceptance` (`IMPLEMENTED, UNVERIFIED`; Amendment 01 migration `IMPLEMENTED & VERIFIED`).
+- **Last inspected repository branch:** `phase-02/plan-04`; inspect it again before each task.
+- **Planned PLAN_04 branch convention:** `phase-02/plan-04`; inspect current Git state; do not switch branches automatically.
 - **Branch source of truth:** inspect the current local Git state before work; never switch branches automatically.
-- PLAN_03 has a verified shared authentication foundation and registration/verification/resend UI; login/logout UI is `IMPLEMENTED & VERIFIED`; protected dashboard entry is `IMPLEMENTED & VERIFIED`. PLAN_04 remains `NOT YET BUILT`.
+- PLAN_03 remains the verified historical Next.js authentication baseline. After PLAN_04 Amendment 01 passed approved Stage 02, the user separately approved removal of `client-legacy/`; that directory is retired. The canonical Vite/React/TanStack Router client and minimal protected `/drive` are verified; `/dashboard` is retired. Drive workflows and file-detail GET remain `NOT YET BUILT`. See [PLAN_04 CONTEXT](prompts/PHASE_02/PLAN_04/PHASE_02_PLAN_04_CONTEXT.md).
 
 ### Current capability maturity
 
@@ -197,8 +197,10 @@ Use these labels exactly; do not infer verification from code existence or docum
 | Phase 2 browser registration, verification, and resend | `IMPLEMENTED & VERIFIED` |
 | Phase 2 browser login/logout UI                        | `IMPLEMENTED & VERIFIED` |
 | Shared browser auth/session foundation                 | `IMPLEMENTED & VERIFIED` |
-| Protected dashboard entry                              | `IMPLEMENTED & VERIFIED` |
-| Full drive dashboard and file/folder workflows         | `NOT YET BUILT`          |
+| Protected `/dashboard` entry (legacy Next.js)          | `IMPLEMENTED & VERIFIED` |
+| Vite + TanStack Router migration and `/drive` entry    | `IMPLEMENTED & VERIFIED` |
+| Owner-scoped `GET /files/{file_id}`                    | `NOT YET BUILT`          |
+| Full drive browser and file/folder workflows           | `NOT YET BUILT`          |
 
 ### Verified Phase 2 backend evidence
 
@@ -309,12 +311,12 @@ Phase 2 extends or explicitly supersedes these contracts; Phase 1 evidence remai
 | Layer                            | Selection                                                                           |
 | -------------------------------- | ----------------------------------------------------------------------------------- |
 | Backend                          | Python + FastAPI                                                                    |
-| Frontend                         | Next.js App Router + TypeScript                                                     |
+| Frontend                         | React + Vite + TanStack Router + strict TypeScript (approved PLAN_04 target)        |
 | Client runtime / package manager | Bun only                                                                            |
-| Client deployment                | Static export via `output: "export"`                                                |
+| Client deployment                | Static Vite SPA bundle with deep-link history fallback (PLAN_04 target)             |
 | Client styling                   | Tailwind CSS + shadcn/ui                                                            |
 | Ordinary client HTTP             | Axios                                                                               |
-| Client server state              | TanStack Query v5                                                                   |
+| Client server state              | TanStack Query v5 (Zustand reserved for authentication)                             |
 | Streamed `/ask` transport        | Native browser `fetch()` + `ReadableStream`                                         |
 | Client forms / validation        | React Hook Form + Zod                                                               |
 | Canonical application database   | PostgreSQL                                                                          |
@@ -324,6 +326,8 @@ Phase 2 extends or explicitly supersedes these contracts; Phase 1 evidence remai
 | LLM integration                  | Native provider SDKs; Gemini Flash through `google-genai` for the verified baseline |
 | Deployment                       | Docker / Docker Compose                                                             |
 | Redis                            | Deferred until a concrete transient/cache need is approved                          |
+
+The Next.js App Router/static-export client was `IMPLEMENTED & VERIFIED` through PLAN_03; its evidence remains historical after the separately approved retirement of `client-legacy/`. The canonical `client/` implements the Vite SPA; Amendment 01 migration equivalence is `IMPLEMENTED & VERIFIED` after approved Stage 02.
 
 Do not introduce LangChain by default.
 
@@ -336,7 +340,7 @@ Detailed RAG mechanics belong in `.agents/skills/rag/SKILL.md`.
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'background': '#1e1e2e', 'primaryColor': '#45475a', 'primaryTextColor': '#cdd6f4', 'primaryBorderColor': '#89b4fa', 'lineColor': '#a6adc8', 'secondaryColor': '#313244', 'tertiaryColor': '#181825', 'fontFamily': 'Inter, sans-serif'}}}%%
 flowchart LR
-    Client["Static Next.js browser"] -->|"Bearer + direct API / SSE"| API["FastAPI"]
+    Client["Browser SPA (approved PLAN_04 target)"] -->|"Bearer + direct API / SSE"| API["FastAPI"]
     Client -.->|"refresh cookie, /auth only"| API
     API --> Auth["Auth + owner checks"]
     Auth --> PG[("PostgreSQL canonical state")]
@@ -386,8 +390,9 @@ Rules:
 ### Cross-boundary architecture
 
 - Browser client communicates directly with FastAPI.
-- Do not insert a Next.js BFF/proxy without an approved architecture change.
-- Client production remains a static export; do not add a Next.js runtime server or client Docker service without approval.
+- Do not add a Next.js BFF, TanStack Start/server functions, Vite proxy-as-backend, or another browser API middle tier without approval.
+- PLAN_04 targets a statically hosted Vite SPA, not a persistent frontend application server or client Docker service; runtime hosting changes require approval.
+- Static hosting must support history fallback for client routes without rewriting API or asset failures into HTML.
 - FastAPI uses an explicit configured CORS allow-list; wildcard CORS is not the default.
 - CORS is browser-origin policy, not authentication or authorization.
 - Derive the authenticated user from validated server-side credentials.
@@ -446,9 +451,8 @@ atlas/
 │   ├── migrations/
 │   └── tests/
 │
-├── client/
+├── client/                       # canonical Vite SPA; migration IMPLEMENTED & VERIFIED
 │   ├── AGENTS.md
-│   ├── public/
 │   ├── src/
 │   ├── tests/
 │   ├── package.json
@@ -459,21 +463,23 @@ atlas/
     └── PHASE_02/
 ```
 
-Use the current repository implementation if exact local files evolve; do not create parallel ownership boundaries merely to match this overview.
+Amendment 01 Stage 01 preserved the original source and local artifacts in `client-legacy/` through review and Stage 02 acceptance. The directory was subsequently removed with separate user approval. Read the checked-out repository before making structural claims. Only `client/` is the active application; migration integration is verified. Full drive workflows remain pending.
 
 ### Ownership boundaries
 
 | Path                  | Responsibility                                                                                |
 | --------------------- | --------------------------------------------------------------------------------------------- |
 | `server/`             | Backend, public API, canonical application-state implementation, authentication/authorization |
-| `client/`             | Static browser presentation and interaction layer                                             |
+| `client/`             | Canonical browser SPA presentation and interaction layer after PLAN_04 cutover                |
 | `.agents/skills/rag/` | Detailed RAG engineering authority                                                            |
 | `prompts/`            | PHASE / PLAN / AMENDMENT / CONTEXT / MANUAL artifacts                                         |
 
 Additional rules:
 
 - Backend Compose remains under `server/`.
-- The static client is not a Compose service under the current architecture.
+- The approved Vite SPA is a static hosting artifact, not a Compose-managed application service.
+- During PLAN_04 Amendment 01, inspect Git/worktree and the legacy client before renaming `client/` to `client-legacy/`; preserve uncommitted and ignored user files, never silently overwrite or delete them.
+- Scaffold the replacement `client/` cleanly, migrate only required application code and tests, and verify auth parity before building drive features. Legacy retirement requires separate approval; that approval was granted after Amendment 01 acceptance and the directory is now removed.
 - Do not create ad hoc cross-repository folders when an existing ownership boundary fits.
 
 ### Vocabulary
@@ -618,7 +624,7 @@ Focused Amendment prompts live under that PLAN's `AMENDMENTS/` folder.
 ### Scoped conventions
 
 - Backend/Python/API details: `server/AGENTS.md`
-- Frontend/TypeScript/client details: `client/AGENTS.md`
+- Frontend/TypeScript/client details: `client/AGENTS.md` (new SPA instructions take effect for the replacement project; legacy code retains its historical conventions)
 - RAG pipeline details: `.agents/skills/rag/SKILL.md`
 
 ---
@@ -663,6 +669,7 @@ Do not re-ask these resolved scope decisions unless a new requirement conflicts 
 - Files and folders may share the same display name; names are metadata, not identity.
 - Canonical file metadata includes user-facing name and description plus source metadata required by the current PLAN.
 - File metadata update does not imply content replacement or re-embedding.
+- PLAN_04 approves one **not-yet-implemented** `GET /files/{file_id}` endpoint: authenticated owner-scoped read of the existing File DTO; absent/foreign files share a privacy-safe 404. Metadata reads do not require `ready`; RAG still requires owner plus `ready`. No schema or RAG change is authorized.
 - Canonical file lifecycle uses `processing`, `ready`, and `deleting`; only `ready` files may enter retrieval/generation.
 - A known ingestion failure cleans any derived Qdrant state for that exact `file_id` and removes the temporary canonical file row rather than retaining a durable failed-file state.
 - Persistent original-file storage is excluded; uploads are transient input to the existing indexing pipeline.
@@ -1031,7 +1038,7 @@ These are **user-configured custom MCP integrations for Codex CLI**, not automat
 
 - Root: global invocation, safety, and evidence policy.
 - Server AGENTS: backend-specific exceptions and tool relevance.
-- Client AGENTS: browser checks, auth/cookie/CORS, navigation, hydration, SSE and static-export acceptance.
+- Client AGENTS: browser checks, auth/cookie/CORS, navigation, SSE and production-SPA/deep-link acceptance.
 
 ---
 

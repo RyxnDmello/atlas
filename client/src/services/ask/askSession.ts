@@ -6,8 +6,8 @@ import {
   type Citation,
 } from "@schemas/ask/ask";
 
-import { createAnswerStream } from "@utils/stream/answerStream";
 import { createSseParser } from "@utils/stream/sseParser";
+import { createAnswerStream } from "@utils/stream/answerStream";
 
 export type AskStatus = "idle" | "streaming" | "success" | "error";
 
@@ -22,10 +22,10 @@ export type AskListener = () => void;
 
 export interface AskSession {
   reset(): void;
-  subscribe(listener: AskListener): AskListener;
   getSnapshot(): AskState;
-  setScope(fileId: string | undefined): void;
   submit(question: string): Promise<void>;
+  setScope(fileId: string | undefined): void;
+  subscribe(listener: AskListener): AskListener;
 }
 
 export const idle: AskState = {
@@ -39,31 +39,33 @@ const failure =
   "Unable to complete the answer. Check the API connection and try again.";
 const generationFailure = "Generation failed. Try again.";
 
-export function createAskSession(): AskSession {
+export const createAskSession = (): AskSession => {
   let state = idle;
   let scope: string | undefined;
   let controller: AbortController | undefined;
 
   const listeners = new Set<AskListener>();
 
-  function publish(next: AskState): void {
+  const publish = (next: AskState): void => {
     state = next;
     listeners.forEach((listener) => listener());
-  }
+  };
 
-  function reset(): void {
+  const reset = (): void => {
     controller?.abort();
     controller = undefined;
 
     publish(idle);
-  }
+  };
 
-  async function submit(question: string): Promise<void> {
+  const submit = async (question: string): Promise<void> => {
     const form = askFormSchema.safeParse({
       question,
     });
 
-    if (!scope || !form.success || controller) return;
+    if (!scope || !form.success || controller) {
+      return;
+    }
 
     const owner = new AbortController();
     controller = owner;
@@ -80,7 +82,7 @@ export function createAskSession(): AskSession {
     let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
 
     const stream = createAnswerStream({
-      onAnswer(answer) {
+      onAnswer: (answer) => {
         if (current()) {
           publish({
             status: "streaming",
@@ -90,7 +92,7 @@ export function createAskSession(): AskSession {
         }
       },
 
-      onError() {
+      onError: () => {
         if (current()) {
           publish({
             ...idle,
@@ -106,13 +108,17 @@ export function createAskSession(): AskSession {
         signal: owner.signal,
       });
 
-      if (!current()) return;
+      if (!current()) {
+        return;
+      }
 
       if (!response.ok) {
         const payload: unknown = await response.json().catch(() => undefined);
         const result = atlasErrorSchema.safeParse(payload);
 
-        if (result.success) message = result.data.error;
+        if (result.success) {
+          message = result.data.error;
+        }
 
         throw new Error(failure);
       }
@@ -134,8 +140,13 @@ export function createAskSession(): AskSession {
       while (current()) {
         const chunk = await reader.read();
 
-        if (!current()) return;
-        if (chunk.done) break;
+        if (!current()) {
+          return;
+        }
+
+        if (chunk.done) {
+          break;
+        }
 
         parser.push(chunk.value).forEach(stream.accept);
       }
@@ -166,15 +177,17 @@ export function createAskSession(): AskSession {
 
       reader?.releaseLock();
 
-      if (controller === owner) controller = undefined;
+      if (controller === owner) {
+        controller = undefined;
+      }
     }
-  }
+  };
 
   return {
     reset,
     submit,
 
-    subscribe(listener) {
+    subscribe: (listener) => {
       listeners.add(listener);
 
       return () => {
@@ -184,11 +197,13 @@ export function createAskSession(): AskSession {
 
     getSnapshot: () => state,
 
-    setScope(fileId) {
-      if (scope === fileId) return;
+    setScope: (fileId) => {
+      if (scope === fileId) {
+        return;
+      }
 
       scope = fileId;
       reset();
     },
   };
-}
+};

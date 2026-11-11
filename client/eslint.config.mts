@@ -1,18 +1,46 @@
-import { defineConfig, globalIgnores } from "eslint/config";
-import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTs from "eslint-config-next/typescript";
+import js from "@eslint/js";
+import globals from "globals";
+import hooks from "eslint-plugin-react-hooks";
+import parser from "@typescript-eslint/parser";
+import typescript from "@typescript-eslint/eslint-plugin";
 
-const eslintConfig = defineConfig([
-  ...nextVitals,
-  ...nextTs,
-  // Override default ignores of eslint-config-next.
+import { globalIgnores } from "eslint/config";
+
+export default [
   globalIgnores([
-    // Default ignores of eslint-config-next:
-    ".next/**",
-    "out/**",
-    "build/**",
-    "next-env.d.ts",
+    "dist/**",
+    ".tanstack/**",
+    "node_modules/**",
+    "src/routeTree.gen.ts",
   ]),
-]);
-
-export default eslintConfig;
+  {
+    files: ["**/*.{ts,tsx,mts}"],
+    languageOptions: {
+      parser,
+      globals: {
+        ...globals.node,
+        ...globals.browser,
+      },
+    },
+    plugins: {
+      "react-hooks": {
+        rules: hooks.rules,
+      },
+      "@typescript-eslint": {
+        rules: typescript.rules,
+      },
+    },
+    rules: {
+      ...js.configs.recommended.rules,
+      ...hooks.configs.recommended.rules,
+      ...typescript.configs.recommended.rules,
+      ...typescript.configs["eslint-recommended"].overrides?.[0].rules,
+      "no-empty": [
+        "error",
+        {
+          allowEmptyCatch: true,
+        },
+      ],
+    },
+  },
+];

@@ -1,14 +1,13 @@
 import axios, { CanceledError, type InternalAxiosRequestConfig } from "axios";
 
 import { authAccess, type AuthLease } from "@services/auth/auth";
-
 import {
   waitFor,
   recover,
   resolveUrl,
   requiresAuth,
   invalidAccess,
-} from "@/services/http/policy";
+} from "@services/http/policy";
 
 import { env } from "@constants/env";
 
@@ -68,24 +67,24 @@ client.interceptors.request.use(async (config: AuthConfig) => {
         config.headers.set("Authorization", `Bearer ${lease.token}`);
 
         return config;
-      } else {
-        throw new Error("Session superseded.");
       }
+
+      throw new Error("Session superseded.");
     } catch (error) {
       checkCancellation(config);
 
       throw error;
     }
-  } else {
-    if (config.isProtected === false || config.atlasLease) {
-      config.headers.delete("Authorization");
-      config.auth = undefined;
-    }
-
-    delete config.atlasLease;
-
-    return config;
   }
+
+  if (config.isProtected === false || config.atlasLease) {
+    config.headers.delete("Authorization");
+    config.auth = undefined;
+  }
+
+  delete config.atlasLease;
+
+  return config;
 });
 
 client.interceptors.response.use(undefined, async (error: unknown) => {
@@ -120,24 +119,24 @@ client.interceptors.response.use(undefined, async (error: unknown) => {
       if (replacement && replayable && authAccess.current(replacement)) {
         if (config.signal?.aborted) {
           throw new CanceledError();
-        } else {
-          config.atlasRetried = true;
-
-          config.headers.set("Authorization", `Bearer ${replacement.token}`);
-
-          return client.request(config);
         }
-      } else {
-        throw error;
+
+        config.atlasRetried = true;
+
+        config.headers.set("Authorization", `Bearer ${replacement.token}`);
+
+        return client.request(config);
       }
+
+      throw error;
     } catch {
       checkCancellation(config);
 
       throw error;
     }
-  } else {
-    throw error;
   }
+
+  throw error;
 });
 
 export default client;

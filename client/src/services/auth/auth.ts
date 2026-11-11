@@ -4,8 +4,7 @@ import useAuthStore, {
 } from "@stores/auth";
 
 import { tokenStorage, type TokenStorage } from "@services/auth/token";
-
-import { isAuthFailure, validatedRequest } from "@/services/http/validate";
+import { isAuthFailure, validatedRequest } from "@services/http/validate";
 
 import {
   userSchema,
@@ -68,9 +67,9 @@ const cookieOperation = <T>(
   const result = context.cookieQueue.then(() => {
     if (sessionVersion !== context.sessionVersion) {
       throw new Error("Session superseded.");
-    } else {
-      return operation();
     }
+
+    return operation();
   });
 
   context.cookieQueue = result.then(
@@ -161,9 +160,9 @@ export const finishLogin = async (
 
   if (operation.sessionVersion === context.sessionVersion) {
     return response.user;
-  } else {
-    throw new Error("Session superseded.");
   }
+
+  throw new Error("Session superseded.");
 };
 
 export const finishLogout = async (
@@ -512,9 +511,9 @@ export const acquireAccess = async (
       sessionVersion: context.sessionVersion,
       tokenVersion: context.tokenVersion,
     };
-  } else {
-    throw new Error("Authenticated session unavailable.");
   }
+
+  throw new Error("Authenticated session unavailable.");
 };
 
 const requests: RecoveryRequests = {

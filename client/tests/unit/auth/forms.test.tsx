@@ -50,7 +50,7 @@ test("registration presents masked inputs and a direct verification link without
   expect(html).toContain('autoComplete="new-password"');
   expect(html).toContain('href="/verify"');
   expect(html).not.toContain("Account authenticated");
-  expect(html).not.toMatch(/href="\/(login|dashboard)"/);
+  expect(html).not.toMatch(/href="\/(login|drive)"/);
 });
 
 test("direct verification entry has editable email and a string OTP with a separate resend control", () => {
@@ -129,7 +129,7 @@ test.each([
   },
 );
 
-test("authenticated verification withholds forms/profile while redirecting to dashboard", () => {
+test("authenticated verification withholds forms/profile while redirecting to drive", () => {
   Object.assign(initial, {
     ...original,
     status: "authenticated",

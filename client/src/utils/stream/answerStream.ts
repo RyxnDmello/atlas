@@ -8,6 +8,8 @@ import {
 
 import type { SseRecord } from "@utils/stream/sseParser";
 
+type AnswerTerminal = "done" | "error";
+
 export interface CompletedAnswer {
   answer: string;
   citations: Citation[];
@@ -24,20 +26,26 @@ export interface AnswerStream {
   failed(): boolean;
 }
 
-export function createAnswerStream(options: AnswerStreamOptions): AnswerStream {
+export const createAnswerStream = (
+  options: AnswerStreamOptions,
+): AnswerStream => {
   let answer = "";
   let pending = "";
   let citations: Citation[] | undefined;
-  let terminal: "done" | "error" | undefined;
+  let terminal: AnswerTerminal | undefined;
 
-  function accept(record: SseRecord): void {
-    if (terminal) throw new Error("Unexpected event after terminal.");
+  const accept = (record: SseRecord): void => {
+    if (terminal) {
+      throw new Error("Unexpected event after terminal.");
+    }
 
     const payload: unknown = JSON.parse(record.data);
 
     switch (record.event) {
       case "answer": {
-        if (citations) throw new Error("Unexpected answer after citations.");
+        if (citations) {
+          throw new Error("Unexpected answer after citations.");
+        }
 
         pending += answerSchema.parse(payload).text;
 
@@ -55,13 +63,17 @@ export function createAnswerStream(options: AnswerStreamOptions): AnswerStream {
         break;
       }
       case "citations":
-        if (citations) throw new Error("Duplicate citations.");
+        if (citations) {
+          throw new Error("Duplicate citations.");
+        }
 
         citations = citationsSchema.parse(payload).citations;
 
         break;
       case "done":
-        if (!citations) throw new Error("Missing citations.");
+        if (!citations) {
+          throw new Error("Missing citations.");
+        }
 
         doneSchema.parse(payload);
         terminal = "done";
@@ -76,14 +88,14 @@ export function createAnswerStream(options: AnswerStreamOptions): AnswerStream {
       default:
         throw new Error("Unknown answer event.");
     }
-  }
+  };
 
   return {
     accept,
 
     failed: () => terminal === "error",
 
-    finish() {
+    finish: () => {
       if (terminal !== "done" || !citations) {
         throw new Error("Incomplete answer stream.");
       }
@@ -94,4 +106,4 @@ export function createAnswerStream(options: AnswerStreamOptions): AnswerStream {
       };
     },
   };
-}
+};

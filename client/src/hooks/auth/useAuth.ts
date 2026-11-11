@@ -1,10 +1,7 @@
-"use client";
-
 import { useQuery } from "@tanstack/react-query";
 
 import http from "@services/http/axios";
-
-import { safeAuthError, validatedResponse } from "@/services/http/validate";
+import { safeAuthError, validatedResponse } from "@services/http/validate";
 
 import { userSchema } from "@schemas/auth/auth";
 
@@ -26,7 +23,7 @@ export default function useAuth() {
     }
   };
 
-  const query = useQuery({
+  const { data, error, isFetching, refetch } = useQuery({
     queryKey: ["auth", "current"],
     gcTime: 0,
     retry: false,
@@ -35,9 +32,9 @@ export default function useAuth() {
   });
 
   return {
-    authUser: query.data,
-    authError: query.error,
-    isAuthLoading: query.isFetching,
-    getAuth: query.refetch,
+    authUser: data,
+    authError: error,
+    isAuthLoading: isFetching,
+    getAuth: refetch,
   };
 }
