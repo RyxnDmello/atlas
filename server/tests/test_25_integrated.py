@@ -26,7 +26,7 @@ from tests.integrated_acceptance import acceptance, cleanup
 
 
 class IntegratedAcceptanceTests(unittest.TestCase):
-    """Exercise actual auth and drive APIs while keeping every store/model isolated."""
+    """Exercise actual auth, folder and file APIs while keeping every store/model isolated."""
 
     def setUp(self):
         self.stack = ExitStack()

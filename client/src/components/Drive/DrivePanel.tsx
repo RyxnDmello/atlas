@@ -1,20 +1,34 @@
 import { useRef } from "react";
 
-import useAuthStore from "@stores/auth";
-
 import useLogout from "@hooks/auth/useLogout";
 
 import { Button } from "@components/ui/button";
 import AuthGate from "@components/Auth/AuthGate";
+import NotFound from "@components/Common/NotFound";
+import DriveWorkspace from "@components/Drive/DriveWorkspace";
 import { Card, CardHeader, CardTitle, CardContent } from "@components/ui/card";
 
-export default function DrivePanel() {
+import { coordination } from "@services/auth/auth";
+
+import { validFolderId } from "@utils/folder/folder";
+
+import useAuthStore from "@stores/auth";
+
+interface DrivePanelProps {
+  folderId?: string;
+}
+
+export default function DrivePanel({ folderId }: DrivePanelProps) {
   const pending = useRef(false);
 
   const { logout, isLogoutLoading } = useLogout();
 
   const user = useAuthStore((state) => state.user);
   const persistence = useAuthStore((state) => state.persistence);
+
+  if (folderId !== undefined && !validFolderId(folderId)) {
+    return <NotFound />;
+  }
 
   const onLogout = async () => {
     if (pending.current) {
@@ -56,6 +70,11 @@ export default function DrivePanel() {
               reload.
             </p>
           )}
+
+          <DriveWorkspace
+            key={`${coordination.sessionVersion}:${user?.id}:${folderId ?? "root"}`}
+            folderId={folderId ?? null}
+          />
         </CardContent>
       </Card>
     </AuthGate>

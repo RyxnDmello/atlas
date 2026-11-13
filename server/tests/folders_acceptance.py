@@ -146,8 +146,8 @@ def acceptance(database: Database, client: Client, private: list[str]) -> dict[s
                                                 (users[0], own,
                                                  deep["id"], set()),
                                                 (users[1], other, foreign["id"], set())):
-            response = client.get("/drive", headers=actor, params={}
-                                  if location is None else {"folder_id": location})
+            response = client.get(
+                "/folders" if location is None else "/folders/" + location, headers=actor)
             assert response.status_code == 200
             body = response.json()
             assert set(body) == {"folder", "folders", "files"}
@@ -162,13 +162,13 @@ def acceptance(database: Database, client: Client, private: list[str]) -> dict[s
                     "processing", "ready", "deleting"}
 
         for identifier in (foreign["id"], str(uuid4())):
-            responses = [client.get("/drive", headers=own, params={"folder_id": identifier}),
+            responses = [client.get("/folders/" + str(identifier), headers=own),
                          client.patch("/folders/"+identifier,
                                       headers=own, json={"name": "attempt"}),
                          client.post("/folders", headers=own, json={"name": "attempt", "parent_id": identifier})]
             assert all(response.status_code == 404 and response.json() == {
                 "error": "Folder not found", "code": "FOLDER_NOT_FOUND"} for response in responses)
-        for method, path, data in (("GET", "/drive?folder_id="+root["id"], None),
+        for method, path, data in (("GET", "/folders/"+root["id"], None),
                                    ("PATCH", "/folders/" +
                                     root["id"], {"name": "attempt"}),
                                    ("POST", "/folders", {"name": "attempt", "parent_id": root["id"]})):
@@ -208,14 +208,14 @@ def acceptance(database: Database, client: Client, private: list[str]) -> dict[s
             assert client.request(method, path, headers=own,
                                   json=payload).status_code == 422
         for field in ("owner_id", "user_id"):
-            for method, path in (("GET", "/drive"), ("POST", "/folders"), ("PATCH", "/folders/"+root["id"])):
+            for method, path in (("GET", "/folders"), ("POST", "/folders"), ("PATCH", "/folders/"+root["id"])):
                 data = {"name": "ok"} if method != "GET" else None
                 assert client.request(method, path, headers=own, params={
                                       field: str(users[1].id)}, json=data).status_code == 422
                 if data is not None:
                     assert client.request(method, path, headers=own, json={
                                           "name": "ok", field: str(users[1].id)}).status_code == 422
-        for method, path, data in (("GET", "/drive", None), ("POST", "/folders", {"name": "ok"}),
+        for method, path, data in (("GET", "/folders", None), ("POST", "/folders", {"name": "ok"}),
                                    ("PATCH", "/folders/"+root["id"], {"name": "ok"})):
             for actor in ({}, {"Authorization": "Bearer malformed"}):
                 response = client.request(
@@ -236,7 +236,7 @@ def acceptance(database: Database, client: Client, private: list[str]) -> dict[s
                     "access-control-allow-origin") == (origin if approved else None)
                 assert response.headers["access-control-allow-credentials"] == "true"
                 assert "*" not in str(response.headers)
-            for method, path, data in (("GET", "/drive", None), ("POST", "/folders", {"name": "cors"}),
+            for method, path, data in (("GET", "/folders", None), ("POST", "/folders", {"name": "cors"}),
                                        ("PATCH", "/folders/"+root["id"], {"name": "cors"})):
                 response = client.request(method, path, headers={
                                           **own, "Origin": origin}, json=data)

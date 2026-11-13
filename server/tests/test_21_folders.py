@@ -20,19 +20,19 @@ from app.core.cors import configure_cors
 from app.core.constants import constants
 
 from app.db.postgres import Database
-from app.models.postgres import File, Folder, User
 
 from app.pipeline.auth.access import Access
-from app.pipeline.drive import create, listing, update
+from app.pipeline.folders import create, listing, update
 
-from app.routers.drive import router as drive
 from app.routers.folders import router as folders
 
 from app.schemas.constants import CorsConstants
-from app.schemas.drive.file import FileResponse
-from app.schemas.drive.folder import FolderResponse
-from app.schemas.drive.listing import DriveResponse
-from app.schemas.drive.requests import FolderCreate, FolderPatch
+from app.schemas.files.response import FileResponse
+from app.schemas.folders.response import FolderResponse
+from app.schemas.folders.listing import FolderListingResponse
+from app.schemas.folders.requests import FolderCreate, FolderPatch
+
+from app.models.postgres import File, Folder, User
 
 from app.errors.api import ApiError
 from app.errors.handlers import cast_handle_api_error
@@ -40,9 +40,8 @@ from app.errors.postgres import PostgresOperationError
 
 
 def application() -> FastAPI:
-    """Exercise actual drive routers without initializing unrelated providers."""
+    """Exercise actual folder routers without initializing unrelated providers."""
     app = FastAPI()
-    app.include_router(drive)
     app.include_router(folders)
     app.add_exception_handler(ApiError, cast_handle_api_error())
 
@@ -63,7 +62,7 @@ class FolderApiTests(unittest.TestCase):
         for table in (User.__table__, Folder.__table__, File.__table__):
             cast(Table, table).create(engine)
         self.database = Database(engine, sessionmaker(bind=engine))
-        for target in ("app.pipeline.drive.postgres", "app.pipeline.auth.current.postgres"):
+        for target in ("app.pipeline.folders.postgres", "app.pipeline.auth.current.postgres"):
             scope = patch(target, return_value=self.database)
             scope.start()
             self.addCleanup(scope.stop)
@@ -120,7 +119,7 @@ class FolderApiTests(unittest.TestCase):
 
     def test_root_is_owner_scoped_and_includes_every_status(self):
         for index, expected in ((0, {str(self.root), str(self.sibling)}), (1, {str(self.foreign)})):
-            response = self.request("GET", "/drive", owner=index)
+            response = self.request("GET", "/folders", owner=index)
             self.assertEqual(response.status_code, 200)
             body = response.json()
             self.assertEqual(set(body), {"folder", "folders", "files"})
@@ -138,7 +137,7 @@ class FolderApiTests(unittest.TestCase):
     def test_nested_contains_only_direct_children(self):
         for folder, expected in ((self.root, {str(self.child)}), (self.child, {str(self.deep)}), (self.deep, set())):
             body = self.request(
-                "GET", "/drive", params={"folder_id": str(folder)}).json()
+                "GET", f"/folders/{folder}").json()
             self.assertEqual(body["folder"]["id"], str(folder))
             self.assertEqual({item["id"]
                              for item in body["folders"]}, expected)
@@ -150,10 +149,10 @@ class FolderApiTests(unittest.TestCase):
                          "parent_id", "created_at", "updated_at"}
         file_fields = {"id", "name", "description", "original_name", "extension", "size_bytes",
                        "status", "folder_id", "created_at", "updated_at"}
-        body = self.request("GET", "/drive").json()
+        body = self.request("GET", "/folders").json()
         self.assertEqual(set(FolderResponse.model_fields), folder_fields)
         self.assertEqual(set(FileResponse.model_fields), file_fields)
-        self.assertEqual(set(DriveResponse.model_fields),
+        self.assertEqual(set(FolderListingResponse.model_fields),
                          {"folder", "folders", "files"})
         for item in body["folders"]:
             self.assertEqual(set(item), folder_fields)
@@ -165,22 +164,20 @@ class FolderApiTests(unittest.TestCase):
 
     def test_missing_foreign_lookup_patch_and_parent_are_identical(self):
         for identifier in (self.foreign, uuid4()):
-            self.not_found(self.request("GET", "/drive",
-                           params={"folder_id": str(identifier)}))
+            self.not_found(self.request("GET", f"/folders/{identifier}"))
             self.not_found(self.request(
                 "PATCH", f"/folders/{identifier}", json={"name": "attempt"}))
             self.not_found(self.request(
                 "POST", "/folders", json={"name": "attempt", "parent_id": str(identifier)}))
-        self.not_found(self.request("GET", "/drive", owner=1,
-                       params={"folder_id": str(self.root)}))
+        self.not_found(self.request("GET", f"/folders/{self.root}", owner=1))
 
     def test_authentication_precedes_resource_queries_on_every_route(self):
-        paths = (("GET", "/drive", {}), ("GET", f"/drive?folder_id={self.foreign}", {}),
+        paths = (("GET", "/folders", {}), ("GET", f"/folders/{self.foreign}", {}),
                  ("POST", "/folders", {"json": {"name": "new"}}),
                  ("PATCH", f"/folders/{self.foreign}", {"json": {"name": "new"}}))
         expired = Access().issue(self.owners[0])
         future = datetime.now(timezone.utc)+timedelta(days=3)
-        with patch("app.pipeline.drive.postgres") as database:
+        with patch("app.pipeline.folders.postgres") as database:
             for method, path, kwargs in paths:
                 for headers in ({}, {"Authorization": "Bearer malformed"}, {"Cookie": "atlas_refresh="+self.tokens[0]}):
                     response = self.client.request(
@@ -224,7 +221,7 @@ class FolderApiTests(unittest.TestCase):
 
     def test_patch_preserves_immutable_fields_and_omitted_metadata(self):
         before = self.request(
-            "GET", "/drive", params={"folder_id": str(self.child)}).json()["folder"]
+            "GET", f"/folders/{self.child}").json()["folder"]
         for payload, name, description in (({"name": " renamed "}, "renamed", "original"),
                                            ({"description": " edited "},
                                             "renamed", "edited"),
@@ -281,14 +278,14 @@ class FolderApiTests(unittest.TestCase):
             self.assertEqual(folder.name, "same")
 
     def test_query_and_path_validation_reject_ownership_and_unknown_input(self):
-        for field in ("owner_id", "user_id", "sort", "limit", "access_token"):
-            for method, path, data in (("GET", "/drive", None), ("POST", "/folders", {"name": "ok"}),
+        for field in ("owner_id", "user_id", "folder_id", "sort", "limit", "access_token"):
+            for method, path, data in (("GET", "/folders", None), ("GET", f"/folders/{self.root}", None), ("POST", "/folders", {"name": "ok"}),
                                        ("PATCH", f"/folders/{self.root}", {"name": "ok"})):
                 response = self.request(method, path, params={
                                         field: "private-query"}, json=data)
                 self.assertEqual(response.status_code, 422)
                 self.assertNotIn("private-query", response.text)
-        for path in ("/drive?folder_id=invalid", "/drive?folder_id="):
+        for path in ("/folders/invalid", "/folders?folder_id="):
             self.assertEqual(self.request("GET", path).status_code, 422)
         self.assertEqual(self.request("PATCH", "/folders/invalid",
                          json={"name": "ok"}).status_code, 422)
@@ -333,7 +330,7 @@ class FolderApiTests(unittest.TestCase):
                 self.assertNotIn("private-driver-sql",
                                  str(caught.exception.to_dict()))
         with patch.object(Session, "scalars", side_effect=SQLAlchemyError("private-driver-sql")):
-            response = self.request("GET", "/drive")
+            response = self.request("GET", "/folders")
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.json()["code"], "POSTGRES_OPERATION_FAILED")
         self.assertNotIn("private-driver-sql", response.text)
@@ -399,7 +396,7 @@ class FolderApiTests(unittest.TestCase):
             with self.assertRaises(ValidationError):
                 FolderPatch.model_validate(value)
 
-    def test_drive_operations_do_not_access_rag_and_same_value_patch_advances_timestamp(self):
+    def test_folder_operations_do_not_access_rag_and_same_value_patch_advances_timestamp(self):
         with patch("app.core.runtime.storage", side_effect=AssertionError("Unexpected RAG access")):
             created = create(self.owners[0], FolderCreate(name="same"))
             updated = update(
@@ -408,14 +405,14 @@ class FolderApiTests(unittest.TestCase):
             self.assertEqual(updated.name, created.name)
             self.assertTrue(listing(self.owners[0]).folders)
 
-    def test_exact_drive_route_inventory(self):
+    def test_exact_folder_file_route_inventory(self):
         from app.main import app
         paths = app.openapi()["paths"]
-        self.assertEqual(set(paths["/drive"]), {"get"})
-        self.assertEqual(set(paths["/folders"]), {"post"})
-        self.assertEqual(set(paths["/folders/{folder_id}"]), {"patch"})
+        self.assertEqual(set(paths["/folders"]), {"get", "post"})
+        self.assertEqual(set(paths["/folders/{folder_id}"]), {"get", "patch"})
         self.assertEqual(set(paths["/files"]), {"post"})
-        self.assertEqual(set(paths["/files/{file_id}"]), {"patch", "delete"})
+        self.assertEqual(
+            set(paths["/files/{file_id}"]), {"get", "patch", "delete"})
 
     def test_synthetic_cleanup_removes_deep_rows_and_preserves_other_owners(self):
         from tests.folders_acceptance import cleanup

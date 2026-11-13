@@ -28,21 +28,3 @@ class RetrievedChunk(Payload):
     heading: str | None = Field(...)
     section: str | None = Field(...)
     score: float = Field(allow_inf_nan=False)
-
-
-class ScoredChunk(BaseModel):
-    """Expose the approved public chunk vocabulary with its raw similarity score."""
-
-    score: float
-    text: str
-    index: int
-    count: int
-    page: int | None = None
-    heading: str | None = None
-    section: str | None = None
-
-
-class QueryResponse(BaseModel):
-    """Return ranked public chunks, including an empty successful result list."""
-
-    results: list[ScoredChunk]

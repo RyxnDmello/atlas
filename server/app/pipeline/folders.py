@@ -7,10 +7,10 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.runtime import postgres
 
-from app.schemas.drive.file import FileResponse
-from app.schemas.drive.folder import FolderResponse
-from app.schemas.drive.listing import DriveResponse
-from app.schemas.drive.requests import FolderCreate, FolderPatch
+from app.schemas.files.response import FileResponse
+from app.schemas.folders.response import FolderResponse
+from app.schemas.folders.listing import FolderListingResponse
+from app.schemas.folders.requests import FolderCreate, FolderPatch
 
 from app.models.postgres import File, Folder
 
@@ -28,7 +28,7 @@ def owned(session: Session, folder_id: UUID, owner_id: UUID) -> Folder:
     return folder
 
 
-def listing(owner_id: UUID, folder_id: UUID | None = None) -> DriveResponse:
+def listing(owner_id: UUID, folder_id: UUID | None = None) -> FolderListingResponse:
     """Read only the owner's direct children; preserve every canonical file status."""
     try:
         with postgres().session() as session:
@@ -39,7 +39,7 @@ def listing(owner_id: UUID, folder_id: UUID | None = None) -> DriveResponse:
             files = session.scalars(select(File).where(
                 File.owner_id == owner_id, File.folder_id == folder_id))
 
-            return DriveResponse(
+            return FolderListingResponse(
                 folder=FolderResponse.model_validate(
                     folder) if folder is not None else None,
                 folders=[FolderResponse.model_validate(

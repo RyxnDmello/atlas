@@ -6,10 +6,11 @@ from fastapi.testclient import TestClient
 from qdrant_client.http.models import FieldCondition, Filter, MatchValue
 
 from app.db.postgres import Database
-from app.models.postgres import File
 
+from app.models.postgres import File
 from app.pipeline.storage import Storage
 
+from tests.rag import retrieved
 from tests.folders_acceptance import actors
 
 
@@ -72,10 +73,8 @@ def acceptance(database: Database, client: Client | TestClient, storage: Storage
                 assert points and cursor is None
                 assert all(point.payload is not None and point.payload["file_id"] == str(identifier)
                            and point.payload["text"] and point.payload["display_text"] for point in points)
-                response = client.post(
-                    f"/files/{identifier}/query", headers=headers[0], json={"question": "What is retention?"})
-                assert response.status_code == 200 and response.json()[
-                    "results"]
+                assert retrieved(database, storage,
+                                 users[0].id, identifier, "What is retention?")
 
             before = storage.client.count(storage.collection, exact=True).count
             foreign = post(

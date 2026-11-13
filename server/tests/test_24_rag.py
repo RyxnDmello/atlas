@@ -23,8 +23,8 @@ from app.errors.postgres import PostgresOperationError
 
 from app.main import app
 
-from tests.rag import seed
 from tests.test_10_ask import events
+from tests.rag import retrieved, seed
 from tests.uploads import environment
 from tests.test_05_upload_storage import Provider
 
@@ -104,7 +104,7 @@ class RagAuthorizationTests(unittest.TestCase):
                 timezone.utc) - timedelta(days=1)
             expired = Access().issue(self.user.id)
         with patch("app.routers.files.ready") as guard, patch("app.routers.files.retrieve") as search:
-            for route in ("query", "ask"):
+            for route in ("ask",):
                 for headers in ({}, {"Authorization": "Bearer invalid"}, {"Authorization": "Bearer " + expired}):
                     response = self.request(route, self.empty, headers)
                     self.assertEqual(response.status_code, 401)
@@ -127,7 +127,7 @@ class RagAuthorizationTests(unittest.TestCase):
         with patch("app.routers.files.retrieve") as search, patch.object(self.provider, "embed") as embed, patch.object(
                 self.qdrant, "query_points") as query, patch("app.routers.files.GeminiFlashProvider") as provider, patch(
                 "app.routers.files.GroundedStream") as stream:
-            for route in ("query", "ask"):
+            for route in ("ask",):
                 for identifier, status in cases:
                     response = self.request(route, identifier)
                     self.assertEqual(response.status_code, status)
@@ -163,11 +163,12 @@ class RagAuthorizationTests(unittest.TestCase):
                     provider, "stream_generate", side_effect=generate), patch(
                     "app.routers.files.GeminiFlashProvider", return_value=provider), patch(
                     "app.routers.files.ready", wraps=files.ready) as guard:
-                response = self.request("query", identifier, headers)
-                self.assertEqual(response.status_code, 200)
-                self.assertEqual(len(response.json()["results"]), 1)
+                results = retrieved(
+                    self.database, self.services, owner, identifier)
+                self.assertEqual(len(results), 1)
+                self.assertEqual(results[0].file_id, identifier)
                 self.assertEqual(
-                    response.json()["results"][0]["text"], "Synthetic " + str(identifier))
+                    results[0].text, "Synthetic " + str(identifier))
                 response = self.request("ask", identifier, headers)
                 self.assertEqual(response.status_code, 200)
                 self.assertTrue(
@@ -177,11 +178,11 @@ class RagAuthorizationTests(unittest.TestCase):
                                  "answer", "citations", "done"])
                 self.assertEqual(wire[1][1]["citations"]
                                  [0]["excerpt"], "Trusted source")
-                self.assertEqual(guard.call_count, 2)
+                self.assertEqual(guard.call_count, 1)
                 guard.assert_called_with(owner, identifier)
             foreign = self.ids[self.other if owner ==
                                self.user.id else self.user.id, "ready"]
-            for route in ("query", "ask"):
+            for route in ("ask",):
                 self.assertEqual(self.request(
                     route, foreign, headers).status_code, 404)
         self.assertEqual(self.snapshot(), before)
@@ -189,9 +190,8 @@ class RagAuthorizationTests(unittest.TestCase):
 
     def test_owned_ready_unindexed_keeps_empty_query_and_fallback(self):
         with patch("app.routers.files.GeminiFlashProvider") as provider:
-            response = self.request("query", self.empty)
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual(response.json(), {"results": []})
+            self.assertEqual(
+                retrieved(self.database, self.services, self.user.id, self.empty), [])
             response = self.request("ask", self.empty)
             self.assertEqual(events(response.iter_lines()), [("answer", {"text": FALLBACK}),
                              ("citations", {"citations": []}), ("done", {"status": "completed"})])
@@ -218,7 +218,7 @@ class RagAuthorizationTests(unittest.TestCase):
     def test_pg_failure_is_json_before_sse_and_never_starts_rag(self):
         with patch("app.routers.files.ready", side_effect=PostgresOperationError()), patch(
                 "app.routers.files.retrieve") as search, patch("app.routers.files.GroundedStream") as stream:
-            for route in ("query", "ask"):
+            for route in ("ask",):
                 response = self.request(route, self.empty)
                 self.assertEqual(response.status_code, 500)
                 self.assertEqual(

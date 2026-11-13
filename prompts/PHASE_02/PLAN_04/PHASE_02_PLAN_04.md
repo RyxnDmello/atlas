@@ -2,10 +2,10 @@
 
 - **Document role:** Define the PLAN_04 destination, approved Vite/TanStack Router migration, existing and approved backend contracts, client drive/RAG workflows, scope, risks, objective acceptance, and PHASE_02 closure. Implementation chronology belongs in focused Amendments and executed CONTEXT/MANUAL records.
 - **PHASE:** `PHASE_02 — Authenticated Personal Drive` — `IMPLEMENTED, UNVERIFIED` until all fifteen PHASE acceptance criteria are evidenced.
-- **PLAN:** `PHASE_02_PLAN_04` — `NOT YET BUILT` at specification authoring; approval and document generation are not implementation or verification.
+- **PLAN:** `PHASE_02_PLAN_04` — `IMPLEMENTED, UNVERIFIED`; Amendments 01–03 are `IMPLEMENTED & VERIFIED` after approved Stage 02 acceptance; browser file workflows remain `NOT YET BUILT`.
 - **Planned branch convention:** `phase-02/plan-04`; inspect the actual repository branch/worktree before any implementation. Do not create, switch, commit, or push automatically.
 - **Verified prerequisites:** `PHASE_02_PLAN_01` (identity/auth), `PHASE_02_PLAN_02` (owner-scoped drive and file RAG backend), and `PHASE_02_PLAN_03` (Next.js browser authentication) — all recorded `IMPLEMENTED & VERIFIED`.
-- **Primary subsystem:** Controlled Next.js-to-Vite browser migration, TanStack Router drive routes, folder/file UI, authenticated selected-file RAG, one owner-scoped metadata GET endpoint, and final integrated PHASE acceptance.
+- **Primary subsystem:** Controlled Next.js-to-Vite browser migration, TanStack Router drive routes, folder/file UI, authenticated selected-file RAG, backend folder/file contract consolidation, and final integrated PHASE acceptance.
 - **Approved architectural supersession:** Replace the **frontend** Next.js App Router/static export with React + Vite + TanStack Router file-based SPA. Preserve Bun, strict TypeScript, authentication/session contracts, browser-direct FastAPI, PostgreSQL, Qdrant, and native POST-SSE.
 - **Execution evidence:** `PHASE_02_PLAN_04_CONTEXT.md` — Codex-owned chronological record, **not pre-populated with hypothetical results**.
 - **Reproducibility:** `PHASE_02_PLAN_04_MANUAL.md` — Codex-owned tested procedures, not hypothetical acceptance claims.
@@ -19,14 +19,14 @@
 
 At completion, Atlas must:
 
-1. preserve the original Next.js client as `client-legacy/`, scaffold a clean canonical `client/`, and reproduce PLAN_03 authentication, transport, persistence, and browser behavior before extending the application;
+1. preserve the original Next.js client through migration acceptance (completed; subsequently retired with separate approval), scaffold a clean canonical `client/`, and reproduce PLAN_03 authentication, transport, persistence, and browser behavior before extending the application;
 2. retain strict TypeScript, Bun, existing React/RHF/Zod/Tailwind/shadcn patterns, Axios, TanStack Query, Zustand-for-auth-only, and native streamed fetch;
-3. support real browser-history URLs: `/drive` (root), `/drive/:folderId` (selected folder), `/drive/file/:fileId` (file details and Ask); retire `/dashboard`, and retain `/login`, `/register`, `/verify` and session-aware `/`;
-4. consume existing owner-scoped direct-child `GET /drive` responses with lazy nested navigation, Root/Up controls, accurate selected-folder states, and no invented full-tree backend endpoint;
+3. support real browser-history URLs: `/drive` (root), `/drive/:id` (selected folder), `/drive/file/:fileId` (file details and Ask); retire `/dashboard`, and retain `/login`, `/register`, `/verify` and session-aware `/`;
+4. consume existing owner-scoped direct-child `GET /folders` responses with lazy nested navigation, Root/Up controls, accurate selected-folder states, and no invented full-tree backend endpoint;
 5. present create/edit folder dialogs and authenticated file upload/metadata edit/permanent delete dialogs using existing forms, canonical UUID identity and actual server contracts;
 6. add and independently verify the approved authenticated `GET /files/{file_id}` metadata endpoint so a file URL can load directly without its parent location in the URL;
 7. present canonical `processing`, `ready`, and `deleting` states, reconcile uncertain mutations safely, and expose retry only for existing supported retryable deletion;
-8. use TanStack Query for remote drive/file data with in-memory freshness, account/session-safe keys, drive-scoped invalidation and active-view refetch after confirmed mutations, never hard browser refresh;
+8. use TanStack Query for remote drive/file data with in-memory freshness, account/session-safe lifecycle, approved simple folder keys, drive-scoped invalidation and active-view refetch after confirmed mutations, never hard browser refresh;
 9. ask only an owned `ready` file through authenticated native `POST /files/{file_id}/ask`, showing provisional answer deltas and only completed, trusted backend citations;
 10. preserve session restoration, cookie rotation, error distinctions, cross-account cleanup, safe request replay, abort and cancellation behavior; and
 11. verify the complete static SPA/browser → FastAPI → PostgreSQL/Qdrant journey, two-owner isolation, exact cleanup, all PLAN_04 criteria and all fifteen PHASE_02 criteria, with truthful execution records.
@@ -43,8 +43,8 @@ flowchart LR
     Files --> Detail["/drive/file/:fileId<br/>owner-scoped metadata"]
     Detail --> Ask["Ready-file Ask<br/>native SSE + citations"]
     Ask --> Accept["Full PHASE_02 acceptance<br/>15 criteria + preserved state"]
-    class Legacy verified;
-    class Migration,Drive,Folders,Files,Detail,Ask planned;
+    class Legacy,Migration,Drive,Folders verified;
+    class Files,Detail,Ask planned;
     class Accept caution;
     classDef client fill:#2b3046,stroke:#89b4fa,stroke-width:1px,color:#cdd6f4;
     classDef service fill:#2c3642,stroke:#94e2d5,stroke-width:1px,color:#cdd6f4;
@@ -59,22 +59,23 @@ flowchart LR
 
 ## 2. VERIFIED PREREQUISITES & CURRENT BASELINE
 
-| Area                          | Recorded status          | Evidence / PLAN_04 implication                                                                                                                                                                                                     |
-| ----------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| PHASE_01 single-file RAG      | `IMPLEMENTED & VERIFIED` | Existing Docling/BGE-M3 pipeline, native SSE framing, provisional answer, trusted citations and pure parser tests are reusable; removed unauthenticated upload is not.                                                             |
-| PLAN_01 identity and sessions | `IMPLEMENTED & VERIFIED` | PostgreSQL identity/sessions, JWT, rotating HttpOnly refresh cookie, register/verify/resend/login/refresh/logout, Bearer `GET /auth`, credentialed CORS.                                                                           |
-| PLAN_02 authenticated backend | `IMPLEMENTED & VERIFIED` | Canonical folder/file UUIDs and ownership, direct children, `POST /files`, metadata/delete, owner/ready file query/ask, Qdrant exact-file scope. No standalone file-detail GET yet.                                                |
-| PLAN_03 browser auth          | `IMPLEMENTED & VERIFIED` | Verified Next.js static-export client, one Zustand auth authority, encrypted JWT recovery, safe Axios/native fetch, auth routes, guarded minimal `/dashboard`; final recorded 20/20 criteria and real Chromium/FastAPI acceptance. |
-| PLAN_04 Vite migration        | `NOT YET BUILT`          | New frontend scaffold, route cutover and auth-equivalence acceptance must occur before building drive workflows.                                                                                                                   |
-| PLAN_04 file metadata GET     | `NOT YET BUILT`          | Approved public API addition; implementation and verification required before file-detail page consumes it.                                                                                                                        |
-| PLAN_04 drive and Ask UI      | `NOT YET BUILT`          | Must be verified independently and in the final two-user browser journey.                                                                                                                                                          |
+| Area                          | Recorded status          | Evidence / PLAN_04 implication                                                                                                                                                                                                                      |
+| ----------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PHASE_01 single-file RAG      | `IMPLEMENTED & VERIFIED` | Existing Docling/BGE-M3 pipeline, native SSE framing, provisional answer, trusted citations and pure parser tests are reusable; removed unauthenticated upload is not.                                                                              |
+| PLAN_01 identity and sessions | `IMPLEMENTED & VERIFIED` | PostgreSQL identity/sessions, JWT, rotating HttpOnly refresh cookie, register/verify/resend/login/refresh/logout, Bearer `GET /auth`, credentialed CORS.                                                                                            |
+| PLAN_02 authenticated backend | `IMPLEMENTED & VERIFIED` | Canonical folder/file UUIDs and ownership, direct children, `POST /files`, metadata/delete, owner/ready file query/ask, Qdrant exact-file scope. Historical baseline; Amendment 02 file GET and public-route supersession passed approved Stage 02. |
+| PLAN_03 browser auth          | `IMPLEMENTED & VERIFIED` | Verified Next.js static-export client, one Zustand auth authority, encrypted JWT recovery, safe Axios/native fetch, auth routes, guarded minimal `/dashboard`; final recorded 20/20 criteria and real Chromium/FastAPI acceptance.                  |
+| PLAN_04 Vite migration        | `IMPLEMENTED & VERIFIED` | Amendment 01 completed migration/auth-equivalence acceptance; separately approved legacy retirement is complete.                                                                                                                                    |
+| PLAN_04 file metadata GET     | `IMPLEMENTED & VERIFIED` | Amendment 02 implements this API and folder/query supersession; approved matching-source native HTTP/PostgreSQL/Qdrant acceptance and exact preservation passed. Downstream browser consumers remain unbuilt.                                       |
+| PLAN_04 folder workspace      | `IMPLEMENTED & VERIFIED` | Amendment 03 passed approved production-SPA/current-source API/two-owner acceptance and exact fixture/resource preservation.                                                                                                                        |
+| PLAN_04 file lifecycle/Ask UI | `NOT YET BUILT`          | Must be verified independently and in the final two-user browser journey.                                                                                                                                                                           |
 
 ### Implementation authority and evidence discipline
 
 - Treat verified PLAN_01/02/03 CONTEXT/MANUAL as **recorded prerequisite evidence**, not fresh test results. PLAN_03's final Stage 02 ledger records 20/20 acceptance, 246 client tests, browser/live checks and pre/post preservation; these counts are historical, not numerical targets for Vite.
 - Preserve PLAN_03 Amendment 02's final auth architecture; the earlier grouped auth controller/`useSession` design from Amendment 01 was **SUPERSEDED**. In particular retain `credential_action` error origin, per-endpoint operation-prefixed hooks and QueryProvider-owned startup.
 - At execution time the live repository, actual tests/runtime, authoritative documentation and current approved AGENTS/PHASE supersede uploaded planning snapshots. Inspect only relevant files, not the entire tree.
-- The replacement `client/` and `GET /files/{file_id}` are **approved destinations**, not existing verified source. The legacy route `/dashboard` remains historically verified only until replaced.
+- The replacement `client/` is verified by Amendment 01. Metadata GET and folder/query consolidation are verified under Amendment 02 after approved Stage 02; `/dashboard` is historical and retired. Full drive browser workflows remain unbuilt.
 - Before writing any new implementation, inspect actual branch/worktree, dependencies, source locations and test coverage. No permission to switch branches, commit/push, discard work, mutate Docker state, or call paid providers is implied by this PLAN.
 
 ---
@@ -83,18 +84,18 @@ flowchart LR
 
 ### In scope
 
-| Domain             | Required capability                                                                                                                                                                                                     |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Frontend migration | Preserve `client/` as `client-legacy/` safely; clean React/Vite/TanStack Router scaffold; selectively migrate auth, HTTP, stream/citation utilities and needed tests; establish behaviorally equivalent production SPA. |
-| Routing            | `/`, `/register`, `/verify`, `/login`, `/drive`, `/drive/:folderId`, `/drive/file/:fileId`; retire `/dashboard`; typed UUID params and reload/history/fallback behavior.                                                |
-| Auth and transport | Preserve one Zustand auth store; existing encrypted persistence, cookie rotation, startup, guarded routes, safe GET replay and native SSE no-replay.                                                                    |
-| Drive browser      | Root and selected folder direct children, lazy traversal, Root and Up controls, loading/empty/error states, UUID-based navigation.                                                                                      |
-| Folder UI          | Create in root/current folder; edit name/description; dialog validation, pending/error handling and drive-cache invalidation.                                                                                           |
-| File lifecycle UI  | Authenticated multipart upload; metadata-only edit; display statuses; permanent delete confirmation, reconciliation and supported retry.                                                                                |
-| File metadata API  | One authenticated owner-scoped `GET /files/{file_id}` returning existing File DTO, no schema/index change.                                                                                                              |
-| File RAG UI        | File detail page, name/description/status, ready-gated question input, progressively streamed clean text, valid terminal completion and trusted citations.                                                              |
-| State/privacy      | TanStack Query in-memory drive data, 60-second initial freshness, drive-scoped invalidation/refetch, account/session-safe cache and stream lifecycle.                                                                   |
-| Evidence           | Focused tests, full appropriate regression, built SPA with real history-fallback host, approved browser/backend/data-store/provider acceptance and complete PHASE closure.                                              |
+| Domain                    | Required capability                                                                                                                                                                                                     |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Frontend migration        | Preserve `client/` as `client-legacy/` safely; clean React/Vite/TanStack Router scaffold; selectively migrate auth, HTTP, stream/citation utilities and needed tests; establish behaviorally equivalent production SPA. |
+| Routing                   | `/`, `/register`, `/verify`, `/login`, `/drive`, `/drive/:id`, `/drive/file/:fileId`; retire `/dashboard`; typed UUID params and reload/history/fallback behavior.                                                      |
+| Auth and transport        | Preserve one Zustand auth store; existing encrypted persistence, cookie rotation, startup, guarded routes, safe GET replay and native SSE no-replay.                                                                    |
+| Drive browser             | Root and selected folder direct children, lazy traversal, Root and Up controls, loading/empty/error states, UUID-based navigation.                                                                                      |
+| Folder UI                 | Create in root/current folder; edit name/description; dialog validation, pending/error handling and drive-cache invalidation.                                                                                           |
+| File lifecycle UI         | Authenticated multipart upload; metadata-only edit; display statuses; permanent delete confirmation, reconciliation and supported retry.                                                                                |
+| Backend API consolidation | Folder root/selected GETs, owner-scoped file GET with existing DTOs, complete retirement of backend `/drive` and public `/query`; no schema/index change.                                                               |
+| File RAG UI               | File detail page, name/description/status, ready-gated question input, progressively streamed clean text, valid terminal completion and trusted citations.                                                              |
+| State/privacy             | TanStack Query in-memory drive data, 60-second initial freshness, drive-scoped invalidation/refetch, account/session-safe cache and stream lifecycle.                                                                   |
+| Evidence                  | Focused tests, full appropriate regression, built SPA with real history-fallback host, approved browser/backend/data-store/provider acceptance and complete PHASE closure.                                              |
 
 ### Explicit exclusions
 
@@ -111,6 +112,8 @@ flowchart LR
 ---
 
 ## 4. CLIENT ARCHITECTURE & OWNERSHIP
+
+**Amendment 03 current state:** Folder browsing/forms use existing QueryProvider, shared Axios and installed Base UI primitives; no dependency, server, deployment or persistence boundary changed. The folder workspace is `IMPLEMENTED & VERIFIED` after approved production-SPA/two-owner Stage 02 acceptance and exact preservation; see CONTEXT/MANUAL for executed evidence.
 
 ### Runtime and deployment boundary
 
@@ -175,6 +178,8 @@ flowchart TD
 
 ### Migration checkpoints — one cohesive capability
 
+**Completed migration note:** Amendment 01 checkpoints below describe accepted historical work; the user separately approved legacy retirement afterward. Do not repeat the rename or recreate the retired directory.
+
 The approved `client/` → `client-legacy/` strategy is a **controlled cutover**, not permission for a broad rewrite. Keep this as one substantial frontend migration capability with explicit internal acceptance checkpoints:
 
 | Checkpoint                             | Required destination / verification                                                                                                                                                                                                                                                                                                                                                         |
@@ -189,14 +194,16 @@ No migration checkpoint implies that a capability is verified without executed c
 
 ### Approved route inventory
 
+**Amendment 03 implementation:** `drive.tsx` registers root `/drive`; `drive_.$id.tsx` registers independent `/drive/$id`. Both compose the shared protected workspace once; the router plugin owns generated route-tree updates. The file route remains future scope.
+
 | Browser path          | Page purpose / behavior                                                                                                                                                 |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/`                   | Session-aware entry: authenticated goes to `/drive`; unauthenticated to `/login`; uncertain `restoring/error` has explicit loading/recovery rather than redirect loops. |
 | `/register`           | Existing register UX and verification transition.                                                                                                                       |
 | `/verify`             | Existing six-character OTP, resend and safe credential-action handoff.                                                                                                  |
 | `/login`              | Existing login UX and verified-session adoption.                                                                                                                        |
-| `/drive`              | Protected drive root, `GET /drive`, direct children and root-level operations.                                                                                          |
-| `/drive/:folderId`    | Protected selected folder, `GET /drive?folder_id=<UUID>`, direct children, Root/Up and folder-level operations.                                                         |
+| `/drive`              | Protected drive root, `GET /folders`, direct children and root-level operations.                                                                                        |
+| `/drive/:id`          | Protected selected folder, `GET /folders/{folder_id}`, direct children, Root/Up and folder-level operations.                                                            |
 | `/drive/file/:fileId` | Protected metadata page, `GET /files/{file_id}`, canonical status and ready-gated Ask; back link derived from returned `folder_id`.                                     |
 | `/dashboard`          | Retired: no active feature route or authenticated redirect; reserved for future reuse. Unknown/deprecated paths use the application's ordinary not-found behavior.      |
 
@@ -212,18 +219,20 @@ src/routes/
 └── drive/
     ├── route.tsx
     ├── index.tsx
-    ├── $folderId.tsx
+    ├── $id.tsx
     └── file/
         └── $fileId.tsx
 ```
 
 - Static hosting must return the SPA entry document for **client navigation paths** on direct requests, without turning missing scripts/assets or FastAPI 404s into HTML success.
 - Param shape validation precedes HTTP; malformed IDs render non-sensitive route errors. Foreign/missing valid IDs converge on server 404, not a foreign-existence disclosure.
-- `GET /drive` returns `folder.parent_id` for the selected folder; **Root** always navigates `/drive`, **Up** uses that parent ID or Root. No full ancestor query or name-based breadcrumb reconstruction. Browser back/forward uses TanStack Router history.
+- `GET /folders/{folder_id}` returns `folder.parent_id` for the selected folder; **Root** always navigates `/drive`, **Up** uses that parent ID or Root. No full ancestor query or name-based breadcrumb reconstruction. Browser back/forward uses TanStack Router history.
 - Folder and file routes must work after a fresh reload with only their URL UUID; they cannot depend on in-memory selection from a prior listing.
 - On logout, terminal unauthenticated state or account switch, protected content and pending private streams/queries are withheld or cleared through the existing session boundary.
 
 ### Migration safety and repository layout
+
+**Current-state supersession:** Amendment 01 passed acceptance; the user separately approved retirement of `client-legacy/`, which is absent. The rename/checkpoint instructions above describe the completed migration, not work to repeat. The active layout is:
 
 ```text
 atlas/
@@ -234,18 +243,13 @@ atlas/
 │   ├── package.json
 │   ├── bun.lock
 │   └── vite.config.ts
-├── client-legacy/                  # Original Next.js reference; preserve intact
-│   ├── AGENTS.md
-│   ├── src/
-│   ├── package.json
-│   └── bun.lock
 ├── server/
 └── prompts/PHASE_02/PLAN_04/
 ```
 
 - Inspect ignored/untracked files, symlinks and pre-existing destinations before rename. Do not overwrite `client-legacy/`, delete secrets/user data, clean `node_modules` destructively, or copy legacy private env/config values into tracked files.
 - Preserve the old `client-legacy/AGENTS.md` as a legacy instruction snapshot. New `client/AGENTS.md` defines the approved Vite destination. Any related root/PHASE engineering-document edits remain explicit, reviewable, status-accurate work rather than implied implementation.
-- Retain `client-legacy/` through PLAN_04; its eventual deletion requires separate approval. Do not operate or deploy two production frontends.
+- Legacy retention through review/acceptance is complete; separate retirement approval was granted and executed. Do not recreate `client-legacy/` or operate two production frontends.
 - No Git branch creation/switch, staging, commit, push, reset, history rewrite, or unrelated worktree edits without authorization.
 
 ---
@@ -254,23 +258,33 @@ atlas/
 
 All drive endpoints require the existing Bearer authentication and server-derived current user. Ordinary browser HTTP uses the shared authenticated Axios service; no browser-provided `owner_id`/`user_id`. The server remains source of truth for canonical state and authorization.
 
-### Existing verified public contracts
+### Current public contracts — Amendment 02 supersession
 
-| Capability            | HTTP contract                 | Success and semantics                                                                                                         |
-| --------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Root listing          | `GET /drive`                  | `200` `{folder:null, folders:Folder[], files:File[]}`; direct children only.                                                  |
-| Folder listing        | `GET /drive?folder_id=<UUID>` | `200` `{folder:Folder, folders:Folder[], files:File[]}`; selected owner folder; direct children only.                         |
-| Folder creation       | `POST /folders`               | `201` Folder DTO; `name`, optional `description`, optional nullable `parent_id`; duplicates allowed.                          |
-| Folder metadata       | `PATCH /folders/{folder_id}`  | `200` Folder DTO; editable name/description only, no parent change.                                                           |
-| Canonical upload      | `POST /files`                 | Multipart `file`, `name`, optional `description`, optional `folder_id`; `201` ready File DTO only after successful ingestion. |
-| File metadata         | `PATCH /files/{file_id}`      | `200` File DTO; name/description only; no content replacement/reindex.                                                        |
-| Permanent deletion    | `DELETE /files/{file_id}`     | `204` empty body only after exact Qdrant point cleanup and PostgreSQL file-row deletion.                                      |
-| File scored retrieval | `POST /files/{file_id}/query` | Existing owner/ready-gated scored chunks; no additional UI necessary.                                                         |
-| File Ask              | `POST /files/{file_id}/ask`   | Existing owner/ready-gated native SSE answer/citations/done semantics.                                                        |
+**Explicit supersession:** PLAN_04 Amendment 02 replaces historical `GET /drive` root/query modes with the two folder GETs and completely removes public `POST /files/{file_id}/query`. No aliases, redirects or deprecation routes remain. Historical PLAN_02 verification is unchanged. Amendment 02 is `IMPLEMENTED & VERIFIED` after separately approved Stage 02 acceptance recorded in CONTEXT. Browser `/drive` routes remain unchanged.
+
+Both folder GETs reject **all** query parameters, including `folder_id`, `owner_id`, `user_id` and unknown keys, with sanitized `422 UNPROCESSABLE_ENTITY`. The logical root is not a persisted folder row.
+
+**Approved naming follow-up:** `pipeline/folders.py` owns folder orchestration; shared `ValidationRoute` lives in `routers/validation.py`. Endpoint DTOs live under `schemas/folders/` and `schemas/files/`. `FolderListingResponse` names the existing composite listing shape in OpenAPI. Shared validation now says `Invalid request input`; status 422 and code `UNPROCESSABLE_ENTITY` remain unchanged. Historical migration identifiers and browser `/drive` paths are preserved.
+
+**Approved router consolidation:** all five `/files` handlers live in `routers/files.py`, registered once by `main.py`; upload and metadata route-class overrides preserve their earlier validation/authentication behavior, and Ask retains its existing dependency/SSE path. Pipeline ownership and public contracts are unchanged.
+
+The complete API has 18 application operations: system 2, auth 7, folders 4, files 5. The 15 non-retired operations preserve their contracts; generated documentation facilities are excluded.
+
+| Capability         | HTTP contract                | Success and semantics                                                                                                         |
+| ------------------ | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Root listing       | `GET /folders`               | `200` `{folder:null, folders:Folder[], files:File[]}`; direct children only.                                                  |
+| Folder listing     | `GET /folders/{folder_id}`   | `200` `{folder:Folder, folders:Folder[], files:File[]}`; selected owner folder; direct children only.                         |
+| Folder creation    | `POST /folders`              | `201` Folder DTO; `name`, optional `description`, optional nullable `parent_id`; duplicates allowed.                          |
+| Folder metadata    | `PATCH /folders/{folder_id}` | `200` Folder DTO; editable name/description only, no parent change.                                                           |
+| File detail        | `GET /files/{file_id}`       | `200` existing ten-field File DTO for the owner in any lifecycle state; read-only, no Qdrant/provider work.                   |
+| Canonical upload   | `POST /files`                | Multipart `file`, `name`, optional `description`, optional `folder_id`; `201` ready File DTO only after successful ingestion. |
+| File metadata      | `PATCH /files/{file_id}`     | `200` File DTO; name/description only; no content replacement/reindex.                                                        |
+| Permanent deletion | `DELETE /files/{file_id}`    | `204` empty body only after exact Qdrant point cleanup and PostgreSQL file-row deletion.                                      |
+| File Ask           | `POST /files/{file_id}/ask`  | Existing owner/ready-gated native SSE answer/citations/done semantics.                                                        |
 
 ### Approved **new** endpoint: `GET /files/{file_id}`
 
-**State:** `NOT YET BUILT` until implemented and separately verified. This is the sole new backend public contract in PLAN_04.
+**State:** `IMPLEMENTED & VERIFIED` under Amendment 02; local and approved matching-source native HTTP/PostgreSQL/Qdrant evidence is in CONTEXT. Folder reads and public-query retirement are the other approved contract changes. The retained older API image was not rebuilt or treated as matching-source evidence.
 
 ```text
 GET /files/{file_id}
@@ -279,7 +293,7 @@ Authorization: Bearer <access JWT>
 
 - Resolve the UUID and authenticated owner in **PostgreSQL** using existing repository/service patterns. Return HTTP `200` with the **existing public File DTO**, no additional fields or owner identity.
 - Return `404 FILE_NOT_FOUND` for missing and foreign file IDs identically. Malformed path IDs follow established FastAPI/Pydantic validation/error behavior; do not reveal existence from parsing or distinguish foreign resources.
-- Permit metadata read for owned `processing`, `ready` and `deleting` files. **`ready` is required for `/query`/`/ask`, not for metadata read.**
+- Permit metadata read for owned `processing`, `ready` and `deleting` files. **`ready` is required for `/ask`, not for metadata read.**
 - Do not add a schema migration, file index, Qdrant call, embedding, storage of original bytes, provider call, new permission model, or changes to existing upload/mutation routes.
 - Reuse current error serializer `{ "error": "...", "code": "..." }`, established auth dependency and existing File DTO mapping/validation. No new React or browser-specific backend responsibilities.
 - Verify exact owned/foreign/missing/status/error/unauthenticated behavior with deterministic tests and, after authorization, real HTTP/PostgreSQL; assert this path never calls Qdrant/LLM.
@@ -324,7 +338,7 @@ The response has no client-authoritative owner field, no persistent original-blo
 
 - Reuse actual FastAPI/Pydantic constraints. Existing file name: trimmed, 1–100 Python characters, restricted approved Unicode/punctuation set; optional description normalized to nullable at most 250 characters. Folder validation follows its separately verified server rules; do not assume file and folder validators are identical without checking targeted source.
 - Validate with Zod at the corresponding browser input and HTTP response boundaries. Do not invent new public DTO properties or reinterpret blank/omitted/null PATCH semantics. In particular inspect server PATCH update behavior before choosing client payload shape.
-- Stable privacy codes: `404 FOLDER_NOT_FOUND`, `404 FILE_NOT_FOUND`; only after file ownership is established may non-ready `/query`/`/ask` return `409 FILE_NOT_READY`. A 404 on a resource must not expose a foreign owner's existence.
+- Stable privacy codes: `404 FOLDER_NOT_FOUND`, `404 FILE_NOT_FOUND`; only after file ownership is established may non-ready `/ask` return `409 FILE_NOT_READY`. A 404 on a resource must not expose a foreign owner's existence.
 - File states are **exactly** `processing`, `ready`, `deleting`. There is no durable `failed` file status; an interrupted known ingestion failure may leave a non-ready recovery marker and no background worker repairs it automatically.
 - `processing` is not ready for Ask or user deletion; `ready` may be asked or deleted; `deleting` is non-queryable and may be retried idempotently with existing DELETE semantics.
 - Known ingestion failures normally compensate exact-file Qdrant writes and remove the canonical processing row; partial cleanup failure or process crash can leave a non-ready row and must not be disguised as durable success.
@@ -336,7 +350,7 @@ The response has no client-authoritative owner field, no persistent original-blo
 ### Folder browsing and navigation
 
 1. AuthGate confirms a validated authenticated session; only then can folder/file data queries become active.
-2. Root loads `GET /drive`; folder path UUID loads `GET /drive?folder_id=<UUID>`; parse and runtime-validate `folder`, `folders` and `files` before publication.
+2. Root loads `GET /folders`; folder path UUID loads `GET /folders/{folder_id}`; parse and runtime-validate `folder`, `folders` and `files` before publication.
 3. Present only the returned location's immediate folders/files; clicking a folder navigates to its UUID route, triggering the corresponding direct-child query.
 4. Show selected location name/description, Root and Up (using the selected `folder.parent_id`), and distinct loading, empty, recoverable error, and privacy-safe not-found states. No recursive eager fetch.
 5. Navigate to a file UUID page only by its canonical ID; that page independently calls the new owner-scoped metadata GET and does not rely on the source folder list still being cached.
@@ -354,7 +368,7 @@ The response has no client-authoritative owner field, no persistent original-blo
 | Stream/session provisional answer/citations              | Existing selected-file ask hook and component-local state; never cached as canonical drive data. |
 | Canonical folder/file ownership/status                   | PostgreSQL through the verified FastAPI contract.                                                |
 
-- **Query-key identity:** include authenticated owner ID **and** a session/generation discriminator where available from existing lifecycle, plus domain and folder/file UUID (`root` has an explicit sentinel). These are internal cache identities, not authorization tokens. Do not invent a second auth store to produce them.
+- **Folder query-key supersession — Amendment 03:** use EXACTLY `['drive', 'folder', 'root']` and `['drive', 'folder', folderUUID]`; owner/session-in-key guidance is SUPERSEDED FOR FOLDER QUERY KEYS. The privacy invariant remains LOCKED: usable auth gating, existing QueryProvider cancellation/cache retirement and lease/user/abort checks MUST reject previous-session results. Future file-key decisions are unchanged.
 - Keep remote drive data in TanStack Query, not a duplicate router loader cache or Zustand. The router owns navigation; optional loader prefetch is not needed for Phase 2.
 - Initial `staleTime` target: **60 seconds**, in-memory. Navigating to a recently loaded location may reuse fresh data; a full browser document reload rebuilds cache and requires auth revalidation and a fresh authorized API fetch. No persisted drive cache.
 - **Confirmed mutation:** invalidate **all drive-related** query keys (root, folders, file details where relevant), then refetch mounted active queries; leave unrelated auth queries untouched. Inactive invalidated locations refetch when revisited. Do not hard-refresh/recreate the SPA or use global QueryClient clearing for ordinary mutations.
@@ -379,6 +393,8 @@ The response has no client-authoritative owner field, no persistent original-blo
 ## 8. FOLDER & FILE CRUD USER EXPERIENCE
 
 ### Modal conventions
+
+**Amendment 03 current state:** Minimal folder create/edit dialogs are implemented using installed Base UI and RHF/Zod, without new dependencies. Uncertain writes require explicit canonical refresh before resubmission; their drive queries are marked stale without automatic refetch/replay so revisiting cannot reuse presumed-fresh pre-write state. Approved Stage 02 verified actual form events, focus/keyboard behavior, history, two-owner isolation and exact preservation.
 
 - Use existing shadcn dialog/alert-dialog primitives and React Hook Form + Zod; explicit Cancel and task-appropriate submit buttons. Dialogs remain route-local or domain-component-local, with visible pending, validation, server and uncertainty feedback.
 - A dialog Cancel before submission closes without mutation; while a request is in flight, do not promise cancellation/rollback of a server-side operation. Prevent duplicate submissions and handle dismissal deterministically.
@@ -438,7 +454,7 @@ Do not claim `204` before the backend confirms exact-file Qdrant and PostgreSQL 
 
 ### File detail page and readiness
 
-- `/drive/file/:fileId` loads `GET /files/{file_id}` with current authenticated session. Present canonical name, optional description, source metadata/status as appropriate, and a link to `/drive` or `/drive/:folderId` from canonical `folder_id`.
+- `/drive/file/:fileId` loads `GET /files/{file_id}` with current authenticated session. Present canonical name, optional description, source metadata/status as appropriate, and a link to `/drive` or `/drive/:id` from canonical `folder_id`.
 - File metadata may be visible when `processing` or `deleting`, but Ask is disabled unless the server-returned status is `ready`. Treat `ready` UI gating as convenience only; the server independently authorizes ownership/readiness for Ask.
 - The file page is independent of the previous folder page's cached list, supports direct/deep links, and does not display prior-account file data during restoration.
 
@@ -523,15 +539,15 @@ The backend retrieval policy, native Gemini SDK, Qdrant metadata, chunking, `top
 
 These are the **approved planning order** for five focused Amendments, **not assigned Amendment artifact IDs or executed history**. Actual numbered Amendment files and their chronological CONTEXT entries are created only when authorized. Each workstream must have a separately reviewable completion gate; a later workstream does not silently inherit unverified prerequisites.
 
-| Order | Capability / intended Amendment               | Dependencies                                                          | Completion boundary                                                                                                                                                        |
-| ----- | --------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1** | **Vite + TanStack Router migration**          | Verified PLAN_03 legacy Next.js auth; approved frontend supersession  | All five migration checkpoints; equivalent auth/route behavior, strict build/tests and separately approved production-SPA browser/live acceptance; preserve legacy client. |
-| **2** | **Owner-scoped file-detail API**              | Verified PLAN_02 File DTO and owner lookup                            | `GET /files/{id}` implementation, safe 404/status coverage, packaged backend regression and approved real PostgreSQL/HTTP verification; no Qdrant work.                    |
-| **3** | **Drive browser and folder management**       | Verified migration, existing `GET /drive`, folder POST/PATCH          | Root/nested typed routes, Root/Up, create/edit dialogs, query-key isolation, drive refetch, browser/real backend folder acceptance.                                        |
-| **4** | **File lifecycle UI**                         | Verified migration/drive pages; canonical PLAN_02 upload/PATCH/DELETE | Authenticated multipart, edit/delete dialogs, accurate status/reconciliation, exact UUID, owner/failed-mutation/cleanup tests and approved real-store lifecycle.           |
-| **5** | **File page, RAG and final PHASE acceptance** | Verified GET file endpoint, drive/file UI, auth/stream foundations    | Dedicated file detail, native SSE and trusted citations, cross-account isolation, full browser-to-PostgreSQL/Qdrant journey, all PLAN and 15 PHASE criteria evidenced.     |
+| Order | Capability / intended Amendment               | Dependencies                                                          | Completion boundary                                                                                                                                                                                                              |
+| ----- | --------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1** | **Vite + TanStack Router migration**          | Verified PLAN_03 legacy Next.js auth; approved frontend supersession  | All five migration checkpoints; equivalent auth/route behavior, strict build/tests and separately approved production-SPA browser/live acceptance; preserve legacy through acceptance (separately approved retirement complete). |
+| **2** | **Backend API contract consolidation**        | Verified PLAN_02 File DTO and owner lookup                            | Both folder GETs, metadata file GET, public query/drive removal, exact 18-operation inventory, regression and separately approved real PostgreSQL/HTTP acceptance; preserve internal RAG.                                        |
+| **3** | **Drive browser and folder management**       | Verified migration, existing `GET /folders`, folder POST/PATCH        | Root/nested typed routes, Root/Up, create/edit dialogs, query-key isolation, drive refetch, browser/real backend folder acceptance.                                                                                              |
+| **4** | **File lifecycle UI**                         | Verified migration/drive pages; canonical PLAN_02 upload/PATCH/DELETE | Authenticated multipart, edit/delete dialogs, accurate status/reconciliation, exact UUID, owner/failed-mutation/cleanup tests and approved real-store lifecycle.                                                                 |
+| **5** | **File page, RAG and final PHASE acceptance** | Verified GET file endpoint, drive/file UI, auth/stream foundations    | Dedicated file detail, native SSE and trusted citations, cross-account isolation, full browser-to-PostgreSQL/Qdrant journey, all PLAN and 15 PHASE criteria evidenced.                                                           |
 
-**Server-first exception is scoped:** Workstream 1 is frontend-only and can precede the new API. Workstream 2 implements/verifies `GET /files/{id}` **before** workstream 5 consumes it. Workstreams 3–4 rely on already verified PLAN_02 endpoints; no speculative backend design is delegated to Codex.
+**Server-first exception is scoped:** Workstream 1 is frontend-only and can precede the new API. Workstream 2 consolidates folder/file APIs and verifies `GET /files/{id}` **before** workstreams 3 and 5 consume the changed contracts. Workstream 4 relies on unchanged verified PLAN_02 mutations; no speculative backend design is delegated to Codex.
 
 ### Two-stage execution gate for each workstream
 
@@ -568,7 +584,7 @@ PLAN_04 becomes `IMPLEMENTED & VERIFIED` only when all applicable criteria below
 
 ### Migration and authenticated route equivalence
 
-1. **AC-01 — Safe cutover:** Original Next.js `client/` is inventoried and preserved intact as `client-legacy/`; no overwrite, unrelated work loss, unapproved Git mutation or legacy secret import. New `client/` is canonical and deployable.
+1. **AC-01 — Safe cutover:** Original Next.js `client/` was inventoried and preserved intact as `client-legacy/` through acceptance, then retired with separate approval; no overwrite, unrelated work loss, unapproved Git mutation or legacy secret import. New `client/` is canonical and deployable.
 2. **AC-02 — Vite toolchain:** New React/Vite/TanStack Router SPA uses Bun + canonical `bun.lock`, strict TypeScript, expected aliases/formatting, Tailwind/shadcn, tracked generated route tree, and passes frozen install, lint, format-check, typecheck, tests and production `dist/` build.
 3. **AC-03 — Auth parity:** Registration, exact OTP verify/resend, login, `credential_action` handoff, encryption/key recovery, restoration/refresh, logout/uncertainty, session race prevention and cross-account privacy preserve verified PLAN_03 behavior on the new app.
 4. **AC-04 — Routing/deployment:** `/`, auth routes, `/drive`, direct nested folder/file URLs, reload/history and static-host fallback work in an actual built SPA; `/dashboard` and superseded Next routes are not active, and no BFF/runtime server is introduced.
@@ -576,7 +592,7 @@ PLAN_04 becomes `IMPLEMENTED & VERIFIED` only when all applicable criteria below
 ### Canonical file detail and drive hierarchy
 
 5. **AC-05 — File detail API:** Authenticated `GET /files/{id}` returns the existing owned File DTO for `processing`/`ready`/`deleting`; foreign/missing are equivalent `404 FILE_NOT_FOUND`, unauthenticated access is denied, and the endpoint does not call Qdrant or introduce a migration.
-6. **AC-06 — Browse:** Root and arbitrarily nested folders display only direct children from `GET /drive`; typed UUID routes, Root/Up, empty/loading/recoverable error, malformed ID and privacy-safe 404 states behave correctly after navigation/reload.
+6. **AC-06 — Browse:** Root and arbitrarily nested folders display only direct children from `GET /folders` and `GET /folders/{folder_id}`; typed UUID routes, Root/Up, empty/loading/recoverable error, malformed ID and privacy-safe 404 states behave correctly after navigation/reload.
 7. **AC-07 — Folder mutations:** Create and name/description edit dialogs validate against backend rules, use canonical UUID/parent, preserve duplicate-name behavior and never expose folder move/delete; confirmed writes invalidate drive data and refetch active views without hard reload.
 8. **AC-08 — Drive cache privacy:** TanStack Query owns remote data with in-memory freshness and account/session-safe identity; all confirmed drive mutations invalidate drive namespace, unrelated auth cache remains intact, stale responses cannot cross sessions, and no persisted or duplicate cache is added.
 
@@ -592,7 +608,7 @@ PLAN_04 becomes `IMPLEMENTED & VERIFIED` only when all applicable criteria below
 
 14. **AC-14 — Isolation and recovery:** Two independent owners cannot browse/access/ask/cite another owner's files or folders; FastAPI blocks unauthorized/non-ready work before retrieval/generation; auth restoration, logout/login and account switch preserve privacy in real browser and backend checks.
 15. **AC-15 — Full browser journey:** Production-built SPA against actual FastAPI/PostgreSQL/Qdrant completes register → verify → drive → nested folder → upload → edit → ready-file Ask → session restoration/relogin → foreign denial → permanent delete; demonstrates exact cleanup and unmodified pre-existing resources.
-16. **AC-16 — Scope and regression:** Existing PLAN_01/02/03 contracts, RAG semantics, auth HTTP behavior and required tests remain valid after migration; none of the explicitly excluded features or unapproved dependencies/services/APIs appears.
+16. **AC-16 — Scope and regression:** Existing PLAN_01/02/03 contracts (except the explicitly superseded Amendment 02 public routes), RAG semantics, auth HTTP behavior and required tests remain valid after migration; none of the explicitly excluded features or unapproved dependencies/services/APIs appears.
 17. **AC-17 — Evidence and PHASE closure:** Codex records exact Stage 01/approved Stage 02 commands/outcomes, known limitations, fixture/resource preservation, PLAN_04 criterion ledger and complete fifteen-criterion PHASE_02 crosswalk in CONTEXT/MANUAL before assigning any verified completion status.
 
 ### Crosswalk to all fifteen PHASE_02 acceptance criteria
@@ -610,7 +626,7 @@ This crosswalk is a **required evidence map**, not a claim that the new PLAN_04 
 | **AC-07** Canonical metadata; no original persistence            | PLAN_02 server                       | New upload/detail/edit UI plus backend storage inspection (2, 4, 5).                             |
 | **AC-08** Single-UUID transient ingestion; compensating cleanup  | PLAN_02 server                       | Live upload, `processing` → `ready`, known-failure evidence and PG/Qdrant exact scope (4, 5).    |
 | **AC-09** Metadata edit does not reindex                         | PLAN_02 server                       | Confirm file PATCH changes DB metadata, no Qdrant vector rewrite (4, 5).                         |
-| **AC-10** Only owner + ready may query/ask                       | PLAN_02 server                       | Ready-gated new file page and actual pre-retrieval auth denial (5).                              |
+| **AC-10** Only owner + ready may retrieve/ask                    | PLAN_02 server                       | Ready-gated new file page and actual pre-retrieval auth denial (5).                              |
 | **AC-11** Two-owner folder/file/retrieval/ask/citation isolation | PLAN_01/02                           | Browser and real backend foreign resource/ask denial and no leaked private cache (2–5).          |
 | **AC-12** Retryable deleting → exact PG/Qdrant cleanup           | PLAN_02 server                       | File confirmation/retry UX and real scoped cleanup with preserved unrelated data (4, 5).         |
 | **AC-13** Full static browser end-to-end                         | PLAN_03 limited auth browser only    | New Vite `dist/`, history host/deep links and complete authenticated drive/RAG journey (1, 3–5). |
@@ -641,7 +657,7 @@ This crosswalk is a **required evidence map**, not a claim that the new PLAN_04 
 flowchart TD
     Register["Register + database-visible OTP"] --> Verify["Verify; validated auth session"]
     Verify --> Drive["/drive — root direct children"]
-    Drive --> Folder["Create folder → /drive/:folderId"]
+    Drive --> Folder["Create folder → /drive/:id"]
     Folder --> Nested["Create nested folder; Root / Up"]
     Nested --> Upload["POST /files multipart<br/>target current folder"]
     Upload --> Refresh["Invalidate + refetch drive queries"]

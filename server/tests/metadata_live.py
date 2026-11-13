@@ -1,4 +1,4 @@
-"""Opt-in drive acceptance; all writes and reversals use a disposable database.
+"""Opt-in folder/file acceptance; all writes and reversals use a disposable database.
 
 The configured development database is never migrated or written by this helper.
 Run only after approval for live PostgreSQL verification. No Qdrant access occurs.
@@ -15,8 +15,8 @@ from sqlalchemy.orm import Session as OrmSession, sessionmaker
 from sqlalchemy import create_engine, delete, inspect, select, text
 
 from app.core.constants import constants
-
 from app.db.postgres import Database, url
+
 from app.models.postgres import Base, File, Folder, Session, User, Verification
 
 from tests.postgres_live import reject, schema as identity_schema
@@ -25,14 +25,14 @@ from tests.postgres_live import constraints as identity_constraints
 
 def migrate(name: str, action: str, target: str) -> None:
     """Restrict explicit migration execution to this helper's disposable names."""
-    assert name.startswith("atlas_drive_verify_") and len(name) == 51
+    assert name.startswith("atlas_metadata_verify_") and len(name) == 54
     assert action in {"upgrade", "downgrade"}
     assert target in {"0001_identity", "head"}
     result = subprocess.run(
         [sys.executable, "-m", "alembic", action, target],
         env={**os.environ, "POSTGRES_DB": name}, capture_output=True, text=True,
     )
-    assert result.returncode == 0, "Disposable drive migration failed; inspect safely"
+    assert result.returncode == 0, "Disposable folder/file migration failed; inspect safely"
 
 
 def schema(database: Database) -> None:
@@ -77,7 +77,7 @@ def schema(database: Database) -> None:
 
 
 def deletion(session: OrmSession, user: User, constraint: str) -> None:
-    """Require user deletion to fail without losing canonical owned drive rows."""
+    """Require user deletion to fail without losing canonical owned folder/file rows."""
     try:
         with session.begin_nested():
             session.execute(delete(User).where(User.id == user.id))
@@ -85,7 +85,8 @@ def deletion(session: OrmSession, user: User, constraint: str) -> None:
         assert getattr(getattr(error.orig, "diag", None),
                        "constraint_name", None) == constraint
     else:
-        raise AssertionError("Drive ownership did not restrict user deletion")
+        raise AssertionError(
+            "folder/file ownership did not restrict user deletion")
     assert session.get(User, user.id) is user
 
 
@@ -93,7 +94,7 @@ def constraints(database: Database) -> None:
     """Exercise duplicate names, adjacency, ownership, lifecycle, and restrictions."""
     now = datetime.now(timezone.utc)
     with database.session() as session:
-        users = [User(name="Synthetic", email=f"drive-{index}@example.invalid",
+        users = [User(name="Synthetic", email=f"metadata-{index}@example.invalid",
                       password="synthetic-placeholder", created_at=now, updated_at=now)
                  for index in range(3)]
         session.add_all(users)
@@ -169,7 +170,7 @@ def main() -> None:
     admin = create_engine(url(constants.postgres).set(database="postgres"),
                           isolation_level="AUTOCOMMIT", hide_parameters=True,
                           connect_args={"connect_timeout": 5})
-    name = "atlas_drive_verify_" + uuid4().hex
+    name = "atlas_metadata_verify_" + uuid4().hex
     database = None
     created = False
     try:
@@ -215,10 +216,10 @@ def main() -> None:
             for table in ("folders", "files"):
                 assert connection.execute(
                     text(f"SELECT count(*) FROM {table}")).scalar_one() == 0
-        print(json.dumps({"drive_schema": "passed", "ownership_and_names": "passed",
+        print(json.dumps({"canonical_schema": "passed", "ownership_and_names": "passed",
                           "lifecycle_and_size": "passed", "user_delete_restrict": "passed",
                           "identity_cascade_and_rollback": "passed", "identity_preservation": "passed",
-                          "disposable_identity_drive_identity_drive": "passed"}))
+                          "disposable_identity_metadata_identity_metadata": "passed"}))
     finally:
         if database is not None:
             database.close()

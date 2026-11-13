@@ -22,7 +22,10 @@ const user = {
   name: "Canonical <script>profile</script>",
   email: "canonical@example.test",
 };
-const paths = ["/", "/login", "/register", "/verify", "/drive"];
+const folderPath = "/drive/00000000-0000-4000-8000-000000000005";
+const paths = ["/", "/login", "/register", "/verify", "/drive", folderPath];
+const protectedPath = (path: string) =>
+  path === "/drive" || path === folderPath;
 
 const createTestRouter = (path: string) => {
   return createRouter({
@@ -78,7 +81,7 @@ for (const path of paths) {
       } else if (status === "error") {
         expect(html).toContain("Retry session check");
         expect(html).not.toContain("<form");
-      } else if (status === "authenticated" && path === "/drive") {
+      } else if (status === "authenticated" && protectedPath(path)) {
         expect(html).toContain("canonical@example.test");
         expect(html).toContain(
           "Canonical &lt;script&gt;profile&lt;/script&gt;",
@@ -88,7 +91,7 @@ for (const path of paths) {
       } else if (
         status === "unauthenticated" &&
         path !== "/" &&
-        path !== "/drive"
+        !protectedPath(path)
       ) {
         expect(html).toContain("<form");
       } else {
@@ -96,7 +99,7 @@ for (const path of paths) {
         expect(html).not.toContain("<form");
       }
 
-      if (status !== "authenticated" || path !== "/drive") {
+      if (status !== "authenticated" || !protectedPath(path)) {
         expect(html).not.toContain("canonical@example.test");
       }
 
@@ -108,7 +111,8 @@ for (const path of paths) {
 test.each([
   "/dashboard",
   "/unknown",
-  "/drive/00000000-0000-4000-8000-000000000005",
+  "/drive/invalid",
+  "/drive/file",
   "/drive/file/00000000-0000-4000-8000-000000000005",
 ])(
   "%s has a neutral not-found result without protected content",
@@ -127,8 +131,15 @@ test.each([
   },
 );
 
-test("the generated route tree registers only this Amendment's five routes", () => {
+test("the generated route tree registers only this Amendment's six routes", () => {
   const router = createTestRouter("/");
 
-  expect(Object.keys(router.routesByPath).sort()).toEqual(paths.toSorted());
+  expect(Object.keys(router.routesByPath).sort()).toEqual([
+    "/",
+    "/drive",
+    "/drive/$id",
+    "/login",
+    "/register",
+    "/verify",
+  ]);
 });

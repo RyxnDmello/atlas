@@ -14,11 +14,11 @@ from sqlalchemy import BigInteger, CheckConstraint, ColumnDefault, DateTime, For
 
 from app.models.postgres import Base, File, Folder
 
-from tests import drive_live
+from tests import metadata_live
 
 
-class DriveMetadataTests(TestCase):
-    """Prove the exact drive contract without connecting to a datastore."""
+class CanonicalMetadataTests(TestCase):
+    """Prove the exact folder/file contract without connecting to a datastore."""
 
     def test_inventory_columns_types_nullability_and_defaults(self) -> None:
         self.assertEqual(set(Base.metadata.tables), {
@@ -96,8 +96,8 @@ class DriveMetadataTests(TestCase):
                 f"ix_{table.name}_owner_id_{location}": (("owner_id", location), False)})
 
 
-class DriveMigrationTests(TestCase):
-    """Check the revision graph and isolated drive DDL in both directions."""
+class MetadataMigrationTests(TestCase):
+    """Check the revision graph and isolated folder/file DDL in both directions."""
 
     def config(self, buffer: io.StringIO) -> Config:
         """Use the production Alembic environment with an offline output buffer."""
@@ -157,14 +157,14 @@ class DriveMigrationTests(TestCase):
             self.assertNotIn(f"DROP TYPE {name}", sql)
 
 
-class DriveAcceptanceSafetyTests(TestCase):
+class MetadataAcceptanceSafetyTests(TestCase):
     """Verify destructive acceptance cannot target the configured normal database."""
 
     def test_migration_rejects_non_disposable_database_names(self) -> None:
-        with patch.object(drive_live.subprocess, "run") as run:
-            for name in ("postgres", "atlas", "atlas_drive_verify_", "other_" + "a" * 32):
+        with patch.object(metadata_live.subprocess, "run") as run:
+            for name in ("postgres", "atlas", "atlas_metadata_verify_", "other_" + "a" * 32):
                 with self.subTest(name=name), self.assertRaises(AssertionError):
-                    drive_live.migrate(name, "downgrade", "0001_identity")
+                    metadata_live.migrate(name, "downgrade", "0001_identity")
             run.assert_not_called()
 
     def test_failure_after_creation_still_drops_only_disposable_database(self) -> None:
@@ -174,13 +174,13 @@ class DriveAcceptanceSafetyTests(TestCase):
         scope.__enter__ = Mock(return_value=connection)
         scope.__exit__ = Mock(return_value=False)
         admin.connect.return_value = scope
-        with patch.object(drive_live, "create_engine", return_value=admin), patch.object(
-                drive_live, "migrate", side_effect=RuntimeError("injected")) as migrate:
+        with patch.object(metadata_live, "create_engine", return_value=admin), patch.object(
+                metadata_live, "migrate", side_effect=RuntimeError("injected")) as migrate:
             with self.assertRaisesRegex(RuntimeError, "injected"):
-                drive_live.main()
+                metadata_live.main()
         name = migrate.call_args.args[0]
-        self.assertTrue(name.startswith("atlas_drive_verify_"))
-        self.assertEqual(len(name), 51)
+        self.assertTrue(name.startswith("atlas_metadata_verify_"))
+        self.assertEqual(len(name), 54)
         self.assertEqual([str(call.args[0]) for call in connection.execute.call_args_list], [
             f'CREATE DATABASE "{name}"', f'DROP DATABASE "{name}" WITH (FORCE)'])
         admin.dispose.assert_called_once_with()

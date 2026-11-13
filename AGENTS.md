@@ -2,7 +2,7 @@
 
 Repository-wide engineering contract for Atlas. This file applies to the entire repository.
 
-- [client/AGENTS.md](client/AGENTS.md): React/Vite/TanStack Router client standards (PLAN_04 Amendment 01 migration `IMPLEMENTED & VERIFIED`; drive workflows pending).
+- [client/AGENTS.md](client/AGENTS.md): React/Vite/TanStack Router client standards (PLAN_04 migration and folder workspace `IMPLEMENTED & VERIFIED`; file workflows pending).
 - [server/AGENTS.md](server/AGENTS.md): backend-specific standards.
 - [.agents/skills/rag/SKILL.md](.agents/skills/rag/SKILL.md): detailed RAG pipeline contracts.
 - Scoped instructions may specialize, but MUST NOT weaken, repository-wide LOCKED decisions.
@@ -172,11 +172,11 @@ Use these labels exactly; do not infer verification from code existence or docum
 - **Completed PLAN:** `PHASE_02_PLAN_01 — PostgreSQL Identity & Authentication Foundation`.
 - **Completed PLAN:** `PHASE_02_PLAN_02 — Authenticated Drive Backend`.
 - **Completed PLAN:** `PHASE_02_PLAN_03 — Client Authentication` (`IMPLEMENTED & VERIFIED`); Amendments 01 and 02 are verified; Amendment 03 registration/verification/resend UI is `IMPLEMENTED & VERIFIED`; Amendment 04 login/logout UI is `IMPLEMENTED & VERIFIED`; Amendment 05 protected navigation/minimal dashboard and PLAN_03 are `IMPLEMENTED & VERIFIED` after approved Stage 02 acceptance.
-- **Current PLAN:** `PHASE_02_PLAN_04 — Drive Dashboard & Phase Acceptance` (`IMPLEMENTED, UNVERIFIED`; Amendment 01 migration `IMPLEMENTED & VERIFIED`).
+- **Current PLAN:** `PHASE_02_PLAN_04 — Drive Dashboard & Phase Acceptance` (`IMPLEMENTED, UNVERIFIED`; Amendment 01 migration, Amendment 02 backend consolidation and Amendment 03 folder workspace `IMPLEMENTED & VERIFIED` after their approved Stage 02 acceptance).
 - **Last inspected repository branch:** `phase-02/plan-04`; inspect it again before each task.
 - **Planned PLAN_04 branch convention:** `phase-02/plan-04`; inspect current Git state; do not switch branches automatically.
 - **Branch source of truth:** inspect the current local Git state before work; never switch branches automatically.
-- PLAN_03 remains the verified historical Next.js authentication baseline. After PLAN_04 Amendment 01 passed approved Stage 02, the user separately approved removal of `client-legacy/`; that directory is retired. The canonical Vite/React/TanStack Router client and minimal protected `/drive` are verified; `/dashboard` is retired. Drive workflows and file-detail GET remain `NOT YET BUILT`. See [PLAN_04 CONTEXT](prompts/PHASE_02/PLAN_04/PHASE_02_PLAN_04_CONTEXT.md).
+- PLAN_03 remains the verified historical Next.js authentication baseline. After PLAN_04 Amendment 01 passed approved Stage 02, the user separately approved removal of `client-legacy/`; that directory is retired. The canonical Vite/React/TanStack Router client and minimal protected `/drive` are verified; `/dashboard` is retired. Amendment 03 root/nested folder browsing and folder dialogs are `IMPLEMENTED & VERIFIED` after approved production-SPA/two-owner acceptance and exact fixture/resource preservation; file workflows remain `NOT YET BUILT`. Amendment 02 folder/file API consolidation remains `IMPLEMENTED & VERIFIED`. See [PLAN_04 CONTEXT](prompts/PHASE_02/PLAN_04/PHASE_02_PLAN_04_CONTEXT.md).
 
 ### Current capability maturity
 
@@ -190,17 +190,19 @@ Use these labels exactly; do not infer verification from code existence or docum
 | Credentialed cookie CORS                               | `IMPLEMENTED & VERIFIED` |
 | Bearer current-user resolution and `GET /auth`         | `IMPLEMENTED & VERIFIED` |
 | Canonical folder/file persistence                      | `IMPLEMENTED & VERIFIED` |
-| Recursive folders and direct-child APIs                | `IMPLEMENTED & VERIFIED` |
+| Recursive folders and historical direct-child APIs     | `IMPLEMENTED & VERIFIED` |
 | Authenticated canonical file upload                    | `IMPLEMENTED & VERIFIED` |
 | File metadata mutation and permanent deletion          | `IMPLEMENTED & VERIFIED` |
-| Owner-authorized single-file query and ask             | `IMPLEMENTED & VERIFIED` |
+| Owner-authorized internal retrieval and public Ask     | `IMPLEMENTED & VERIFIED` |
 | Phase 2 browser registration, verification, and resend | `IMPLEMENTED & VERIFIED` |
 | Phase 2 browser login/logout UI                        | `IMPLEMENTED & VERIFIED` |
 | Shared browser auth/session foundation                 | `IMPLEMENTED & VERIFIED` |
 | Protected `/dashboard` entry (legacy Next.js)          | `IMPLEMENTED & VERIFIED` |
 | Vite + TanStack Router migration and `/drive` entry    | `IMPLEMENTED & VERIFIED` |
-| Owner-scoped `GET /files/{file_id}`                    | `NOT YET BUILT`          |
-| Full drive browser and file/folder workflows           | `NOT YET BUILT`          |
+| Consolidated folder GET APIs                           | `IMPLEMENTED & VERIFIED` |
+| Owner-scoped `GET /files/{file_id}`                    | `IMPLEMENTED & VERIFIED` |
+| Drive root/folder browsing and folder dialogs          | `IMPLEMENTED & VERIFIED` |
+| Browser file lifecycle/detail/Ask workflows            | `NOT YET BUILT`          |
 
 ### Verified Phase 2 backend evidence
 
@@ -669,7 +671,7 @@ Do not re-ask these resolved scope decisions unless a new requirement conflicts 
 - Files and folders may share the same display name; names are metadata, not identity.
 - Canonical file metadata includes user-facing name and description plus source metadata required by the current PLAN.
 - File metadata update does not imply content replacement or re-embedding.
-- PLAN_04 approves one **not-yet-implemented** `GET /files/{file_id}` endpoint: authenticated owner-scoped read of the existing File DTO; absent/foreign files share a privacy-safe 404. Metadata reads do not require `ready`; RAG still requires owner plus `ready`. No schema or RAG change is authorized.
+- PLAN_04 Amendment 02 implements `GET /files/{file_id}` (`IMPLEMENTED & VERIFIED`): authenticated owner-scoped read of the existing File DTO; absent/foreign files share a privacy-safe 404. Metadata reads do not require `ready`; RAG still requires owner plus `ready`. No schema or RAG change is authorized.
 - Canonical file lifecycle uses `processing`, `ready`, and `deleting`; only `ready` files may enter retrieval/generation.
 - A known ingestion failure cleans any derived Qdrant state for that exact `file_id` and removes the temporary canonical file row rather than retaining a durable failed-file state.
 - Persistent original-file storage is excluded; uploads are transient input to the existing indexing pipeline.
@@ -678,6 +680,10 @@ Do not re-ask these resolved scope decisions unless a new requirement conflicts 
 - Owner authorization in PostgreSQL must happen before file-scoped retrieval/generation.
 
 #### Retrieval and infrastructure
+
+- **PLAN_04 Amendment 02 supersession (`IMPLEMENTED & VERIFIED`):** public folder reads are `GET /folders` and `GET /folders/{folder_id}`, both returning `FolderListingResponse` and rejecting all query parameters; browser `/drive` routes remain unchanged.
+- Public `GET /drive` and `POST /files/{file_id}/query` are removed without aliases; internal scored retrieval and owner/ready-gated native `POST /files/{file_id}/ask` remain.
+- Current application API inventory is 18 operations: system 2, auth 7, folders 4, files 5; documentation facilities are excluded. Historical PLAN_02 route acceptance remains historical.
 
 - Multi-file, folder/subtree, or drive-wide RAG remains excluded from Phase 2.
 - Hybrid/sparse retrieval and reranking remain deferred until measured evidence justifies them.

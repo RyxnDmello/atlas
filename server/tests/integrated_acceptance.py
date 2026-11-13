@@ -7,11 +7,11 @@ from uuid import UUID, uuid4
 from unittest.mock import patch
 from httpx import Client, Response
 from collections.abc import Iterator
+from fastapi.testclient import TestClient
 from contextlib import ExitStack, contextmanager
 
 from sqlalchemy import delete, select
 from sqlalchemy.pool import QueuePool
-from fastapi.testclient import TestClient
 
 from app.db.postgres import Database
 from app.core.constants import constants
@@ -21,10 +21,12 @@ from app.pipeline.auth.refresh import digest
 from app.pipeline.generation.prompt import FALLBACK
 
 from app.schemas.pipeline import Chunk
+from app.schemas.retrieval import RetrievedChunk
+
 from app.models.postgres import File, Folder, Session, User, Verification
 
-from tests.rag import seed
 from tests.test_10_ask import events
+from tests.rag import retrieved, seed
 from tests.uploads_acceptance import scope
 from tests.files_acceptance import canonical, vectors
 from tests.folders_acceptance import Actor, fingerprint
@@ -164,8 +166,8 @@ def folder(client: Http, auth: dict[str, str], parent: str | None = None) -> str
 
 def listing(client: Http, auth: dict[str, str], parent: str | None = None) -> dict:
     """Assert the unchanged listing envelope and return direct children."""
-    response = client.get("/drive", headers=auth, params={}
-                          if parent is None else {"folder_id": parent})
+    response = client.get(
+        "/folders" if parent is None else "/folders/" + parent, headers=auth)
     assert response.status_code == 200 and set(response.json()) == {
         "folder", "folders", "files"}
     body = response.json()
@@ -183,17 +185,13 @@ def denied(response: Response, status: int, code: str, message: str) -> None:
     assert "event:" not in response.text
 
 
-def query(client: Http, auth: dict[str, str], identifier: UUID, owner: str) -> list[dict]:
-    """Keep raw-score DTO/top-k and owner-specific context in one real retrieval journey."""
-    response = client.post(
-        f"/files/{identifier}/query", headers=auth, json=QUESTION)
-    assert response.status_code == 200 and set(response.json()) == {"results"}
-    results = response.json()["results"]
+def query(database: Database, storage: Storage, owner_id: UUID, identifier: UUID, owner: str) -> list[RetrievedChunk]:
+    """Keep actual internal raw scores and exact-file context in the lifecycle journey."""
+    results = retrieved(database, storage, owner_id, identifier, **QUESTION)
     assert len(results) == 1
-    assert set(results[0]) == {"score", "text",
-                               "index", "count", "page", "heading", "section"}
-    assert isinstance(results[0]["score"], (int, float)
-                      ) and owner in results[0]["text"]
+    assert results[0].file_id == identifier
+    assert isinstance(results[0].score, (int, float)
+                      ) and owner in results[0].text
 
     return results
 
@@ -228,7 +226,7 @@ def acceptance(database: Database, clients: tuple[Http, Http], storage: Storage,
             foreign_child}
         for client, auth, foreign_folder in ((a, own, foreign), (b, other, root)):
             for target in (foreign_folder, str(uuid4())):
-                denied(client.get("/drive", headers=auth, params={"folder_id": target}),
+                denied(client.get("/folders/" + str(target), headers=auth),
                        404, "FOLDER_NOT_FOUND", "Folder not found")
                 denied(client.post("/folders", headers=auth, json={"name": "attempt", "parent_id": target}),
                        404, "FOLDER_NOT_FOUND", "Folder not found")
@@ -292,7 +290,7 @@ def acceptance(database: Database, clients: tuple[Http, Http], storage: Storage,
             str(target)}
         assert {item["id"] for item in listing(b, other, foreign_child)[
             "files"]} == {str(survivor)}
-        query(a, own, target, "Owner 0")
+        query(database, storage, users[0].id, target, "Owner 0")
         preserved = vectors(storage)
         immutable = canonical(database, target)
         with ExitStack() as stack:
@@ -338,9 +336,10 @@ def acceptance(database: Database, clients: tuple[Http, Http], storage: Storage,
                 stack.enter_context(
                     patch("app.routers.files.retrieve", side_effect=retrieval))
             for client, auth, identifier, owner in ((a, own, root_file, 0), (a, own, target, 0), (b, other, survivor, 1)):
-                results = query(client, auth, identifier, f"Owner {owner}")
+                results = query(database, storage,
+                                users[owner].id, identifier, f"Owner {owner}")
                 if generation:
-                    citation = results[0]["index"]
+                    citation = results[0].chunk_index
 
                     class Provider:
                         """No external provider access; actual grounding/citation/SSE layers remain intact."""
@@ -400,7 +399,7 @@ def acceptance(database: Database, clients: tuple[Http, Http], storage: Storage,
                            404, "FILE_NOT_FOUND", "File not found")
                     denied(client.delete(f"/files/{identifier}", headers=auth),
                            404, "FILE_NOT_FOUND", "File not found")
-            for route in ("query", "ask"):
+            for route in ("ask",):
                 for client, auth, foreign_file in ((a, own, survivor), (b, other, target)):
                     for identifier in (foreign_file, orphan, missing):
                         denied(client.post(f"/files/{identifier}/{route}", headers=auth, json=QUESTION),
@@ -420,9 +419,8 @@ def acceptance(database: Database, clients: tuple[Http, Http], storage: Storage,
                         "application/json")
             for call in calls:
                 call.assert_not_called()
-        response = a.post(f"/files/{empty}/query", headers=own, json=QUESTION)
-        assert response.status_code == 200 and response.json() == {
-            "results": []}
+        assert retrieved(database, storage,
+                         users[0].id, empty, **QUESTION) == []
         with ExitStack() as stack:
             provider = stack.enter_context(
                 patch("app.routers.files.GeminiFlashProvider")) if instrument else None
@@ -457,12 +455,12 @@ def acceptance(database: Database, clients: tuple[Http, Http], storage: Storage,
         assert storage.client.count(
             storage.collection, count_filter=scope(target), exact=True).count == 0
         assert not listing(a, own, nested)["files"]
-        for route in ("query", "ask"):
+        for route in ("ask",):
             denied(a.post(f"/files/{target}/{route}", headers=own, json=QUESTION),
                    404, "FILE_NOT_FOUND", "File not found")
         assert canonical(database, survivor) == survivor_row and vectors(
             storage, scope(survivor)) == survivor_points
-        query(b, other, survivor, "Owner 1")
+        query(database, storage, users[1].id, survivor, "Owner 1")
         origin = constants.cors.CORS_ORIGINS[0]
         for method in ("GET", "POST", "PATCH", "DELETE"):
             response = a.options("/files", headers={"Origin": origin, "Access-Control-Request-Method": method,

@@ -354,7 +354,7 @@ Phase 2 PLAN_02 Amendment 03 supersedes the Phase 1 public upload handoff:
 - legacy `POST /documents/upload` is removed, with no alias or adapter;
 - chunk bodies/counts are internal ingestion data, not upload response fields.
 
-The returned top-level `id` is used directly with `/files/{file_id}/query` and `/files/{file_id}/ask`. Their owner/ready authorization was subsequently implemented and verified in PHASE_02_PLAN_02 Amendment 05; it was not part of Amendment 03. Detailed upload lifecycle/metadata contracts belong to the current PLAN/Amendment.
+The returned top-level `id` is used directly with `/files/{file_id}/ask`. Owner/ready authorization was implemented and verified in PHASE_02_PLAN_02 Amendment 05; it was not part of Amendment 03. **PLAN_04 Amendment 02 supersession (`IMPLEMENTED & VERIFIED`):** public `/files/{file_id}/query` is completely removed without an alias; internal retrieval remains unchanged. Detailed upload lifecycle/metadata contracts belong to the current PLAN/Amendment.
 
 Historical Phase 1 returned `id`, `name`, `type`, `total`, and `chunks` from `/documents/upload`. That verified history is preserved in Phase 1 evidence; parsing, chunking, vector payloads, retrieval, generation and citations remain unchanged.
 
@@ -380,7 +380,10 @@ Any later tuning of `top_k=5` requires measured evidence and an explicit decisio
 
 ### Flow
 
+Legend: ranked results remain internal; only grounded Ask exposes answer text and trusted citations.
+
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'background': '#1e1e2e', 'primaryColor': '#45475a', 'primaryTextColor': '#cdd6f4', 'primaryBorderColor': '#89b4fa', 'lineColor': '#a6adc8', 'secondaryColor': '#313244', 'tertiaryColor': '#181825', 'fontFamily': 'Inter, sans-serif'}}}%%
 flowchart LR
     Question["Question"] --> Embed["Same EmbeddingProvider"]
     Embed --> Vector["1024-d dense query vector"]
@@ -389,7 +392,16 @@ flowchart LR
     Search --> Results["Ranked payloads + raw scores"]
     Results --> Validate["Payload + scope validation"]
     Validate --> Internal["Internal RetrievedChunk/Result"]
-    Internal --> Public["Public query response"]
+    Internal --> Ask["Grounded Ask / native SSE"]
+    class Question client;
+    class Embed,Vector,Search,Scope,Results,Validate,Internal,Ask service;
+    classDef client fill:#2b3046,stroke:#89b4fa,stroke-width:1px,color:#cdd6f4;
+    classDef service fill:#2c3642,stroke:#94e2d5,stroke-width:1px,color:#cdd6f4;
+    classDef storage fill:#332e46,stroke:#cba6f7,stroke-width:1px,color:#cdd6f4;
+    classDef verified fill:#2e363c,stroke:#a6e3a1,stroke-width:1px,color:#cdd6f4;
+    classDef planned fill:#30323f,stroke:#b4befe,stroke-width:1px,color:#cdd6f4;
+    classDef caution fill:#38362e,stroke:#f9e2af,stroke-width:1px,color:#cdd6f4;
+    classDef denied fill:#39303d,stroke:#f38ba8,stroke-width:1px,color:#cdd6f4;
 ```
 
 ### Qdrant query
@@ -449,27 +461,13 @@ A payload whose `file_id` does not match the requested scope is an explicit scop
 
 ### Public retrieval result
 
-Public fields:
+**PLAN_04 Amendment 02 supersession (`IMPLEMENTED & VERIFIED`):** the historical public scored-chunk `/files/{file_id}/query` endpoint and its response serialization are removed from HTTP registration and OpenAPI, without aliases or redirects. Retired requests receive ordinary framework 404s. Internal `RetrievedChunk` retains every payload field plus the raw score; `QueryRequest` remains the validation base for `AskRequest`.
 
-- `score`
-- `text`
-- `index`
-- `count`
-- `page`
-- `heading`
-- `section`
-
-Do not expose `display_text` through the public `/files/{file_id}/query` response.
+Public file RAG uses `/files/{file_id}/ask` only. Trusted citation excerpts still derive from stored `display_text`; model output never supplies provenance.
 
 ### Empty result
 
-An authenticated, owner-authorized `ready` file with no indexed matches returns:
-
-```json
-{ "results": [] }
-```
-
-with HTTP 200.
+An authenticated, owner-authorized `ready` file with no indexed matches produces internal `[]`. Ask returns HTTP 200 native SSE: the existing fallback answer, empty citations and successful done, without constructing the generation provider.
 
 Qdrant is not canonical file state; zero points do not prove the file does not exist. Missing or foreign files return `404 FILE_NOT_FOUND`; owned non-ready files return `409 FILE_NOT_READY`. Authentication and ownership checks occur before retrieval.
 

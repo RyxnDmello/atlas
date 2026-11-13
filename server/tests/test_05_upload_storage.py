@@ -13,16 +13,18 @@ from qdrant_client.http.models import Distance, UpdateResult, UpdateStatus, Vect
 from app.core.runtime import storage
 from app.core.constants import constants
 
+from app.db.qdrant import ensure_collection
+
 from app.pipeline.chunking import chunk
 from app.pipeline.extraction import extract
 
-from app.db.qdrant import ensure_collection
 from app.schemas.constants import QdrantConstants
 
 from app.errors.api import ApiError
 
 from app.main import app
 
+from tests.rag import retrieved
 from tests.postgres import database
 from tests.uploads import environment
 
@@ -219,10 +221,8 @@ class UploadStorageTests(TestCase):
 
         for body in responses:
             with self.subTest(file_id=body["id"]):
-                response = self.http.post(
-                    f"/files/{body['id']}/query", headers=self.headers, json={"question": "What is the policy?", "top_k": 20})
-                self.assertEqual(response.status_code, 200, response.text)
-                results = response.json()["results"]
+                results = retrieved(self.database, storage(), self.user.id,
+                                    UUID(body["id"]), "What is the policy?", 20)
                 payloads = {}
 
                 for point in points:
@@ -234,11 +234,11 @@ class UploadStorageTests(TestCase):
                 self.assertEqual(len(results), len(payloads))
 
                 for result in results:
-                    payload = payloads[result["index"]]
+                    payload = payloads[result.chunk_index]
                     self.assertEqual(payload["file_id"], body["id"])
-                    self.assertEqual(result["text"], payload["text"])
-                    self.assertEqual({key: value for key, value in result.items() if key != "score"},
-                                     {"text": payload["text"], "index": payload["chunk_index"], "count": payload["token_count"], "page": payload["page"], "heading": payload["heading"], "section": payload["section"]})
+                    self.assertEqual(result.text, payload["text"])
+                    self.assertEqual({key: value for key, value in result.model_dump(
+                        mode="json").items() if key != "score"}, payload)
 
         after, cursor = self.client.scroll(
             self.collection, limit=total, with_vectors=True)

@@ -191,11 +191,27 @@ export const onAuthBoundary = (
   context: Coordination = coordination,
 ) => {
   let sessionVersion = context.sessionVersion;
+  let previous = context.store.getState();
 
   return context.store.subscribe(() => {
-    if (sessionVersion !== context.sessionVersion) {
-      sessionVersion = context.sessionVersion;
+    const state = context.store.getState();
 
+    const usable =
+      state.status === "authenticated" &&
+      !!state.user &&
+      !!state.accessToken &&
+      state.logout === "none";
+
+    const retired =
+      previous.status === "authenticated" &&
+      (!usable || previous.user?.id !== state.user?.id);
+
+    const changed = sessionVersion !== context.sessionVersion || retired;
+
+    sessionVersion = context.sessionVersion;
+    previous = state;
+
+    if (changed) {
       try {
         cleanup();
       } catch {}

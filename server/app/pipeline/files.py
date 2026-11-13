@@ -5,11 +5,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.models.postgres import File
 from app.core.runtime import postgres, storage
 
-from app.schemas.drive.file import FileResponse
-from app.schemas.drive.metadata import FilePatch
+from app.schemas.files.metadata import FilePatch
+from app.schemas.files.response import FileResponse
+
+from app.models.postgres import File
 
 from app.errors.postgres import PostgresOperationError
 from app.errors.file import FileNotFoundError, FileNotReadyError
@@ -19,6 +20,20 @@ def owned(session: Session, file_id: UUID, owner_id: UUID) -> File | None:
     """Lock an owner-scoped row so metadata writes cannot overwrite deletion state."""
     return session.scalar(select(File).where(
         File.id == file_id, File.owner_id == owner_id).with_for_update())
+
+
+def read(owner_id: UUID, file_id: UUID) -> FileResponse:
+    """Read an owned file in any lifecycle state without locking or writing it."""
+    try:
+        with postgres().session() as session:
+            file = session.scalar(select(File).where(
+                File.id == file_id, File.owner_id == owner_id))
+            if file is None:
+                raise FileNotFoundError()
+
+            return FileResponse.model_validate(file)
+    except SQLAlchemyError:
+        raise PostgresOperationError() from None
 
 
 def ready(owner_id: UUID, file_id: UUID) -> UUID:

@@ -99,18 +99,12 @@ def stream(http: httpx.Client, file: str, question: str, case: str) -> tuple[str
         assert answer == FALLBACK and citations == []
     else:
         assert answer.strip() and citations
-        query = http.post(f"/files/{file}/query", json={"question": question})
-        assert query.status_code == 200
-        results = {item["index"]: item for item in query.json()["results"]}
         for citation in citations:
             assert set(citation) == {
                 "index", "page", "heading", "section", "excerpt",
             }
-            chunk = results[citation["index"]]
-            assert all(
-                citation[field] == chunk[field]
-                for field in ("page", "heading", "section")
-            )
+            assert isinstance(citation["index"], int)
+            assert citation["excerpt"]
 
     print(
         f"Ask HTTP OK case={case} answers={len(names) - 2} citations={len(citations)} "
@@ -200,7 +194,7 @@ def outage(base: str, file: str, headers: dict[str, str]) -> None:
             patch("app.routers.files.GeminiFlashProvider") as provider,
             httpx.Client(base_url=base, timeout=30, trust_env=False, headers=headers) as http,
         ):
-            for route in ("query", "ask"):
+            for route in ("ask",):
                 response = http.post(
                     f"/files/{file}/{route}", json={"question": "synthetic outage check"},
                 )
@@ -214,7 +208,7 @@ def outage(base: str, file: str, headers: dict[str, str]) -> None:
 
             provider.assert_not_called()
 
-    print("Ask/query refused Qdrant transport OK status=503 provider_calls=0")
+    print("Ask refused Qdrant transport OK status=503 provider_calls=0")
 
 
 def hosted(file: str, other: str, unindexed: str, headers: dict[str, str]) -> None:

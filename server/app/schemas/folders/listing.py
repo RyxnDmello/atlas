@@ -1,10 +1,10 @@
 from pydantic import BaseModel
 
-from app.schemas.drive.file import FileResponse
-from app.schemas.drive.folder import FolderResponse
+from app.schemas.files.response import FileResponse
+from app.schemas.folders.response import FolderResponse
 
 
-class DriveResponse(BaseModel):
+class FolderListingResponse(BaseModel):
     """Return one selected location and only its immediate contents."""
 
     folder: FolderResponse | None

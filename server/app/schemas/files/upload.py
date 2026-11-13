@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import UploadFile
 from pydantic import BaseModel, ConfigDict
 
-from app.schemas.drive.metadata import Name, Description
+from app.schemas.files.metadata import Name, Description
 
 
 class FileUpload(BaseModel):

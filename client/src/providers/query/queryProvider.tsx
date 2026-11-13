@@ -9,6 +9,13 @@ import { initializeAuth, onAuthBoundary } from "@services/auth/auth";
 
 let browser: QueryClient | undefined;
 
+export const bindAuthCache = (cache: QueryClient) => {
+  return onAuthBoundary(() => {
+    void cache.cancelQueries();
+    cache.clear();
+  });
+};
+
 const getClient = () => {
   if (environmentManager.isServer()) {
     return new QueryClient();
@@ -19,7 +26,7 @@ const getClient = () => {
 
     const cache = browser;
 
-    onAuthBoundary(() => cache.clear());
+    bindAuthCache(cache);
   }
 
   return browser;
