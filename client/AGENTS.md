@@ -53,7 +53,7 @@ Do not read the entire repository by default.
 
 ### Phase 2 integration objectives
 
-**Approved PLAN_04 destination (folder workspace `IMPLEMENTED & VERIFIED`; file workflows `NOT YET BUILT`):**
+**Approved PLAN_04 destination (folder workspace `IMPLEMENTED & VERIFIED`; file lifecycle `IMPLEMENTED & VERIFIED`; file detail/Ask `IMPLEMENTED & VERIFIED`):**
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'background': '#1e1e2e', 'primaryColor': '#45475a', 'primaryTextColor': '#cdd6f4', 'primaryBorderColor': '#89b4fa', 'lineColor': '#a6adc8', 'secondaryColor': '#313244', 'tertiaryColor': '#181825', 'fontFamily': 'Inter, sans-serif'}}}%%
@@ -67,7 +67,7 @@ flowchart TD
     File --> Ask["Authenticated file-scoped native SSE + trusted citations"]
     class Auth,Migrate verified;
     class Root,Folder,Mutate caution;
-    class File,Ask planned;
+    class File,Ask caution;
     classDef verified fill:#2e363c,stroke:#a6e3a1,stroke-width:1px,color:#cdd6f4;
     classDef planned fill:#30323f,stroke:#b4befe,stroke-width:1px,color:#cdd6f4;
     classDef caution fill:#38362e,stroke:#f9e2af,stroke-width:1px,color:#cdd6f4;
@@ -86,7 +86,7 @@ Client goals:
 Approval boundaries:
 
 - The Vite/TanStack Router migration and `GET /files/{file_id}` are `IMPLEMENTED & VERIFIED` under PLAN_04 Amendments 01 and 02 respectively; Amendment 03 folder workspace is `IMPLEMENTED & VERIFIED` after approved production-browser/two-owner Stage 02 acceptance and exact preservation.
-- Existing server endpoints remain authoritative; the file-detail endpoint must be implemented and independently verified before the file page relies on it.
+- Existing server endpoints remain authoritative; Amendment 02 independently verified the file-detail endpoint before Amendment 05 consumes it.
 - Do not introduce TanStack Start, a second router, duplicate data caches, extra persistent browser state, new infrastructure or another token owner without approval.
 
 ---
@@ -121,8 +121,8 @@ Use these labels exactly; do not infer verification from code existence or docum
 
 - **Completed PLAN:** `PHASE_02_PLAN_03 — Client Authentication`; Amendments 01 and 02 are verified; Amendment 03 registration/verification/resend UI is `IMPLEMENTED & VERIFIED`; Amendment 04 login/logout UI is `IMPLEMENTED & VERIFIED`; Amendment 05 protected navigation/minimal dashboard and PLAN_03 are `IMPLEMENTED & VERIFIED` after approved Stage 02 acceptance.
 - **Last inspected branch:** `phase-02/plan-04`; inspect Git again before each task.
-- PLAN_03 verified Next.js auth/session UX and a minimal protected `/dashboard` entry. PLAN_04 Amendment 01 implements the Vite client and minimal `/drive`, with `/dashboard` removed; approved Stage 02 verified browser equivalence. Amendment 03 root/nested folder browsing and create/edit dialogs are `IMPLEMENTED & VERIFIED`; file workflows remain `NOT YET BUILT`.
-- The preserved Phase 1 upload UI is not compatible with the removed `/documents/upload` endpoint and is omitted from the SPA; canonical upload is authenticated `POST /files` and its UI remains unbuilt.
+- PLAN_03 verified Next.js auth/session UX and a minimal protected `/dashboard` entry. PLAN_04 Amendment 01 implements the Vite client and minimal `/drive`, with `/dashboard` removed; approved Stage 02 verified browser equivalence. Amendment 03 root/nested folder browsing and create/edit dialogs are `IMPLEMENTED & VERIFIED`; Amendment 04 file lifecycle is `IMPLEMENTED & VERIFIED` after approved production-SPA/packaged-API/two-owner acceptance and exact cleanup; Amendment 05 file detail/Ask is `IMPLEMENTED & VERIFIED` after approved production-SPA/current-source native API/two-owner Stage 02 acceptance and exact cleanup. Generation was deterministic; no actual Gemini call or packaged-runtime verification is claimed.
+- The preserved Phase 1 upload UI is not compatible with the removed `/documents/upload` endpoint and is omitted from the SPA. Amendment 04 implements canonical authenticated `POST /files`, metadata edit and permanent-delete dialogs in existing root/nested listings; status is `IMPLEMENTED & VERIFIED` after explicitly approved Stage 02.
 - Preserve the verified auth/HTTP/SSE and citation utilities through migration; do not import the removed legacy upload route or unneeded Next.js scaffolding.
 
 ### Server-first integration gate
@@ -143,7 +143,8 @@ Use these labels exactly; do not infer verification from code existence or docum
 | Legacy Next.js protected dashboard entry                 | `IMPLEMENTED & VERIFIED` |
 | Vite + TanStack Router migration and `/drive` entry      | `IMPLEMENTED & VERIFIED` |
 | Drive root/folder navigation and folder dialogs          | `IMPLEMENTED & VERIFIED` |
-| File metadata/lifecycle and owner-scoped ask UI          | `NOT YET BUILT`          |
+| File upload/metadata edit/permanent delete dialogs       | `IMPLEMENTED & VERIFIED` |
+| Selected-file detail and owner-scoped Ask UI             | `IMPLEMENTED & VERIFIED` |
 
 ### Evidence references
 
@@ -286,10 +287,11 @@ flowchart TD
 - PLAN_03 legacy `AuthGate`, `DashboardPanel`, auth operation hooks and shared transports are verified in Next.js; migrate their _behavior_, not Next routing imports or unused page composition.
 - The existing QueryProvider/bootstrap ownership and current Zustand auth authority must remain single-owner through migration. Do not create a second bootstrap or token coordinator.
 - Auth routes `/register`, `/verify`, `/login` and entry `/` must preserve recorded PLAN_03 restoration, refresh, logout, `credential_action` handoff and navigation error behavior.
-- Replace `/dashboard` with `/drive`; use TanStack Router file-based `/drive`, `/drive/$id`, `/drive/file/$fileId`. Validate UUID parameters before API calls; IDs never prove ownership.
+- Replace `/dashboard` with `/drive`; use TanStack Router file-based `/drive`, `/drive/$id`, `/drive/file/$id`. Validate UUID parameters before API calls; IDs never prove ownership.
 - The folder/file page structure is independent: the file page consumes the separately approved owner-scoped `GET /files/{file_id}` after backend verification and enables Ask only for ready files.
 - Router owns navigation/typed params/layout, TanStack Query owns canonical remote drive state, and component/hook state owns ephemeral forms/modals and streamed answers. Avoid shadow copies of remote records in Zustand or router context.
 - Amendment 03 supersedes owner/session-in-key recommendations for folder listings ONLY: use exactly `['drive', 'folder', 'root']` and `['drive', 'folder', folderUUID]`. Account isolation remains LOCKED through auth-boundary cancellation/cache retirement, usable-session gating and lease/user/abort checks before result publication.
+- Amendment 05 file metadata uses exactly `['drive', 'file', fileUUID]` with `staleTime: 60_000`, memory-only. The same auth lease/abort/publication and QueryProvider retirement rules apply; Ask remains ephemeral route-local state.
 - On successful drive mutation invalidate drive-related queries and refetch the active page, not a hard browser refresh. Inactive pages refetch when revisited; no full QueryClient clear for ordinary mutations.
 - Use in-memory TanStack Query caching with an initial 60-second freshness target; this does **not** survive full browser reload. Persistent drive cache needs separate approval.
 - Account logout/switch must cancel/retire outstanding private queries and streams, prevent stale results from reappearing and clear auth-owned private cache through the existing cleanup boundary.
@@ -319,7 +321,7 @@ client/
 │   │       ├── index.tsx                 # root direct children
 │   │       ├── $id.tsx             # selected folder direct children
 │   │       └── file/
-│   │           └── $fileId.tsx           # selected file metadata + Ask
+│   │           └── $id.tsx           # selected file metadata + Ask
 │   ├── routeTree.gen.ts                 # generated typed router tree; never hand-edit
 │   ├── components/
 │   │   ├── ui/                           # shadcn generated primitives
@@ -385,7 +387,7 @@ components/Rag/RagWorkspace.tsx
 Exceptions:
 
 - `components/ui/` retains shadcn-generated lowercase naming.
-- TanStack Router/tool-required filenames retain their required conventions, including `__root.tsx`, `index.tsx`, `route.tsx`, `$id.tsx`, `$fileId.tsx`, `routeTree.gen.ts`, `vite.config.ts` and the selected ESLint config. These are exceptions to handwritten naming rules.
+- TanStack Router/tool-required filenames retain their required conventions, including `__root.tsx`, `index.tsx`, `route.tsx`, `$id.tsx`, `$id.tsx`, `routeTree.gen.ts`, `vite.config.ts` and the selected ESLint config. These are exceptions to handwritten naming rules.
 
 ### Hooks
 

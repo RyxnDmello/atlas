@@ -4,6 +4,7 @@ import useFolder from "@hooks/folder/useFolder";
 
 import { Button } from "@components/ui/button";
 import NotFound from "@components/Common/NotFound";
+import FileDialog from "@components/File/FileDialog";
 import FolderDialog from "@components/Folder/FolderDialog";
 import FolderListing from "@components/Folder/FolderListing";
 
@@ -101,6 +102,8 @@ export default function DriveWorkspace({ folderId }: DriveWorkspaceProps) {
       </div>
 
       <div className="flex flex-wrap gap-2">
+        <FileDialog parent={folderId} refresh={refreshFolder} />
+
         <FolderDialog parent={folderId} refresh={refreshFolder} />
 
         {folder && (
@@ -114,7 +117,7 @@ export default function DriveWorkspace({ folderId }: DriveWorkspaceProps) {
 
       {isFolderFetching && <p role="status">Refreshing folder…</p>}
 
-      <FolderListing data={folderData} />
+      <FolderListing data={folderData} refresh={refreshFolder} />
     </section>
   );
 }

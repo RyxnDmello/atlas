@@ -23,9 +23,18 @@ const user = {
   email: "canonical@example.test",
 };
 const folderPath = "/drive/00000000-0000-4000-8000-000000000005";
-const paths = ["/", "/login", "/register", "/verify", "/drive", folderPath];
+const filePath = "/drive/file/00000000-0000-4000-8000-000000000005";
+const paths = [
+  "/",
+  "/login",
+  "/register",
+  "/verify",
+  "/drive",
+  folderPath,
+  filePath,
+];
 const protectedPath = (path: string) =>
-  path === "/drive" || path === folderPath;
+  path === "/drive" || path === folderPath || path === filePath;
 
 const createTestRouter = (path: string) => {
   return createRouter({
@@ -81,6 +90,9 @@ for (const path of paths) {
       } else if (status === "error") {
         expect(html).toContain("Retry session check");
         expect(html).not.toContain("<form");
+      } else if (status === "authenticated" && path === filePath) {
+        expect(html).toContain("Loading file");
+        expect(html).not.toContain("Question");
       } else if (status === "authenticated" && protectedPath(path)) {
         expect(html).toContain("canonical@example.test");
         expect(html).toContain(
@@ -113,7 +125,7 @@ test.each([
   "/unknown",
   "/drive/invalid",
   "/drive/file",
-  "/drive/file/00000000-0000-4000-8000-000000000005",
+  "/drive/file/invalid",
 ])(
   "%s has a neutral not-found result without protected content",
   async (path) => {
@@ -131,13 +143,14 @@ test.each([
   },
 );
 
-test("the generated route tree registers only this Amendment's six routes", () => {
+test("the generated route tree registers the seven approved routes including file detail", () => {
   const router = createTestRouter("/");
 
   expect(Object.keys(router.routesByPath).sort()).toEqual([
     "/",
     "/drive",
     "/drive/$id",
+    "/drive/file/$id",
     "/login",
     "/register",
     "/verify",

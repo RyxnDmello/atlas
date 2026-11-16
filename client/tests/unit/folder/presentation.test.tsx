@@ -18,7 +18,8 @@ import { folderKey, FolderFailure } from "@utils/folder/folder";
 
 import useAuthStore from "@stores/auth";
 
-import { routeTree } from "../../../src/routeTree.gen";
+import { routeTree } from "@/routeTree.gen";
+
 import { harness, folder, file, listing, id, child, other } from "./fixtures";
 
 const initial = useAuthStore.getInitialState();
@@ -89,7 +90,7 @@ const render = async (
   };
 };
 
-test("root renders all folders before read-only files, UUID links, duplicates and retained account controls", async () => {
+test("root renders folders before managed files, UUID links, duplicates and retained account controls", async () => {
   const { html, requests } = await render("/drive", {
     folder: null,
     folders: [
@@ -128,8 +129,11 @@ test("root renders all folders before read-only files, UUID links, duplicates an
   );
   expect(html).toContain("New Folder");
   expect(html).not.toContain("Edit Folder");
-  expect(html).not.toContain("/drive/file/");
-  expect(html).not.toContain("Upload");
+  expect(html).toContain(`href="/drive/file/${file.id}"`);
+  expect(html).toContain("Upload File");
+  expect(html).toContain("Edit File");
+  expect(html).toContain("Delete File");
+  expect(html).toContain("Retry delete");
   expect(html).not.toContain("Ask");
   expect(html).toContain("Logout");
   expect(html).toContain("fixture@example.test");
@@ -156,6 +160,30 @@ test.each([null, other])(
       new RegExp(`href="${parent ? `/drive/${parent}` : "/drive"}"[^>]*>Up`),
     );
     expect(html).not.toContain("This folder is empty.");
+    expect(requests).toHaveLength(0);
+  },
+);
+
+test.each(["ready", "processing", "deleting"] as const)(
+  "nested file status %s exposes only its permitted inline controls",
+  async (status) => {
+    const { html, requests } = await render(`/drive/${id}`, {
+      ...listing,
+      folder,
+      files: [
+        {
+          ...file,
+          status,
+        },
+      ],
+    });
+
+    expect(html).toContain(status);
+    expect(html.includes("Edit File")).toBe(status === "ready");
+    expect(html.includes("Delete File")).toBe(status === "ready");
+    expect(html.includes("Retry delete")).toBe(status === "deleting");
+    expect(html).toContain(`href="/drive/file/${file.id}"`);
+    expect(html).not.toContain("Ask");
     expect(requests).toHaveLength(0);
   },
 );

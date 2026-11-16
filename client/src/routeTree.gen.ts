@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as VerifyRouteImport } from './routes/verify'
 import { Route as DriveIdRouteImport } from './routes/drive_.$id'
+import { Route as DriveFileIdRouteImport } from './routes/drive_.file.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -46,6 +47,11 @@ const DriveIdRoute = DriveIdRouteImport.update({
   path: '/drive/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DriveFileIdRoute = DriveFileIdRouteImport.update({
+  id: '/drive_/file/$id',
+  path: '/drive/file/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -54,6 +60,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/verify': typeof VerifyRoute
   '/drive/$id': typeof DriveIdRoute
+  '/drive/file/$id': typeof DriveFileIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/verify': typeof VerifyRoute
   '/drive/$id': typeof DriveIdRoute
+  '/drive/file/$id': typeof DriveFileIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,12 +79,27 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/verify': typeof VerifyRoute
   '/drive_/$id': typeof DriveIdRoute
+  '/drive_/file/$id': typeof DriveFileIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/drive' | '/login' | '/register' | '/verify' | '/drive/$id'
+  fullPaths:
+    | '/'
+    | '/drive'
+    | '/login'
+    | '/register'
+    | '/verify'
+    | '/drive/$id'
+    | '/drive/file/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/drive' | '/login' | '/register' | '/verify' | '/drive/$id'
+  to:
+    | '/'
+    | '/drive'
+    | '/login'
+    | '/register'
+    | '/verify'
+    | '/drive/$id'
+    | '/drive/file/$id'
   id:
     | '__root__'
     | '/'
@@ -85,6 +108,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/verify'
     | '/drive_/$id'
+    | '/drive_/file/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -94,6 +118,7 @@ export interface RootRouteChildren {
   RegisterRoute: typeof RegisterRoute
   VerifyRoute: typeof VerifyRoute
   DriveIdRoute: typeof DriveIdRoute
+  DriveFileIdRoute: typeof DriveFileIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -140,6 +165,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DriveIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/drive_/file/$id': {
+      id: '/drive_/file/$id'
+      path: '/drive/file/$id'
+      fullPath: '/drive/file/$id'
+      preLoaderRoute: typeof DriveFileIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -150,6 +182,7 @@ const rootRouteChildren: RootRouteChildren = {
   RegisterRoute: RegisterRoute,
   VerifyRoute: VerifyRoute,
   DriveIdRoute: DriveIdRoute,
+  DriveFileIdRoute: DriveFileIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

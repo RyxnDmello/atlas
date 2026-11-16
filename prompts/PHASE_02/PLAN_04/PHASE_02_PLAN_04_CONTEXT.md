@@ -6,12 +6,15 @@
 - **Amendment 02:** `IMPLEMENTED & VERIFIED`; Stage 01, naming/router/typing follow-ups and explicitly approved Stage 02 matching-source native HTTP/PostgreSQL/Qdrant acceptance passed. Exact synthetic cleanup and full datastore/resource preservation passed.
 - **Amendment 03:** `IMPLEMENTED & VERIFIED`; Stage 01, style/route review and explicitly approved Stage 02 production-SPA/current-source API/two-owner acceptance passed. Exact synthetic cleanup and full datastore/resource preservation passed.
 - **Amendment 03 review follow-up:** Client style audit and clean hook actions complete; current public folder route is `/drive/$id`, from `drive_.$id.tsx`. Earlier `$folderId` entries below describe the prior spelling and are superseded by the user-approved rename.
-- **PLAN_04 / PHASE_02:** `IMPLEMENTED, UNVERIFIED`. Root/nested folder browsing and folder create/edit dialogs are verified; browser file lifecycle/detail/Ask workflows remain `NOT YET BUILT`. Amendment 02's backend contracts remain the verified foundation.
+- **Amendment 04:** `IMPLEMENTED & VERIFIED`; Stage 01, cosmetic review and explicitly approved Stage 02 complete. Production SPA/packaged API/two-owner acceptance passed 131 browser checks with exact fixture cleanup and full preservation. Canonical image build hit a ModelScope timeout; the current-source image reuses retained runtime/models, as documented below.
+- **Amendment 04 cosmetic review:** Completed the requested manual client-style pass across all touched source/tests and reviewed the six touched documents. Local format/lint/typecheck/full regression and structural checks pass; behavior and Stage 02 boundary are unchanged. See the follow-up entry below.
+- **Amendment 05:** `IMPLEMENTED & VERIFIED`; reviewed Stage 01, user-requested `$id` route rename and explicitly approved scoped Stage 02 passed. Production SPA/current-source native FastAPI/real PostgreSQL/Qdrant/two owners and 50 browser checks passed with exact cleanup/full preservation; generation was deterministic. See the latest entry below.
+- **PLAN_04 / PHASE_02:** `IMPLEMENTED, UNVERIFIED`. Amendments 01–05 remain verified. Final comprehensive acceptance/crosswalk is excluded from Amendment 05 and reserved for a subsequent user-defined Amendment; no future scope is authored here.
 - **Inspected branch:** `phase-02/plan-04`.
 - **Canonical application:** React/Vite/TanStack Router in `client/`; `client-legacy/` retired with separate user approval after Stage 02 acceptance. PLAN_03 and migration evidence remain historical.
 - **Amendment 01 Stage 02:** APPROVED / COMPLETE. Production-built SPA, Chromium/FastAPI, cookie/CORS/IndexedDB continuity and full datastore/resource preservation passed; details in the Stage 02 entry below.
-- **Amendment 02 Stage 02:** APPROVED / COMPLETE. User separately approved starting the two retained datastore containers; they remain running/healthy. The older API container remains stopped. Verification used current local source and cached models, with deterministic generation; no new image deployment or Gemini call is claimed.
-- **Amendment 03 Stage 02:** APPROVED / COMPLETE. User explicitly authorized starting the same two retained datastores, synthetic accounts/folders and exact-ledger cleanup. Production-built SPA, Chromium, matching-source FastAPI and real PostgreSQL passed; Qdrant was unchanged. Both datastores remain healthy, the old API container stopped, and verification-owned hosts/browser context closed.
+- **Amendment 02 Stage 02:** APPROVED / COMPLETE. User separately approved starting the two retained datastore containers; they remain running/healthy. At that checkpoint the older API container remained stopped; Amendment 04 later replaced it. Verification used current local source and cached models, with deterministic generation; no new image deployment or Gemini call is claimed.
+- **Amendment 03 Stage 02:** APPROVED / COMPLETE. User explicitly authorized starting the same two retained datastores, synthetic accounts/folders and exact-ledger cleanup. Production-built SPA, Chromium, matching-source FastAPI and real PostgreSQL passed; Qdrant was unchanged. At that checkpoint both datastores were healthy, the old API container stopped, and verification-owned hosts/browser context closed; Amendment 04 later replaced the API.
 - PLAN_03 remains historically `IMPLEMENTED & VERIFIED`; its browser results do not verify the new SPA.
 
 ## Amendment 01 — 2026-11-11 — Stage 01
@@ -978,3 +981,413 @@ All final commands exited 0, from `client/` unless stated otherwise:
 - Stage 02 changed only root/client AGENTS, PHASE_02, current PLAN_04, CONTEXT and MANUAL. No application/test/dependency/backend/RAG source changed and no future Amendment document was created. Prior user changes remain intact.
 - **Amendment 03: `IMPLEMENTED & VERIFIED`.** No unresolved failure remains within this Amendment's acceptance boundary. First-attempt/helper failures are preserved above; current-source acceptance does not claim an updated API image or provider test.
 - **PLAN_04 / PHASE_02: `IMPLEMENTED, UNVERIFIED`.** File lifecycle UI, file page/Ask and final integrated PHASE closure remain pending; none was implemented here.
+
+## Amendment 04 — 2026-11-13 — Stage 01
+
+### Authorization and starting state
+
+- User approved the reviewed implementation plan and clarified that the existing commit had been pushed. This authorizes Stage 01 only; Stage 02 remains unapproved.
+- Read root/client instructions and PHASE → PLAN → current CONTEXT/MANUAL → Amendment 04, then targeted client source/tests and read-only backend contracts. No RAG implementation was touched.
+- Branch matched `phase-02/plan-04`; HEAD was `1820061c29c974b35c5e6094cfa875b956a4a43d`. The locally cached `origin/phase-02/plan-04` ref matched HEAD; no fetch or independent GitHub inspection was performed.
+- Starting index and tracked worktree were clean. The sole starting untracked path was `prompts/PHASE_02/PLAN_04/AMENDMENTS/04_FILE_LIFECYCLE_UI.md`; preserved without edits.
+- No staging, commit, push, branch operation, destructive Git, Docker/Compose command, browser/live API, datastore connection, migration, persistent fixture, embedding or provider operation occurred.
+- Prior Amendment 01–03 verification remains historical. Fresh pre-change local baseline: `bun run test`, exit 0, 309 pass / 0 fail / 1,692 assertions / 18 files, 474 ms.
+
+### Implemented behavior and reused boundaries
+
+- Existing root/nested `DriveWorkspace` exposes Upload File; existing `FolderListing` keeps every folder before every file, preserving each returned group's order. File rows show canonical extension, byte size, description and status.
+- Ready files expose Edit File and Delete File; processing files expose neither; deleting files expose explicit Retry delete. No file URL/link, download, preview, Ask, new endpoint or list cache was added.
+- Upload uses a native single-file input, editable display name with filename prefill until the name is dirty, optional description, RHF/Zod fields and the installed Dialog/Input/Textarea/Button primitives. No dependency or primitive generator ran.
+- Source checks mirror backend supported suffixes and nonempty bytes; there is no invented size cap or uniqueness rule. Names use Unicode letter/number categories and the backend punctuation alphabet, with 100-code-point names / 250-code-point descriptions.
+- `POST /files` sends actual File bytes/source filename, trimmed editable `name`, nonblank optional description and exactly one nested folder UUID. Root omits `folder_id`. No owner/parent field or explicit multipart Content-Type/boundary is supplied. Only a strict canonical ready `201` response matching the destination confirms upload.
+- Ready-only metadata edit computes changed name/description fields; clearing description sends `null`; unchanged forms send nothing. Strict `200` response validation preserves ID/location/source filename/extension/size/creation time and readiness. No upload/replacement/move/reindex is initiated by edit.
+- Delete presents permanent indexed-content removal and irreversible warning, explicit confirmation and idle Cancel. It issues a bodyless DELETE once and accepts only `204`; canonical deleting uses the same endpoint only after explicit retry confirmation.
+- Pending forms disable submission and dismissal, with synchronous duplicate guards in both UI and request lifetime. Cancel before submit has no mutation path. Actual focus/Escape/Cancel events remain browser acceptance, not SSR evidence.
+- Network/5xx/malformed-success writes expose uncertainty and require explicit refresh before resubmission; no automatic mutation replay, optimistic ready row, same-name identity assumption or automatic canonical reconciliation. A later upload requires selecting its source again.
+- Explicit recovery uses existing `GET /files/{id}` for ready/processing/deleting/404 and the existing folder refresh. Fresh 404 means currently unavailable, not proof of the earlier mutation outcome; failed reads retain the blocked state. Recovery does not replay a write.
+- Existing folder keys remain exactly `['drive','folder','root']` / `['drive','folder',UUID]`, `staleTime: 60_000`, memory-only. Confirmed writes invalidate prefix `['drive']` and refetch active listings; inactive queries become stale. Uncertain writes use `refetchType: 'none'`; unrelated auth cache stays intact.
+- `fileLifetime` reuses existing canonical-user/auth lease checks and auth-boundary notifications. Its controller aborts pending transport on auth retirement; hook effect cleanup retires route lifetime, marks uncertain old drive state stale without refetch and prevents late completion. React StrictMode reactivation cannot revive an already-aborted request.
+- Existing QueryProvider remains the sole bootstrap/cache cancel/clear owner, Zustand remains auth-only and shared Axios retains GET-only bounded replay. Server remains authoritative for ownership/readiness and PostgreSQL/Qdrant lifecycle.
+
+### Actual local verification and corrective history
+
+All commands below ran in `client/` unless a root command is named. Bun was `1.4.3 (c6da4a4d3)`.
+
+| Command/check                                                                                                                        | Actual result                                                                                                                                                                                    |
+| ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `bun install --frozen-lockfile`                                                                                                      | Exit 0; 498 installs checked across 529 packages, no changes.                                                                                                                                    |
+| `bun run format`                                                                                                                     | Exit 0; applied existing Prettier configuration; no unrelated source changes.                                                                                                                    |
+| `bun run format:check`                                                                                                               | Exit 0; all matched files use Prettier style.                                                                                                                                                    |
+| `bun run lint`                                                                                                                       | Final exit 0.                                                                                                                                                                                    |
+| `bun run typecheck`                                                                                                                  | Final exit 0; strict compiler unchanged.                                                                                                                                                         |
+| `bun test tests/unit/file tests/unit/folder tests/unit/router tests/unit/auth tests/unit/http`                                       | Final exit 0; 321 pass / 0 fail / 1,423 assertions / 14 files, 456 ms. The path filter includes `router.test.tsx`.                                                                               |
+| `bun run test`                                                                                                                       | Final exit 0; 374 pass / 0 fail / 1,985 assertions / 19 files, 476 ms. Auth/crypto/HTTP/folder/router/Ask-session/citation/SSE regressions retained.                                             |
+| `bun run build`                                                                                                                      | Exit 0; Vite 8.3.8, 566 modules; `dist/index.html` and 14 asset files emitted.                                                                                                                   |
+| Root `git -c core.safecrlf=false diff --check`                                                                                       | Exit 0.                                                                                                                                                                                          |
+| Root `git diff --exit-code -- client/package.json client/bun.lock client/components.json client/src/routeTree.gen.ts server .agents` | Exit 0; all specified boundaries unchanged.                                                                                                                                                      |
+| Root `git diff --cached --stat`                                                                                                      | Exit 0; empty index.                                                                                                                                                                             |
+| Source/document inventory script                                                                                                     | Exit 0; all 12 authored untracked files decode as UTF-8, have no BOM/NUL/trailing whitespace and end with newline; independently inspected because Git diff excludes untracked files.            |
+| Route/build/ignore inspection                                                                                                        | Exactly `/`, `/login`, `/register`, `/verify`, `/drive`, `/drive/$id`; no file page. `dist`, `node_modules` and existing private `.env.local` remain ignored. Private contents were not printed. |
+| Documentation invariant check                                                                                                        | Exit 0; all 13 PLAN sections, 17 PLAN AC IDs and 15 PHASE AC IDs preserved; previous chronological CONTEXT/MANUAL evidence unchanged.                                                            |
+| Handwritten object-layout check                                                                                                      | Exit 0; nonempty new object literals follow scoped multiline convention after manual readability pass.                                                                                           |
+
+- First file/folder test run: exit 1, 89 pass / 1 fail. Active-refetch test incorrectly reused an intentionally disabled fixture observer; enabling the observer fixed the harness. Uncertain-result cases were also strengthened with enabled observers to actually detect accidental background refetch.
+- Initial post-test strict TS run: exit 1; `Query.options` did not expose `staleTime` at that type boundary. Assertion now reads `observer.options.staleTime`.
+- Initial lint run: exit 1 with six errors: render-time ref access in the request-lifetime hook, an unnecessary regex escape and an unused test import. Lifetime initialization now uses lazy `useState`, the character-class escape is corrected and the import removed. Subsequent lint/typecheck passed; no rules were disabled.
+- Expanded tests cover exact FormData/source bytes and root/nested omission, status/immutable response validation, held upload/PATCH/DELETE duplicate rejection, lost acknowledgements, repeated explicit deleting attempts, all reconciliation outcomes, active refetch/inactive revisit and auth-cache preservation.
+- Delayed actual hook upload/PATCH/DELETE adapter responses after owner-B adoption are canceled and cannot invalidate B's fresh same-key cache. Separate deferred HTTP seams deliberately ignore cancellation and prove explicit lease checks still reject every write response. Logout-start blocks dispatch. Service-lifetime retirement/reactivation proves abort and stale-completion rejection.
+- These are deterministic mocks, real in-memory Query observers, memory-router/SSR and service-lifetime checks. SSR does not run effects or real DOM events. Actual file picker/multipart wire boundary, modal focus/Escape/Cancel, route unmount/remount and fresh-dialog closure races need real browser Stage 02; service-lifetime checks are not represented as those browser results.
+
+### Exact implementation/document inventory
+
+Modified paths:
+
+- `AGENTS.md`
+- `client/AGENTS.md`
+- `client/src/components/Drive/DriveWorkspace.tsx`
+- `client/src/components/Folder/FolderListing.tsx`
+- `client/tests/unit/folder/presentation.test.tsx`
+- `prompts/PHASE_02/PHASE_02.md`
+- `prompts/PHASE_02/PLAN_04/PHASE_02_PLAN_04.md`
+- `prompts/PHASE_02/PLAN_04/PHASE_02_PLAN_04_CONTEXT.md`
+- `prompts/PHASE_02/PLAN_04/PHASE_02_PLAN_04_MANUAL.md`
+
+Added paths:
+
+- `client/src/components/File/DeleteFileDialog.tsx`
+- `client/src/components/File/FileDialog.tsx`
+- `client/src/hooks/file/useDeleteFile.ts`
+- `client/src/hooks/file/useEditFile.ts`
+- `client/src/hooks/file/useFileLifetime.ts`
+- `client/src/hooks/file/useFileRecovery.ts`
+- `client/src/hooks/file/useReadFile.ts`
+- `client/src/hooks/file/useUploadFile.ts`
+- `client/src/schemas/file/file.ts`
+- `client/src/services/file/lifetime.ts`
+- `client/src/utils/file/file.ts`
+- `client/tests/unit/file/file.test.ts`
+
+- No removed paths. The pre-existing untracked Amendment 04 prompt is additional to this authored inventory and remains unchanged. Build/install output stays ignored; no dependency/config/backend/RAG/history edit is part of this change.
+- Root/client AGENTS, PHASE and PLAN now separate implemented/unverified file lifecycle from unbuilt file detail/Ask; Amendments 01–03 remain verified. PLAN sections 4–8/11/13 describe current consumers, cache/recovery and review handoff without changing the acceptance identifiers or future RAG specification.
+
+### Acceptance ledger and review STOP
+
+| Amendment criteria | Stage 01 evidence / remaining acceptance                                                                                                                                                           |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A01                | Local branch/index/user-file/contract inspection complete; cached remote ref only, no fresh GitHub comparison.                                                                                     |
+| A02–A04            | Unchanged generated routes and root/nested folder-first/status-action SSR checks pass; actual browser navigation/status controls pending.                                                          |
+| A05–A08            | Source/form validation, exact multipart fields/bytes, ready-only confirmation, pending/lost-ack/no-refetch tests pass; actual picker/boundary/ingestion/pending modal events pending.              |
+| A09–A10            | Changed-only/null metadata and immutable/invalid/status/error/duplicate tests pass; browser edits and real no-reindex proof pending.                                                               |
+| A11–A13            | Bodyless 204-only deletion, processing guards, explicit deleting attempts and canonical read outcome tests pass; warning/Cancel/confirmation DOM behavior and exact live cleanup/retry pending.    |
+| A14–A16            | Keys/freshness/refetch/privacy/lease/abort and retained regressions pass locally; actual route/account switch/session races and live server enforcement pending.                                   |
+| A17                | Deterministic hooks/observer/SSR/service-lifetime coverage added and limits recorded; real DOM effects and modal-closure races remain explicitly unverified.                                       |
+| A18                | Required frozen install, format, lint, strict TS, focused/full tests, build and scope/inventory checks pass after recorded corrections.                                                            |
+| A19                | Stage 01 STOP for review; no unauthorized runtime/persistence/Git action.                                                                                                                          |
+| A20–A21            | NOT RUN / NOT APPROVED. Requires scoped production-SPA/current-source API/Chromium/real PostgreSQL/Qdrant acceptance, fresh full resource fingerprints, exact fixture ledger and approved cleanup. |
+| A22                | Current-state documentation/evidence updated; historical chronology and all PLAN/PHASE criterion IDs preserved.                                                                                    |
+
+- **Amendment 04: `IMPLEMENTED, UNVERIFIED`.** Local Stage 01 is complete; STOP for user code review. No unresolved local check failure remains.
+- Stage 02 proposal only: separately authorize the matching-source native FastAPI/retained datastore setup, production-built history-fallback host, isolated Chromium context, two run-owned synthetic owners and exact-ID folder/file/vector fixtures. Before mutations, capture fresh complete PostgreSQL/Qdrant/Docker fingerprints; exercise actual root/nested ingestion, metadata-no-reindex, permanent-delete/Cancel/retry, failures and owner/route races; clean only approved exact fixtures and prove full preservation. No paid Gemini generation is needed for this scope. Prior live scripts/snapshots are historical, not approval or fresh evidence.
+- **PLAN_04 / PHASE_02: `IMPLEMENTED, UNVERIFIED`.** Selected-file detail/Ask and final integrated closure remain Amendment 05 scope and `NOT YET BUILT`; no future Amendment prompt or route was created.
+
+## Amendment 04 — client cosmetic review follow-up
+
+### Authorization and preserved state
+
+- User requested compliance with all client AGENTS cosmetic rules and explicitly approved the cosmetic correction plan. This is a Stage 01 review follow-up, not Stage 02 approval.
+- Rechecked branch `phase-02/plan-04` and the existing worktree/index; no branch, index or user-content replacement occurred. Preserved the latest user edits, including symbol/property ordering, wording and prior documentation formatting.
+- Re-read client naming, aliases, imports, object layout, declaration, interface, control-flow, JSX and handwritten-test rules. Reviewed all 15 touched TypeScript/TSX files and the six touched documents; no unrelated file or generated primitive was included in a cleanup sweep.
+- The pre-correction audit found split hook/component import groups, unconventional internal import category order, missing helper/logical-step spacing in file tests and trailing whitespace in `DeleteFileDialog.tsx`. Its `bun run format:check` exited 1 on that dialog; lint exited 0. Passing Prettier/lint alone does not establish the mandatory manual conventions.
+
+### Cosmetic corrections
+
+- Consolidated hook/component imports and used hooks → components → services → schemas/utilities/other categories where applicable; retained existing ordering inside each import declaration and category.
+- Kept all package imports together and preserved the test environment side-effect import before application imports.
+- Replaced the touched folder presentation test's deep source-relative generated-route import with existing `@/routeTree.gen`; this resolves the same generated module without adding an alias.
+- Added blank lines around test helper definitions, between actions/assertions, after validation/cache-capture steps and between logical JSX sections. Removed the whitespace-only line in the delete dialog.
+- Naming, multiline nonempty objects, normal component/hook declarations, nested arrow functions, named interfaces/inferred schema types, braced guards, operation-prefixed hook results and action references were audited. No rule suppression, new type assertion, dependency, public interface or runtime expression was introduced.
+- Reviewed current root/client AGENTS, PHASE and PLAN cosmetic changes without broad reformatting or changing their maturity/acceptance contracts. CONTEXT/MANUAL receive this factual follow-up; prior chronological evidence remains intact.
+
+### Actual verification
+
+| Command/check                                                                                                                        | Actual result                                                                                                                                                                                                                                                          |
+| ------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bun run format`                                                                                                                     | Exit 0; existing formatter, no plugin or configuration changes.                                                                                                                                                                                                        |
+| `bun run format:check`                                                                                                               | Exit 0 after corrections.                                                                                                                                                                                                                                              |
+| `bun run lint`                                                                                                                       | Exit 0.                                                                                                                                                                                                                                                                |
+| `bun run typecheck`                                                                                                                  | Exit 0; strict settings retained.                                                                                                                                                                                                                                      |
+| `bun run test`                                                                                                                       | Exit 0; 374 pass / 0 fail / 1,985 assertions / 19 files, 661 ms.                                                                                                                                                                                                       |
+| Before/after TypeScript-transpiled token comparison                                                                                  | PASS across all 15 source/test files: non-import emitted token streams identical. Import inventories identical after normalizing the one equivalent generated-route alias; category ordering alone changed.                                                            |
+| Manual-style structural inspection                                                                                                   | PASS across all 15 source/test files: import grouping, helper-definition spacing, nonempty object layout, interfaces, absence of `any`/inline domain unions, declaration shape and braced conditions. Naming, logical grouping and JSX spacing also reviewed manually. |
+| Independent untracked-file inspection                                                                                                | Exit 0; all 12 authored untracked files decode as UTF-8 without BOM/NUL/trailing whitespace and retain final newline.                                                                                                                                                  |
+| Root `git -c core.safecrlf=false diff --check`                                                                                       | Exit 0.                                                                                                                                                                                                                                                                |
+| Root `git diff --exit-code -- client/package.json client/bun.lock client/components.json client/src/routeTree.gen.ts server .agents` | Exit 0; dependency/config/generated-route/backend/RAG boundaries unchanged.                                                                                                                                                                                            |
+| Root `git diff --cached --stat`                                                                                                      | Exit 0; index remains empty.                                                                                                                                                                                                                                           |
+| Documentation criterion inspection                                                                                                   | Exit 0; thirteen PLAN sections, all seventeen PLAN and fifteen PHASE acceptance identifiers preserved.                                                                                                                                                                 |
+
+- The first structural-audit helper falsely classified the two PascalCase components as helpers because it compared Windows backslash paths to slash-separated names. Normalizing audit paths corrected that inspection script; application code was not changed to satisfy a false finding.
+- Tests retain their previous count and behavior; no test was removed or weakened. No new tracked/untracked implementation file was created. The original Stage 01 path inventory still applies.
+- Frozen install/build were not repeated for this cosmetic follow-up; their earlier Stage 01 results remain recorded above, not claimed as fresh checks. The emitted-token comparison, strict typecheck and full local regression support the unchanged behavior claim.
+- No staging, commit, push, branch operation, Docker/Compose, browser/live API, migration, datastore, fixture, embedding or provider work occurred. Actual browser/ingestion/cleanup and live race acceptance remain outstanding.
+- **Amendment 04 / PLAN_04 / PHASE_02 remain `IMPLEMENTED, UNVERIFIED`.** Cosmetic review is complete; STOP for code review. Stage 02 still requires explicit approval.
+
+## Amendment 04 — 2026-11-13 — approved Stage 02 execution
+
+### Authorization, preservation and fresh local evidence
+
+- User approved the reviewed Stage 02 plan, explicitly requested the outdated FastAPI image rebuild, and selected cleanup of exact test fixtures/temporary artifacts plus the replaced API image only after successful verification and only if no container references it. Datastore images, containers, volumes, databases and unrelated resources MUST remain preserved.
+- Reconfirmed `phase-02/plan-04`; prior nine modified and twelve new implementation/document files plus the existing Amendment prompt remain intact. No Git mutation occurred.
+- Re-read root/client/server instructions and PHASE → PLAN → current CONTEXT/MANUAL → Amendment 04. This is file lifecycle acceptance, with no owned RAG implementation change or paid Gemini request.
+- Initial three containers were stopped. Privately captured their complete configurations and image identities, then explicitly started only `server-postgres-1` and `server-qdrant-1`. No pull/rebuild/recreation of either datastore occurred.
+- Fresh full pre-fixture PostgreSQL snapshot: one migration row (`0002_drive`), one pre-existing user, three folders, two sessions, zero files/verifications. Qdrant contains zero points; existing collection remains 1024-dimensional cosine. Captured all row values, catalog/schema/roles/sequences, all collection configuration/payloads/vectors/aliases, Docker resources and source/private configuration hashes before replacing the API or creating fixtures.
+- Private run directory: `%TEMP%/atlas-amendment04-live-03541a9089254f11af776a805e0f41f9`. Temporary verification harnesses are not shipped application/test modules and do not alter the packaged API.
+- Initial fresh client frozen install, format/lint/typecheck/full suite/build all passed: 498 installs / 529 packages unchanged; 374 tests / 1,985 assertions / 19 files, 642 ms; Vite 8.3.8, 566 modules, 14 assets.
+- Manual style review found two remaining blank lines within hook/component import groups in `DeleteFileDialog.tsx`. Removed only those blank lines, preserving declaration/symbol order and behavior. Recorded this single intentional source hash change separately from the original baseline; subsequent preservation compares against the explicitly recorded post-correction source manifest.
+- After the cosmetic correction, format-check, lint, typecheck, full suite and production build passed again: 374 tests / 1,985 assertions / 19 files, 598 ms; 566 build modules. Structural audit passed across all 15 touched TypeScript source/test files for import grouping, multiline nonempty objects and braced conditions. The first audit grouped generated-route imports with test fixtures incorrectly; correcting that audit classification required no further application change.
+- Existing isolated backend command `.venv/Scripts/python.exe -m tests.run` passed: 327 tests in 75.921 s. Its two real-model uploads produced one point each in the isolated in-memory Qdrant/SQLite environment; startup 4.779 s, uploads 5.676 s and 0.328 s. This is local source evidence, not packaged-container or persistent-datastore acceptance.
+- `docker compose build server` is running with default cache behavior; neither `--pull` nor `--no-cache` was requested. Docker did not reuse dependency layers and downloaded the Dockerfile's current dependencies/model artifacts. No dependency specification, Dockerfile, Compose or application backend change is part of this task.
+- Stage 02 acceptance and cleanup are still pending at this checkpoint; retain `IMPLEMENTED, UNVERIFIED`. Earlier Stage 01 approval boundaries above remain historical and are superseded only by this explicit Stage 02 authorization.
+
+### Image build deviation and packaged-source verification
+
+- Canonical `docker compose build server` failed at Dockerfile line 38 after `docling-tools models download layout tableformer rapidocr --rapidocr-backend-lang onnxruntime:ch` spent 1,362 seconds in its model-download step. Final cause: `requests.exceptions.ReadTimeout` contacting `www.modelscope.cn` with a five-second read timeout. Earlier anonymous Hugging Face warnings were diagnostic context, not the final failure cause.
+- Completed the explicitly requested API-only rebuild using a temporary recipe outside tracked source: `FROM server-server:latest` while that tag still matched the captured old image; remove only `/server/app` and `/server/migrations` inside the new image layer; COPY current `app`, `migrations` and `alembic.ini`. Existing Python dependencies, model artifacts, startup command and runtime configuration were retained. No tracked Dockerfile/Compose/dependency change occurred.
+- This is a current-source packaged-image acceptance result, not a successful cold dependency/model rebuild. Future canonical cold builds still depend on the external model download being available; no new credentials or download policy were introduced.
+- Ran `docker compose up -d --no-deps --no-build --pull never server`. Only the API container was replaced; datastore container/image identities remained intact.
+- Compared the complete packaged application/migration/`alembic.ini` inventory with the workspace: all **87 files** match; manifest SHA-256 `7fcadc2e51f313946ca58bfe8fdf509dbaf0fe15a655175942c408b9ce8a1e60`.
+- Running API image: `sha256:4724df7d09fb671991b7df7e69e42616bb1c889e62f5ec1a1941682885e4f9b9`; container `302ea88a1d54`. Both actual database-health fields report healthy. Packaged OpenAPI has exactly the expected 18 application operations; retired `/drive` and `/files/{id}/query` return framework 404.
+- Retained runtime versions observed inside the image: FastAPI `0.162.0`, Docling `2.143.1`, FlagEmbedding `1.4.2`, CPU Torch `2.14.1+cpu`, SQLAlchemy `2.1.6`. No refreshed dependency-version acceptance is claimed.
+
+### Browser harness corrections and preserved partial attempts
+
+- First attempt used `localhost` for API observation while the built client uses `http://127.0.0.1:8080`. A real upload completed 201, but the observer missed its response and hit the tool's 60-second deadline. Closed only the run-owned page/context; exact cleanup removed its one file/point and all synthetic accounts/folders/sessions. PostgreSQL, Qdrant, source and deployed-resource snapshots matched.
+- The original resource comparison also flagged exactly two `server_default` IPAM usage counters: `IPsInUse` 5 → 6 and `DynamicIPsAvailable` 65,531 → 65,530. These reflect the explicitly approved API start after the original stopped API; no datastore/network configuration changed. Preserved the original report and added a corrected assessment rather than rewriting that failure. Subsequent fresh baselines include the running replacement API.
+- Retry 01 uses the existing public API configuration and same-site `http://127.0.0.1:3000` static origin; both are already in the configured CORS contract. No environment file changed.
+- Chromium did not expose multipart bytes through `request.postDataBuffer()`; the helper incorrectly assumed a Buffer. Replaced that observation with a test-only XHR/FormData recorder that forwards the original body unchanged, checks actual File bytes/name/size and exact fields, and cross-checks the real ready DTO/vector ingestion. Partial helper uploads were deleted by their exact owned IDs before restarting those checks. A temporary Python helper-generation syntax failure was corrected; no application change was needed.
+- The tool VM does not provide CommonJS `require`, a dynamic-import callback or persistent script globals; direct temp-file access is outside its allowed roots. Used ignored run-owned scripts under `client/node_modules/.cache/` and an isolated Chromium context. Later tool-call state loss and the 60-second request deadline were handled with one run-owned browser job using local closure state and sanitized host-side progress reports. No user browser profile was reused.
+- Retry 01 passed the lifecycle/race batches through 98 checks, then a duplicate-delete observation found that its file/point registration was too late. Stopped that partial run, closed its owned context, and cleaned up all remaining fixtures. All five preservation flags passed; its original report remains a failed/partial attempt, not acceptance.
+- Retry 02 captures a fresh complete baseline and registers each actual upload's canonical UUID and point IDs immediately after 201, before any delete. The final successful result below comes only from this complete corrected run. None of these harness corrections modified application behavior or weakened tests.
+
+### Complete production-browser acceptance
+
+- Final host command: `.venv/Scripts/python.exe <run>/retry-02/acceptance.py`; exit 0, marker `AMENDMENT 04 LIVE ACCEPTANCE PASS`. Host checks cover pre-fixture PG/Qdrant equality, actual database-health fields, exact packaged API inventory/retired routes, two synthetic owners, production SPA fallback and genuine asset/API 404s.
+- Actual Chromium `157.0.8103.52`: **131 passing browser checks**, zero uncaught application exceptions. Served the built `client/dist/` with a real static history-fallback host; Vite dev/preview was not used as deployment proof.
+- Actual root/nested single-file inputs submit native multipart with a generated boundary, real synthetic File bytes/source filenames, separate display names, root omitted `folder_id` and nested exact UUID. Real Docling/BGE-M3/Qdrant ingestion returns ready 201 with the same immutable canonical UUID.
+- Actual validation, blank/unsupported/empty source, idle Cancel/Escape/focus, pending field/dismissal/duplicate guards, folder-first rows, extension/size/status, duplicate sibling UUID identity, active/inactive invalidation, 60-second memory reuse, direct reload/Root/Up/back/forward all pass.
+- Actual changed-only trimmed PATCH and description `null` preserve source/location/size, point IDs, payloads and complete vector values. Unchanged/invalid edits dispatch no PATCH; confirmed canonical edits refetch the visible listing.
+- Actual permanent warning/Cancel, pending guards and bodyless 204 cleanup pass. Run-owned lifecycle fixtures verify processing has no controls and receives backend PATCH/DELETE 409; deleting exposes only explicit permanent retry and completes exact PostgreSQL/Qdrant cleanup. The deleting marker is a controlled fixture, not an injected production datastore outage.
+- Controlled acknowledgement interception is labelled separately: actual committed upload/PATCH/delete followed by lost/500 acknowledgement; network/500/malformed-success/422 responses; blocked submission, no replay/automatic read, explicit canonical refresh, read failure, processing/ready/deleting and fresh-404 truthfulness all pass.
+- Actual delayed committed POST/PATCH/DELETE acknowledgements across same-SPA logout/login and route unmount cannot close fresh dialogs or invalidate/refetch replacement-owner/location cache. Both owners receive privacy-safe foreign file/folder denial; selected duplicate deletion preserves the other UUID's vectors.
+- Actual configured-origin credentialed CORS succeeds; unrelated origin is rejected. Existing New/Edit Folder, encrypted version-1 JWT/nonextractable AES-256-GCM key, one cookie fallback/refresh rotation, confirmed logout/reload privacy and unrelated browser-record preservation pass. No Ask UI or Gemini invocation occurred.
+
+### Final exact cleanup and preservation
+
+- Final successful ledger: **2 users, 2 verification IDs, 12 session IDs, 7 folders, 11 files, 11 points**. Every file/point was registered before a destructive acceptance action. Final confirmed logout completed; the isolated browser context closed before host shutdown/cleanup.
+- Cleanup uses exact point IDs, exact file/verification/session IDs, leaf-first exact folder IDs, then exact user IDs. No display-name deletion, broad collection cleanup, database reset, migration, volume removal or unrelated Docker prune occurred.
+- Full final PostgreSQL rows/schema/catalog/roles/sequences and Qdrant collection/configuration/aliases/payloads/vectors match the fresh pre-fixture snapshot. Source/private configuration hashes and every retained/deployed Docker resource match too; this compares complete values, not counts.
+
+| Scope                                                   | Equal before/after SHA-256                                         |
+| ------------------------------------------------------- | ------------------------------------------------------------------ |
+| PostgreSQL                                              | `daa0a1a99e0f8b53199d39fd49264f21e77b71eb29dd1ec05159d01f2b806d56` |
+| Qdrant                                                  | `d0cd6343b4d6377abbcd3143ba338fdc519ba2b967cb427ad77760b6fcaffa95` |
+| Docker resources after approved API replacement         | `74449990ab194aef2d855bbcfdb0e1f8da3d6eb4659da0da65286dc8a3135ac8` |
+| Source/configuration after recorded cosmetic correction | `ea90824ce009d6f01269f6ee4caff77e1bcb90daeec2a052e76cc3855849dcdf` |
+
+- Checked that no container references old API image `sha256:d18704edc637097028a21ffaef4e2b56615846d0fa61ab48bb2084ee6f80c924`. Targeted `docker image rm <old-id>` returned `No such image`; independent image inspect/inventory confirm that reference is already absent. This is not a successful removal-command claim. Required shared layers/build cache remain intact; no force or broad prune was used.
+- PostgreSQL image remains `edb0c08dc33b`, container `3c9b8f62f45b`; Qdrant image remains `b7b0444c4c35`, container `afa3a07f9429`. Both original volumes remain. The rebuilt API and both retained datastores remain running and healthy; the verification static host/context are closed.
+
+### Acceptance closure and scope
+
+| Amendment criteria | Executed evidence                                                                                                                                                       |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A01–A03            | Branch/worktree preservation, unchanged six routes, existing workspace and folder-first/status controls.                                                                |
+| A04–A08            | Actual native upload/validation/once-only/pending/uncertainty/placement; real ready ingestion and canonical refetch.                                                    |
+| A09–A13            | Actual metadata/null/no-reindex, permanent warning/204/retry, all lifecycle reconciliation/read-failure/404 states.                                                     |
+| A14–A16            | Existing exact keys/freshness plus actual active/inactive cache and POST/PATCH/DELETE account/route races; auth/folder/backend contracts retained.                      |
+| A17–A19            | Local mocked/SSR evidence remains distinguished from 131 actual browser checks; quality/build checks pass and Stage 01 review STOP preceded explicit Stage 02 approval. |
+| A20–A21            | Packaged current-source API, production SPA, actual PG/Qdrant/two owners; exact ledger cleanup and full fresh fingerprints pass.                                        |
+| A22                | Chronological evidence/current-state corrections preserve historical Amendments and all 17 PLAN/15 PHASE acceptance identifiers.                                        |
+
+- **Amendment 04: `IMPLEMENTED & VERIFIED`.** No unresolved product acceptance failure remains within this Amendment. The external canonical cold-build failure and cached-runtime deviation are explicitly retained above.
+- **PLAN_04 / PHASE_02: `IMPLEMENTED, UNVERIFIED`.** Selected-file detail/Ask and final complete PLAN/PHASE closure remain `NOT YET BUILT`; no future Amendment was created.
+- Stage 02 application change is limited to the two cosmetic import-group blank lines. Current-state documentation additionally updates server AGENTS to replace its stale-image statement with the actual deployment evidence. No backend/API/schema/dependency/RAG implementation changed and no Git mutation occurred.
+
+### Final artifact cleanup and repository checks
+
+- Removed 20 raw private snapshot/credential files, 24 disposable helper/capability files, the exact ignored run-owned browser-script cache and one run-owned bytecode directory. Verified resolved Windows targets stay within their intended run/cache roots and contain no reparse points before recursive removal. Removed the run-owned temp pointer after final checks; unrelated temp/history, build cache and application data remain intact.
+- Retained sanitized final/partial reports, exact-ID ledgers, hashes and the final verification harness under the recorded artifact directory. Raw fixture passwords, full private datastore/configuration snapshots and the live capability endpoint are not retained as reusable application credentials.
+- Final actual checks confirm the static host has no listener, the owned Chromium context is closed, and the rebuilt API plus both original datastore containers remain healthy with unchanged datastore identities. No synthetic fixture remains; the old image reference is confirmed absent.
+- Final client `bun run format:check` passed after current-state documentation formatting. Earlier post-cosmetic lint/typecheck/full regression/build results remain fresh for the unchanged application code; they were not artificially rerun for documentation-only edits.
+- Final Git branch/HEAD remain `phase-02/plan-04` / `1820061c29c974b35c5e6094cfa875b956a4a43d`; index is empty. `git diff --check` and dependency/generated-route/backend-source/Dockerfile/Compose/migration/RAG boundary checks pass.
+- Independent final encoding/whitespace checks pass for seven touched documents and twelve new source/test files; all thirteen PLAN sections, seventeen PLAN and fifteen PHASE acceptance identifiers remain. Existing Stage 01 changes and the original untracked Amendment prompt are preserved. Stage 02 adds only `server/AGENTS.md` to that prior document inventory, plus the documented cosmetic import correction in an existing new file.
+
+## Amendment 05 — 2026-11-16 — Stage 01 file detail and selected-file Ask
+
+### Authorization, starting state and scope
+
+- User approved the reviewed Stage 01 plan. Read root/client instructions, PHASE → PLAN → current CONTEXT/MANUAL → Amendment 05, prior Amendment 04 boundaries and targeted source/tests. Read server/RAG guidance only to confirm the existing metadata/Ask/provenance contract.
+- Confirmed branch `phase-02/plan-04`, HEAD `1820061c29c974b35c5e6094cfa875b956a4a43d`, empty index. Cached `origin/phase-02/plan-04` has zero ahead/behind divergence; no fetch/GitHub lookup occurred, so this is not a fresh remote-state claim.
+- Preserved all ten pre-existing tracked modifications, twelve Amendment 04 authored source/test files and both untracked Amendment prompts. `server/AGENTS.md` and `DriveWorkspace.tsx` retain their prior changes and were not edited by Amendment 05. No removed source, staging, commit, push, branch operation or destructive Git action.
+- Frontend-only implementation; no server source/tests, backend dependencies, Docker/Compose, schema/migration, RAG algorithm/parser/provider, model cache, CORS or persistence change.
+- **Supersession:** Amendment 05 owns file detail/selected-file Ask and its own acceptance only. Earlier assignment of comprehensive PLAN/PHASE closure to Amendment 05 is superseded. PLAN_04/PHASE_02 remain `IMPLEMENTED, UNVERIFIED`; the user will define the subsequent final-acceptance Amendment. No final crosswalk or future Amendment is authored here.
+
+### Implemented behavior and ownership
+
+- Plugin-generated independent `/drive/file/$fileId` route normalizes UUID case, rejects malformed paths before HTTP and composes AuthGate plus a user/session/file-keyed workspace. Existing six routes remain; `/dashboard` is retired.
+- Existing root/nested file names are typed UUID links; separate inline actions, server order and folders-first presentation remain. No file mutations were duplicated on the detail page.
+- `useFile` owns the canonical protected abortable Axios GET. Existing strict ten-field File schema validates responses; mismatched requested UUID is rejected. Cache key is exactly `['drive','file',UUID]`, freshness 60 seconds, memory-only; no list-derived detail, router data cache or new Zustand state.
+- Existing folder-session leases and QueryProvider cancellation/clear protect same-key account transitions. Unusable auth, pending logout, canceled signals and retired owner/session responses cannot publish metadata; error states hide cached metadata.
+- Minimal plain-text metadata shows canonical name/description, source name/type/size/status and server-derived Back to Folder/Root. Processing/deleting retain metadata and refresh, without Ask. Loading, safe not-found and recoverable errors are distinct.
+- `AskPanel` uses RHF/Zod, a labeled question input, pending controls and existing CitationList. Only trimmed `{question}` is posted; `top_k` is omitted. The server retains default 5, owner/ready enforcement and exact-file retrieval authority.
+- `useAsk` owns React subscription/lifecycle; `createFileAskSession` binds the existing AskSession to authenticated owner/session and mounted lifetime. Scope changes/unmount retire it; auth uncertainty, terminal denial, logout initiation, account replacement and same-user session-generation changes retire it synchronously through the existing boundary.
+- AskSession adds an optional current-publication guard and structured HTTP status/code on failure. It explicitly uses protected native fetch, cancels an owned pending reader on reset, releases reader locks, discards late response bodies and prevents old cleanup from retiring a replacement request.
+- Existing parser/answer-stream/schema semantics are unchanged. Text remains provisional until ordered citations/done plus clean EOF. Invalid/error/incomplete/aborted streams cannot commit trusted citations or success. Canonical insufficient-context fallback and nullable trusted provenance remain unchanged.
+- A current `404 FILE_NOT_FOUND` Ask denial withholds metadata and shows the same safe missing/foreign state. A current `409 FILE_NOT_READY` blocks Ask and performs canonical GET reconciliation; it never retries the denied POST.
+- No user-facing cancel/reconnect/retry, transcript, top-k/model picker, Markdown/HTML renderer, file preview/download or new dependency was added. Client abort does not claim server/provider rollback.
+
+### Exact changed-path inventory for this Amendment
+
+| Kind                            | Paths                                                                                                                                                            |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| New presentation                | `client/src/components/Ask/AskPanel.tsx`; `client/src/components/File/FilePanel.tsx`; `client/src/components/File/FileWorkspace.tsx`                             |
+| New lifecycle/query             | `client/src/hooks/ask/useAsk.ts`; `client/src/hooks/file/useFile.ts`; `client/src/services/ask/fileSession.ts`                                                   |
+| New route/tests                 | `client/src/routes/drive_.file.$fileId.tsx`; `client/tests/unit/ask/fileSession.test.ts`; `client/tests/unit/file/detail.test.tsx`                               |
+| Existing source changed         | `client/src/components/Folder/FolderListing.tsx`; `client/src/services/ask/askSession.ts`; `client/src/utils/file/file.ts` (already authored under Amendment 04) |
+| Existing tests/generated output | `client/tests/unit/folder/presentation.test.tsx`; `client/tests/unit/router.test.tsx`; plugin-owned `client/src/routeTree.gen.ts`                                |
+| Documentation                   | Root/client AGENTS; PHASE_02; PLAN_04 specification, CONTEXT and MANUAL                                                                                          |
+
+### Executed local checks and preserved corrections
+
+| Command / inspection                                                                                     | Actual result                                                                                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bun install --frozen-lockfile`                                                                          | PASS; Bun 1.4.3; 498 installs checked across 529 packages, no changes                                                                                                                                                |
+| `bun run format`                                                                                         | PASS; unrelated source reported unchanged; generated route tree excluded                                                                                                                                             |
+| `bun run format:check`                                                                                   | PASS                                                                                                                                                                                                                 |
+| `bun run lint`                                                                                           | PASS                                                                                                                                                                                                                 |
+| `bun run typecheck`                                                                                      | PASS                                                                                                                                                                                                                 |
+| `bun test tests/unit/file tests/unit/ask tests/unit/stream tests/unit/folder tests/unit/router.test.tsx` | PASS; final compact evidence run: 221 tests, 1,339 assertions, 9 files, 372 ms                                                                                                                                       |
+| `bun run test`                                                                                           | PASS; 416 tests, 2,215 assertions, 21 files, 496 ms                                                                                                                                                                  |
+| `bun run build`                                                                                          | PASS; Vite 8.3.8, 580 modules, 19 assets plus `dist/index.html`; lazy file-route chunk present                                                                                                                       |
+| `.venv/Scripts/python.exe -m unittest tests.test_10_ask`                                                 | PASS; 15 tests, 0.837 s; offline flags and bytecode writing disabled                                                                                                                                                 |
+| Manual client-style review and TypeScript AST inspection                                                 | PASS across all 14 touched handwritten source/test files; multiline nonempty objects, one property per line, braced conditions, grouped imports, named actions, normal component/hook declarations and arrow helpers |
+| Git whitespace/index/source-boundary checks                                                              | PASS at review preflight; index empty, branch/HEAD unchanged, unrelated deployment/dependency/RAG boundaries preserved                                                                                               |
+
+- First targeted check had test-only Bun fetch `preconnect` typing and deferred Axios resolver typing failures; corrected mocks/types without weakening TypeScript or runtime validation.
+- Initial targeted run: 85 pass / 7 fail. Causes were the disabled test observer preventing an active-refetch assertion, SSR comment separators in text assertions, obsolete no-file-link expectations, and expecting an error snapshot after invalid-access recovery had correctly retired auth. Corrected fixtures/assertions, not product behavior.
+- Next targeted run: 121 pass / 2 fail. Remaining stale neutral-file-route expectation and a counter that combined Ask and refresh requests were corrected. The native Ask POST is once-only; refresh remains a separate auth request. Preserved this distinction explicitly.
+- Initial full suite then passed 415 tests; added a same-user session-generation retirement case and strengthened the uppercase UUID test to use alphabetic UUID characters. Final focused/full results are recorded above.
+- A documentation/test patch failed to match its expected context and made no change; reapplied against the inspected current lines. Structural object-layout adjustment was limited to the two newly added test files, then Prettier and the structural audit passed.
+- Existing backend test emits a Starlette/httpx deprecation warning. No dependency change was made. The suite uses SQLite, in-memory Qdrant, synthetic embeddings and mocked Gemini; two run-owned loopback HTTP probes test streaming/disconnect with lifespan off. This is local deterministic regression, not packaged/current persistent API acceptance or actual Gemini generation. No real model was loaded/downloaded.
+
+### Scoped acceptance ledger and mandatory STOP
+
+| Amendment 05 criteria | Stage 01 evidence / remaining boundary                                                                                                                                                                                |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A01                   | Branch/instructions/contracts inspected; prior work preserved                                                                                                                                                         |
+| A02–A05               | Generated-route/memory-router/SSR and mocked Axios checks for UUID normalization/rejection, direct query, strict DTO/status/back link, safe errors; actual history/static-host/browser checks remain Stage 02         |
+| A06–A11               | Ready-only presentation, one trimmed POST, structured denial/reconciliation, existing stream/fallback/citation regressions and cancellation tests; real DOM form behavior remains Stage 02                            |
+| A12–A15               | Exact key/freshness, active detail/inactive drive invalidation, auth cache preservation, same-key owner races and abort-ignoring stream/body retirement pass deterministically; existing auth/folder/file suites pass |
+| A16–A17               | Focused/full client, formatting/lint/typecheck/build, isolated backend Ask and source/style checks pass; SSR/effects limits are explicit                                                                              |
+| A18                   | STOP for user code review. No Stage 02 operation is authorized or executed                                                                                                                                            |
+| A19–A21               | NOT RUN: production browser/history host, matching-source packaged API, persistent two-owner PG/Qdrant/real ingestion, live fixture preservation/cleanup and any separately optional Gemini check                     |
+| A22                   | Current summaries corrected narrowly; chronology, 13 PLAN sections, 17 PLAN and 15 PHASE identifiers retained; no final-acceptance crosswalk performed                                                                |
+
+- **Amendment 05: `IMPLEMENTED, UNVERIFIED`.** Stage 01 complete; stop for code review before any Stage 02 work.
+- **PLAN_04 / PHASE_02: `IMPLEMENTED, UNVERIFIED`.** Final comprehensive acceptance remains outside this Amendment, even after a future scoped Amendment 05 Stage 02 pass.
+- Amendment 04's canonical cold Docker build timeout and retained-runtime/model image deviation remain unresolved historical deployment limitations; no fresh runtime-health/image-parity claim is made here.
+- No Docker/Compose command, persistent datastore connection/fixture, migration, browser acceptance, model download/embedding, real Gemini request or resource cleanup occurred in this Stage 01.
+
+### Final review checks
+
+- Final documentation-only client format-check passed after formatting the updated client AGENTS current-state table; application code and its passing local suites remain unchanged.
+- Final encoding/whitespace checks confirm all nine new source/test files and six touched documents are UTF-8/LF, without BOM/NUL/trailing whitespace and with final newline. The generated tree contains seven independent routes; the build has nineteen assets plus its entry document.
+- Initial final `git diff --check` found an extra blank line at EOF in each appended CONTEXT/MANUAL; removed those two blank lines and reran successfully. No product change resulted.
+- Final source-boundary comparison passes for package/lockfile, Vite configuration, existing SSE parser/answer validator/citation component, auth/HTTP/QueryProvider, all server source/tests/dependencies/Docker/migrations and the RAG skill. All thirteen PLAN sections, seventeen PLAN and fifteen PHASE criteria remain. The index is empty and branch/HEAD unchanged.
+
+## Amendment 05 — 2026-11-16 — Route rename and approved Stage 02
+
+### Authorization, implementation and local checks
+
+- User requested `/drive_/file/$id`, approved Stage 02 after that change, then approved the reviewed execution plan. This supersedes the preceding Stage 01 review STOP; optional paid Gemini and comprehensive PLAN/PHASE closure remain excluded.
+- Reconfirmed branch `phase-02/plan-04`, HEAD `1820061c29c974b35c5e6094cfa875b956a4a43d`, empty index and preserved changes. No fetch, staging, commit, push, branch operation or destructive Git action occurred.
+- Renamed the new route to `client/src/routes/drive_.file.$id.tsx`; normalized `Route.useParams().id` feeds the existing domain `fileId` prop. Updated FolderListing typed links to `{id}`, two route test expectations and current route documentation. TanStack's plugin regenerated `routeTree.gen.ts`; seven independent routes remain.
+- Public URL remains `/drive/file/<uuid>`; `drive_` is TanStack's layout escape. Earlier `$fileId` spellings in this chronology/MANUAL Section 19 are superseded parameter spelling. The original Amendment prompt is unchanged.
+- Follow-up application changes are limited to that filename/parameter, typed link and two test expectations. Reread client cosmetic rules; affected handwritten source/tests retain grouped imports, multiline objects, normal component declarations, braced guards and logical spacing. Prior style work is preserved.
+- Initial Python replacement used Windows CP1252 and altered non-ASCII text in four files. Detected/reversed that conversion, explicitly used UTF-8 thereafter and formatted/rechecked the affected files. Intermediate format-check reported two files; final format-check passed. No corrupted text remains.
+
+| Executed command                                                                                         | Final observed result                                                                        |
+| -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `bun run format` / `bun run format:check`                                                                | PASS; unrelated source reported unchanged                                                    |
+| `bun run lint`                                                                                           | PASS                                                                                         |
+| `bun run typecheck`                                                                                      | PASS                                                                                         |
+| `bun test tests/unit/file tests/unit/ask tests/unit/stream tests/unit/folder tests/unit/router.test.tsx` | PASS; 221 tests, 1,339 assertions, 9 files, 440 ms                                           |
+| `bun run test`                                                                                           | PASS; 416 tests, 2,215 assertions, 21 files, 502 ms                                          |
+| `bun run build`                                                                                          | PASS; Vite 8.3.8, 580 modules, nineteen assets plus entry document; `$id` file chunk emitted |
+| `git -c core.safecrlf=false diff --check`                                                                | PASS before live acceptance; final documentation check below                                 |
+
+- Frozen install and isolated offline backend Ask checks remain the preceding Stage 01 evidence; dependencies/backend code did not change and those checks were not claimed as newly rerun.
+
+### Actual runtime and accepted behavior
+
+- Fresh preflight found the API, PostgreSQL, Qdrant and unrelated Mongo containers stopped. Only retained `server-postgres-1` and `server-qdrant-1` were temporarily started; images, volumes and networks were retained. API and Mongo containers were untouched.
+- Ran current checked-out FastAPI natively on port 8080 with real application lifespan, cached BGE-M3 and Docling Markdown ingestion, actual PostgreSQL owner/ready guards and exact-file Qdrant retrieval. No migration, image build/pull/replacement or model download occurred.
+- A run-owned in-memory provider substitution emitted deterministic deltas; an observation wrapper left real retrieval results/filter unchanged. GroundedStream/trusted citation mapping/HTTP/SSE remained actual application code. This is not actual Gemini or fresh packaged-image verification.
+- Served final `client/dist/` through a genuine temporary static history-fallback host on port 3000, existing API configuration/CORS and isolated Chromium contexts. Missing assets and frontend API paths stayed 404; the MCP root context was preserved.
+- Captured full private PostgreSQL rows/schema/catalog/roles/sequences; every Qdrant collection/configuration/alias/payload/vector; Docker container/image/network/volume configuration/identity/state; source/private configuration/dist hashes. Existing revision `0002_drive`, collection 1024-dimensional cosine; baseline one user, three folders, two sessions, no files/points.
+
+| Evidence class                                   | Actual result                                                                                                              |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| Main built-SPA browser matrix                    | PASS; 41 checks                                                                                                            |
+| Additional browser boundary matrix               | PASS; 9 checks                                                                                                             |
+| Native/store harness                             | PASS; 28 checks per successful run; repeated native checks are not additional unique browser coverage                      |
+| Real generation path with deterministic provider | Two nonempty exact-file owner-scoped retrievals, one empty retrieval; default top-k 5; two provider instances, both closed |
+| Optional actual Gemini                           | NOT RUN; independently optional and unapproved                                                                             |
+
+- Routing: root/nested canonical file links and separate Edit File controls; canonical root/folder backlinks; direct load, reload/encrypted restoration, back/forward; alphabetic uppercase UUID normalization; malformed UUID without file HTTP; safe equivalent missing/foreign views.
+- Metadata: actual ready/processing/deleting, delayed loading, injected read failure and explicit refresh recovery. Real stale-ready Ask returned 409 with zero retrieval/provider work and reconciled processing metadata. Injected Ask 404 withheld cached metadata until explicit refresh.
+- Native Ask: blank rejection; one trimmed `{question}` POST without `top_k`; pending/duplicate guard; incremental provisional text without sources; clean completion and trusted source; exact-file empty-index fallback without citations. Both owners completed actual HTTP/Qdrant Ask with deterministic generation.
+- Injected browser fetch/HTTP seams: SSE error, premature EOF, citations without done, duplicate citations, malformed JSON, invalid UTF-8/content type, 422/500, network failure and 401 recovery without POST replay. Citation HTML rendered as escaped text with nullable provenance; no image execution.
+- Boundaries: file/route changes during abort-ignoring synthetic readers; logout/account replacement; delayed actual first-owner metadata followed by same-key second-owner 404; pending restoration hides private UI; uncertain logout blocks automatic restoration until explicit login. Zero uncaught browser exceptions.
+- Direct native HTTP independently established missing/foreign metadata and Ask 404 equivalence and non-ready metadata/Ask 409 before any retrieval/provider call.
+
+### Failures, retries and precise cleanup
+
+- First harness failed before fixtures because the extracted snapshot helper lacked its `text` import. No fixture existed; manually restored only the two started datastores, corrected the harness import and made its cleanup-comparison failure path restore containers reliably.
+- Next browser attempt stopped after three checks: test selector expected `Edit` instead of existing `Edit File`. Corrected selector/wait only. Exact cleanup and complete preservation passed for that failed attempt: 2 users, 2 verifications, 4 sessions, 4 folders, 6 files, 4 points.
+- Main fresh run then passed 41 browser checks. Additional matrix initially timed out during delayed-metadata navigation after six checks; retained its failed report, added a precise step marker/diagnostics and reran in a fresh browser context against the same ledger-owned fixtures. All nine checks passed without product changes. This retry remains a harness timing limitation.
+- Main run `9eb0242e76664436b16dcae9c3693526` removed exact ledger-owned 2 users, 2 verifications, 5 sessions, 4 folders, 6 files and 4 points.
+- Additional run `6243acdaa5084f32b5c2d3f04cc20b20` removed exact ledger-owned 2 users, 2 verifications, 7 sessions, 4 folders, 6 files and 4 points, including sessions from its failed browser attempt.
+- Each run uploaded four real Markdown files and inserted two synthetic ready metadata rows without vectors. All inserted rows/points were ledgered before deletion. Cleanup selected exact point IDs, files/auth records, leaf-first folders, then users. No name-based deletion, datastore reset, collection cleanup or prune.
+- Full datastore values match fresh baselines in both successful runs. Independent complete raw Docker fingerprints match exactly too, including health fields; the structural comparator's start/stop health allowance was unnecessary for the actual comparison.
+
+| Preserved scope                            | Equal before/after SHA-256                                         |
+| ------------------------------------------ | ------------------------------------------------------------------ |
+| PostgreSQL                                 | `daa0a1a99e0f8b53199d39fd49264f21e77b71eb29dd1ec05159d01f2b806d56` |
+| Qdrant                                     | `d0cd6343b4d6377abbcd3143ba338fdc519ba2b967cb427ad77760b6fcaffa95` |
+| Complete Docker resources                  | `6753407f8d43904e162bdc32b16e1c8591eae6cc86ac3959dce7c45f31989926` |
+| Source/private configuration/dist manifest | `5531b62ffefb30eb27bb52fa93336165677f2ec3a9eeff1d7a5431652ef97abd` |
+
+- Native FastAPI/static hosts and owned browser contexts closed. PostgreSQL/Qdrant returned to their original stopped states; API/Mongo stayed stopped. No server/provider/schema/dependency source or environment file changed.
+- Sanitized reports, exact-ID ledgers, source hashes and harness/templates archived under `%TEMP%/atlas-amendment05-9eb0242e76664436b16dcae9c3693526`: main `report.json`, `supplement/report.json`, failed `attempt02/` and supplementary failed-browser report. Private snapshot/credential/capability and disposable workspace-script cleanup is recorded below.
+
+### Scoped Amendment acceptance closure
+
+| Amendment criteria | Accepted evidence                                                                                                                  |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| A01–A05            | Preserved branch/worktree; generated `$id` route; actual deep-link/history/link/metadata/status/error/privacy checks               |
+| A06–A11            | Actual ready denial/reconciliation/native Ask/fallback plus deterministic adverse/escaping browser and Stage 01 parser regressions |
+| A12–A15            | Stage 01 exact cache/invalidation/auth regression plus actual restoration/logout/account/file/late-metadata/stream boundaries      |
+| A16–A18            | Passing local quality/focused/full/build; review STOP preceded fresh Stage 02 approval                                             |
+| A19–A21            | Built SPA/current-source native API/real two-owner PG/Qdrant; deterministic generation disclosed; exact cleanup/full preservation  |
+| A22                | Narrow current summaries; chronology and PLAN/PHASE criteria preserved; no comprehensive crosswalk or future Amendment             |
+
+- **Amendment 05: `IMPLEMENTED & VERIFIED`.** Scoped required acceptance passed; optional actual Gemini unexecuted. Canonical cold-build timeout/cached-image deviation remains historical; no fresh packaged-runtime/cold-build claim.
+- **PLAN_04 / PHASE_02: `IMPLEMENTED, UNVERIFIED`.** Comprehensive acceptance and PLAN-17/PHASE-15 crosswalk remain reserved for a subsequent user-defined Amendment.
+
+### Final artifact and repository checks
+
+- Removed the exact ignored `client/node_modules/.cache/atlas-a05` verification root (31 files), after confirming its absolute path remained under the intended cache, checking for root/nested reparse points and archiving only sanitized reports/ledgers/hashes/generic harnesses. Raw fixture credentials, datastore/Docker private snapshots, capability-bearing jobs/ready files and disposable scripts are gone. Unrelated ignored files and historical artifacts were preserved.
+- Independently rehashed all 191 entries in the source/private configuration/dist manifest after the documentation/style pass: every application/configuration/build file matches the accepted runtime manifest. Final client format-check passed; unchanged application code retains the earlier lint/typecheck/focused/full/build results.
+- Complete Docker fingerprint equality covers captured Config/HostConfig/Mounts/identities/images/networks/volumes and stopped/health states. Start/finish timestamps and exit codes are lifecycle observations outside that fingerprint: the explicitly started/stopped PostgreSQL ended with exit 0 and Qdrant with 143, versus their prior 255. API/Mongo lifecycle was unchanged; final port inspection found no listener on 3000 or 8080.
+- Final UTF-8/LF/no-BOM/NUL/trailing-whitespace checks pass across the six updated documents. All thirteen PLAN sections, seventeen PLAN acceptance IDs and fifteen PHASE acceptance IDs remain; the earlier documentation append patch with an obsolete MANUAL heading failed atomically and was reapplied to the inspected current heading without losing content.
+- Final `git -c core.safecrlf=false diff --check` passes; index empty, branch/HEAD unchanged. Server source/tests/deployment/dependencies/migrations, RAG skill, existing auth/HTTP/QueryProvider, SSE validators/citations and package/lockfile boundaries remain unchanged. Existing Amendment 04 edits and both original Amendment prompts are preserved.

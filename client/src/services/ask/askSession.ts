@@ -13,9 +13,19 @@ export type AskStatus = "idle" | "streaming" | "success" | "error";
 
 export interface AskState {
   error?: string;
+  httpFailure?: AskHttpFailure;
   status: AskStatus;
   answer: string;
   citations: Citation[];
+}
+
+export interface AskHttpFailure {
+  status: number;
+  code: string;
+}
+
+interface AskSessionOptions {
+  current?(): boolean;
 }
 
 export type AskListener = () => void;
@@ -39,10 +49,13 @@ const failure =
   "Unable to complete the answer. Check the API connection and try again.";
 const generationFailure = "Generation failed. Try again.";
 
-export const createAskSession = (): AskSession => {
+export const createAskSession = (
+  options: AskSessionOptions = {},
+): AskSession => {
   let state = idle;
   let scope: string | undefined;
   let controller: AbortController | undefined;
+  let activeReader: ReadableStreamDefaultReader<Uint8Array> | undefined;
 
   const listeners = new Set<AskListener>();
 
@@ -54,6 +67,8 @@ export const createAskSession = (): AskSession => {
   const reset = (): void => {
     controller?.abort();
     controller = undefined;
+    void activeReader?.cancel().catch(() => undefined);
+    activeReader = undefined;
 
     publish(idle);
   };
@@ -63,14 +78,22 @@ export const createAskSession = (): AskSession => {
       question,
     });
 
-    if (!scope || !form.success || controller) {
+    if (
+      !scope ||
+      !form.success ||
+      controller ||
+      options.current?.() === false
+    ) {
       return;
     }
 
     const owner = new AbortController();
     controller = owner;
 
-    const current = () => controller === owner && !owner.signal.aborted;
+    const current = () =>
+      controller === owner &&
+      !owner.signal.aborted &&
+      options.current?.() !== false;
 
     publish({
       ...idle,
@@ -79,7 +102,9 @@ export const createAskSession = (): AskSession => {
 
     let complete = false;
     let message = failure;
+    let httpFailure: AskHttpFailure | undefined;
     let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+    let responseBody: ReadableStream<Uint8Array> | null | undefined;
 
     const stream = createAnswerStream({
       onAnswer: (answer) => {
@@ -105,8 +130,11 @@ export const createAskSession = (): AskSession => {
 
     try {
       const response = await fetch.post(`/files/${scope}/ask`, form.data, {
+        isProtected: true,
         signal: owner.signal,
       });
+
+      responseBody = response.body;
 
       if (!current()) {
         return;
@@ -118,6 +146,10 @@ export const createAskSession = (): AskSession => {
 
         if (result.success) {
           message = result.data.error;
+          httpFailure = {
+            status: response.status,
+            code: result.data.code,
+          };
         }
 
         throw new Error(failure);
@@ -135,6 +167,7 @@ export const createAskSession = (): AskSession => {
       }
 
       reader = response.body.getReader();
+      activeReader = reader;
       const parser = createSseParser();
 
       while (current()) {
@@ -167,15 +200,28 @@ export const createAskSession = (): AskSession => {
           ...idle,
           status: "error",
           error: stream.failed() ? generationFailure : message,
+          ...(httpFailure
+            ? {
+                httpFailure,
+              }
+            : {}),
         });
       }
     } finally {
       if (!complete) {
         owner.abort();
         await reader?.cancel().catch(() => undefined);
+
+        if (!reader && !responseBody?.locked) {
+          await responseBody?.cancel().catch(() => undefined);
+        }
       }
 
       reader?.releaseLock();
+
+      if (activeReader === reader) {
+        activeReader = undefined;
+      }
 
       if (controller === owner) {
         controller = undefined;
@@ -183,27 +229,30 @@ export const createAskSession = (): AskSession => {
     }
   };
 
+  const subscribe = (listener: AskListener) => {
+    listeners.add(listener);
+
+    return () => {
+      listeners.delete(listener);
+    };
+  };
+
+  const getSnapshot = () => (options.current?.() === false ? idle : state);
+
+  const setScope = (fileId: string | undefined) => {
+    if (scope === fileId) {
+      return;
+    }
+
+    scope = fileId;
+    reset();
+  };
+
   return {
     reset,
     submit,
-
-    subscribe: (listener) => {
-      listeners.add(listener);
-
-      return () => {
-        listeners.delete(listener);
-      };
-    },
-
-    getSnapshot: () => state,
-
-    setScope: (fileId) => {
-      if (scope === fileId) {
-        return;
-      }
-
-      scope = fileId;
-      reset();
-    },
+    subscribe,
+    getSnapshot,
+    setScope,
   };
 };

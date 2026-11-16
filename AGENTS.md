@@ -2,7 +2,7 @@
 
 Repository-wide engineering contract for Atlas. This file applies to the entire repository.
 
-- [client/AGENTS.md](client/AGENTS.md): React/Vite/TanStack Router client standards (PLAN_04 migration and folder workspace `IMPLEMENTED & VERIFIED`; file workflows pending).
+- [client/AGENTS.md](client/AGENTS.md): React/Vite/TanStack Router client standards (migration/folder workspace `IMPLEMENTED & VERIFIED`; file lifecycle `IMPLEMENTED & VERIFIED`; file detail/Ask `IMPLEMENTED & VERIFIED`).
 - [server/AGENTS.md](server/AGENTS.md): backend-specific standards.
 - [.agents/skills/rag/SKILL.md](.agents/skills/rag/SKILL.md): detailed RAG pipeline contracts.
 - Scoped instructions may specialize, but MUST NOT weaken, repository-wide LOCKED decisions.
@@ -176,33 +176,34 @@ Use these labels exactly; do not infer verification from code existence or docum
 - **Last inspected repository branch:** `phase-02/plan-04`; inspect it again before each task.
 - **Planned PLAN_04 branch convention:** `phase-02/plan-04`; inspect current Git state; do not switch branches automatically.
 - **Branch source of truth:** inspect the current local Git state before work; never switch branches automatically.
-- PLAN_03 remains the verified historical Next.js authentication baseline. After PLAN_04 Amendment 01 passed approved Stage 02, the user separately approved removal of `client-legacy/`; that directory is retired. The canonical Vite/React/TanStack Router client and minimal protected `/drive` are verified; `/dashboard` is retired. Amendment 03 root/nested folder browsing and folder dialogs are `IMPLEMENTED & VERIFIED` after approved production-SPA/two-owner acceptance and exact fixture/resource preservation; file workflows remain `NOT YET BUILT`. Amendment 02 folder/file API consolidation remains `IMPLEMENTED & VERIFIED`. See [PLAN_04 CONTEXT](prompts/PHASE_02/PLAN_04/PHASE_02_PLAN_04_CONTEXT.md).
+- PLAN_03 remains the verified historical Next.js authentication baseline. After PLAN_04 Amendment 01 passed approved Stage 02, the user separately approved removal of `client-legacy/`; that directory is retired. The canonical Vite/React/TanStack Router client and minimal protected `/drive` are verified; `/dashboard` is retired. Amendment 03 root/nested folder browsing and folder dialogs are `IMPLEMENTED & VERIFIED` after approved production-SPA/two-owner acceptance and exact fixture/resource preservation; Amendment 04 file lifecycle is `IMPLEMENTED & VERIFIED` after approved production-SPA/packaged-API/two-owner acceptance and exact cleanup; Amendment 05 file detail/Ask is `IMPLEMENTED & VERIFIED` after approved production-SPA/current-source native API/two-owner Stage 02 acceptance and exact cleanup. Generation was deterministic; no actual Gemini call or packaged-runtime verification is claimed. Amendment 02 folder/file API consolidation remains `IMPLEMENTED & VERIFIED`. See [PLAN_04 CONTEXT](prompts/PHASE_02/PLAN_04/PHASE_02_PLAN_04_CONTEXT.md).
 
 ### Current capability maturity
 
-| Capability                                             | Status                   |
-| ------------------------------------------------------ | ------------------------ |
-| PostgreSQL identity persistence                        | `IMPLEMENTED & VERIFIED` |
-| Authentication credential primitives                   | `IMPLEMENTED & VERIFIED` |
-| Registration, verification, and resend                 | `IMPLEMENTED & VERIFIED` |
-| Initial session/access issuance and login              | `IMPLEMENTED & VERIFIED` |
-| Refresh rotation and current-session logout            | `IMPLEMENTED & VERIFIED` |
-| Credentialed cookie CORS                               | `IMPLEMENTED & VERIFIED` |
-| Bearer current-user resolution and `GET /auth`         | `IMPLEMENTED & VERIFIED` |
-| Canonical folder/file persistence                      | `IMPLEMENTED & VERIFIED` |
-| Recursive folders and historical direct-child APIs     | `IMPLEMENTED & VERIFIED` |
-| Authenticated canonical file upload                    | `IMPLEMENTED & VERIFIED` |
-| File metadata mutation and permanent deletion          | `IMPLEMENTED & VERIFIED` |
-| Owner-authorized internal retrieval and public Ask     | `IMPLEMENTED & VERIFIED` |
-| Phase 2 browser registration, verification, and resend | `IMPLEMENTED & VERIFIED` |
-| Phase 2 browser login/logout UI                        | `IMPLEMENTED & VERIFIED` |
-| Shared browser auth/session foundation                 | `IMPLEMENTED & VERIFIED` |
-| Protected `/dashboard` entry (legacy Next.js)          | `IMPLEMENTED & VERIFIED` |
-| Vite + TanStack Router migration and `/drive` entry    | `IMPLEMENTED & VERIFIED` |
-| Consolidated folder GET APIs                           | `IMPLEMENTED & VERIFIED` |
-| Owner-scoped `GET /files/{file_id}`                    | `IMPLEMENTED & VERIFIED` |
-| Drive root/folder browsing and folder dialogs          | `IMPLEMENTED & VERIFIED` |
-| Browser file lifecycle/detail/Ask workflows            | `NOT YET BUILT`          |
+| Capability                                              | Status                   |
+| ------------------------------------------------------- | ------------------------ |
+| PostgreSQL identity persistence                         | `IMPLEMENTED & VERIFIED` |
+| Authentication credential primitives                    | `IMPLEMENTED & VERIFIED` |
+| Registration, verification, and resend                  | `IMPLEMENTED & VERIFIED` |
+| Initial session/access issuance and login               | `IMPLEMENTED & VERIFIED` |
+| Refresh rotation and current-session logout             | `IMPLEMENTED & VERIFIED` |
+| Credentialed cookie CORS                                | `IMPLEMENTED & VERIFIED` |
+| Bearer current-user resolution and `GET /auth`          | `IMPLEMENTED & VERIFIED` |
+| Canonical folder/file persistence                       | `IMPLEMENTED & VERIFIED` |
+| Recursive folders and historical direct-child APIs      | `IMPLEMENTED & VERIFIED` |
+| Authenticated canonical file upload                     | `IMPLEMENTED & VERIFIED` |
+| File metadata mutation and permanent deletion           | `IMPLEMENTED & VERIFIED` |
+| Owner-authorized internal retrieval and public Ask      | `IMPLEMENTED & VERIFIED` |
+| Phase 2 browser registration, verification, and resend  | `IMPLEMENTED & VERIFIED` |
+| Phase 2 browser login/logout UI                         | `IMPLEMENTED & VERIFIED` |
+| Shared browser auth/session foundation                  | `IMPLEMENTED & VERIFIED` |
+| Protected `/dashboard` entry (legacy Next.js)           | `IMPLEMENTED & VERIFIED` |
+| Vite + TanStack Router migration and `/drive` entry     | `IMPLEMENTED & VERIFIED` |
+| Consolidated folder GET APIs                            | `IMPLEMENTED & VERIFIED` |
+| Owner-scoped `GET /files/{file_id}`                     | `IMPLEMENTED & VERIFIED` |
+| Drive root/folder browsing and folder dialogs           | `IMPLEMENTED & VERIFIED` |
+| Browser file upload, metadata edit and permanent delete | `IMPLEMENTED & VERIFIED` |
+| Browser file detail/Ask workflows                       | `IMPLEMENTED & VERIFIED` |
 
 ### Verified Phase 2 backend evidence
 

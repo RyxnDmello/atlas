@@ -100,8 +100,8 @@ Use these labels exactly; do not infer verification from code existence or docum
 | `PHASE_02_PLAN_04` — Drive Dashboard & Acceptance | `IMPLEMENTED, UNVERIFIED` |
 
 - **Backend completion:** PLAN_01 and PLAN_02 passed recorded acceptance.
-- **Client milestone:** PLAN_03 is the historical Next.js authentication baseline; PLAN_04 Amendment 01 Vite/TanStack Router migration is `IMPLEMENTED & VERIFIED`. Drive browser workflows remain `NOT YET BUILT`.
-- **PLAN_04 Amendment 02:** folder/file API consolidation is `IMPLEMENTED & VERIFIED` after approved matching-source native HTTP/PostgreSQL/Qdrant acceptance and exact fixture/resource preservation. The retained API image predates this source; deployment-image verification is not claimed.
+- **Client milestone:** PLAN_03 is the historical Next.js authentication baseline; PLAN_04 Amendment 01 Vite/TanStack Router migration is `IMPLEMENTED & VERIFIED`. Folder browsing and file lifecycle UI are `IMPLEMENTED & VERIFIED`; selected-file detail/Ask remains `NOT YET BUILT`.
+- **PLAN_04 Amendment 02:** folder/file API consolidation is `IMPLEMENTED & VERIFIED` after approved matching-source native HTTP/PostgreSQL/Qdrant acceptance and exact fixture/resource preservation. Amendment 04 subsequently rebuilt the API with retained runtime/models and current source; packaged-source identity, live ingestion and two-owner file lifecycle acceptance passed. The canonical cold build encountered an external model-download timeout; CONTEXT records that deviation without claiming a fresh dependency/model rebuild.
 - **Last verified branch reference:** `phase-02/plan-02`.
 - **Planned next branch convention:** `phase-02/plan-04`; inspect local Git state and do not assume checkout/existence.
 - Server-only changes are not automatically required by client planning.
