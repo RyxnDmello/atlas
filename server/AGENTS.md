@@ -90,20 +90,20 @@ Use these labels exactly; do not infer verification from code existence or docum
 
 ### Phase and PLAN destination
 
-| Scope                                             | Current maturity          |
-| ------------------------------------------------- | ------------------------- |
-| `PHASE_01`                                        | `IMPLEMENTED & VERIFIED`  |
-| `PHASE_02`                                        | `IMPLEMENTED, UNVERIFIED` |
-| `PHASE_02_PLAN_01` — Identity & Authentication    | `IMPLEMENTED & VERIFIED`  |
-| `PHASE_02_PLAN_02` — Authenticated Drive Backend  | `IMPLEMENTED & VERIFIED`  |
-| `PHASE_02_PLAN_03` — Client Authentication        | `IMPLEMENTED & VERIFIED`  |
-| `PHASE_02_PLAN_04` — Drive Dashboard & Acceptance | `IMPLEMENTED, UNVERIFIED` |
+| Scope                                             | Current maturity         |
+| ------------------------------------------------- | ------------------------ |
+| `PHASE_01`                                        | `IMPLEMENTED & VERIFIED` |
+| `PHASE_02`                                        | `IMPLEMENTED & VERIFIED` |
+| `PHASE_02_PLAN_01` — Identity & Authentication    | `IMPLEMENTED & VERIFIED` |
+| `PHASE_02_PLAN_02` — Authenticated Drive Backend  | `IMPLEMENTED & VERIFIED` |
+| `PHASE_02_PLAN_03` — Client Authentication        | `IMPLEMENTED & VERIFIED` |
+| `PHASE_02_PLAN_04` — Drive Dashboard & Acceptance | `IMPLEMENTED & VERIFIED` |
 
 - **Backend completion:** PLAN_01 and PLAN_02 passed recorded acceptance.
-- **Client milestone:** PLAN_03 is the historical Next.js authentication baseline; PLAN_04 Amendment 01 Vite/TanStack Router migration is `IMPLEMENTED & VERIFIED`. Folder browsing and file lifecycle UI are `IMPLEMENTED & VERIFIED`; selected-file detail/Ask remains `NOT YET BUILT`.
+- **Client milestone:** PLAN_03 is the historical Next.js authentication baseline; PLAN_04 Amendment 01 Vite/TanStack Router migration is `IMPLEMENTED & VERIFIED`. Folder browsing and file lifecycle UI are `IMPLEMENTED & VERIFIED`; selected-file detail/Ask and final PLAN_04/PHASE_02 acceptance are `IMPLEMENTED & VERIFIED` after approved Amendment 06 exact-image/static-browser/two-owner acceptance with deterministic generation. The accepted historical cache exception remains documented.
 - **PLAN_04 Amendment 02:** folder/file API consolidation is `IMPLEMENTED & VERIFIED` after approved matching-source native HTTP/PostgreSQL/Qdrant acceptance and exact fixture/resource preservation. Amendment 04 subsequently rebuilt the API with retained runtime/models and current source; packaged-source identity, live ingestion and two-owner file lifecycle acceptance passed. The canonical cold build encountered an external model-download timeout; CONTEXT records that deviation without claiming a fresh dependency/model rebuild.
-- **Last verified branch reference:** `phase-02/plan-02`.
-- **Planned next branch convention:** `phase-02/plan-04`; inspect local Git state and do not assume checkout/existence.
+- **Last verified branch reference:** `phase-02/plan-04`.
+- **Successor PLAN/branch:** unassigned; inspect local Git state and preserve the current checkout.
 - Server-only changes are not automatically required by client planning.
 
 ### Current server capability maturity
@@ -227,7 +227,7 @@ Do not reopen a verified backend contract merely because a later phase consumes 
 - `python-dotenv` for `.env` loading.
 - PostgreSQL begins in Phase 2 as canonical application state.
 - Qdrant remains self-hosted in Docker as the derived retrieval index.
-- Docker Compose remains under `server/`.
+- Docker Compose lives at repository-root `compose.yml` (`name: atlas`, build context `./server`); Dockerfile, `.dockerignore` and private `.env` remain under `server/`.
 - Docling for extraction/chunking.
 - BAAI/bge-m3 / FlagEmbedding for dense embeddings.
 - Gemini Flash through official `google-genai`, behind Atlas `LLMProvider`.
@@ -328,7 +328,6 @@ server/
 ├── AGENTS.md
 ├── .env                         # local secrets/runtime config; ignored
 ├── .env.example                 # safe reproducible template
-├── docker-compose.yml           # server + Qdrant + PostgreSQL Compose definition
 ├── Dockerfile                   # backend runtime image
 ├── requirements.txt
 ├── app/
@@ -816,15 +815,15 @@ Security boundaries:
 - Inspect `git status` and diff before backend work; protect existing uncommitted changes.
 - Do not commit, push, create/switch branches, reset, rewrite history or discard work without explicit authorization.
 - Preserve PostgreSQL and Qdrant state; never reset databases, drop collections, delete volumes or broadly prune Docker as an incidental test step.
-- `phase-02/plan-02` is the last verified branch **reference**, not an instruction to switch.
+- `phase-02/plan-04` is the last verified branch **reference**, not an instruction to switch.
 - Prefer `git diff --check` before completion; report all changed files.
 
 ---
 
 ## 11. VERIFICATION & ACCEPTANCE
 
-- Backend/datastore service topology remains in `server/docker-compose.yml`; Phase 2 PostgreSQL joins that topology when its server PLAN implements it.
-- `.env` remains beside Compose for the established workflow.
+- Root `compose.yml` owns the server/PostgreSQL/Qdrant topology; relocation is `IMPLEMENTED & VERIFIED` after approved Amendment 06 fresh packaged and final browser/datastore acceptance. The explicitly accepted historical cache-loss exception remains in PLAN_04 CONTEXT; deterministic generation does not claim a fresh Gemini call.
+- Private `server/.env` stays in place; root Compose interpolation REQUIRES explicit `--env-file server/.env`.
 - Reuse existing Docker images/containers/volumes when the task does not require rebuilding.
 - Do not run `docker compose down -v` unless explicitly authorized.
 - Do not delete/reset the Qdrant volume or collection for routine verification.
@@ -850,11 +849,11 @@ python -m pip install -r requirements.txt -r tests/requirements.txt
 python -m tests.run
 ```
 
-Docker/runtime checks when required:
+Docker/runtime checks when required, from repository root (separate Stage 02 approval required for Amendment 06):
 
 ```bash
-docker compose --env-file .env -f docker-compose.yml up --no-build
-docker compose --env-file .env -f docker-compose.yml ps
+docker compose --env-file server/.env -f compose.yml up --no-build
+docker compose --env-file server/.env -f compose.yml ps
 ```
 
 Rules:
@@ -919,8 +918,13 @@ Run from `server/`:
 ```bash
 python -m pip install -r requirements.txt -r tests/requirements.txt
 python -m tests.run
-docker compose --env-file .env -f docker-compose.yml up --no-build
-docker compose --env-file .env -f docker-compose.yml ps
+```
+
+Run Docker commands from repository root, only within approved execution scope:
+
+```bash
+docker compose --env-file server/.env -f compose.yml up --no-build
+docker compose --env-file server/.env -f compose.yml ps
 ```
 
 Use the project venv for local backend debugging.

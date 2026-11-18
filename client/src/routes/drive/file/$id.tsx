@@ -8,6 +8,6 @@ function FilePage() {
   return <FilePanel fileId={id.toLowerCase()} />;
 }
 
-export const Route = createFileRoute("/drive_/file/$id")({
+export const Route = createFileRoute("/drive/file/$id")({
   component: FilePage,
 });

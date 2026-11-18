@@ -11,7 +11,7 @@
 - Applies to all work under `client/**`.
 - Inherits every repository-wide rule from [root AGENTS.md](../AGENTS.md); read the root file first.
 - This file is the authoritative frontend engineering contract for Atlas.
-- It specializes root policy for the approved Vite SPA. Amendment 01 implements this client; migration status is `IMPLEMENTED & VERIFIED` after approved Stage 02. Full drive workflows remain pending. PLAN_03 evidence remains historical; `client-legacy/` was removed with separate user approval after acceptance.
+- It specializes root policy for the approved Vite SPA. Amendment 01 implements this client; migration status is `IMPLEMENTED & VERIFIED` after approved Stage 02. Full Phase 2 drive workflows passed final Amendment 06 acceptance. PLAN_03 evidence remains historical; `client-legacy/` was removed with separate user approval after acceptance.
 - Backend-specific rules belong in [server/AGENTS.md](../server/AGENTS.md).
 - Detailed RAG implementation contracts belong in the [RAG skill](../.agents/skills/rag/SKILL.md); the client consumes verified public/backend contracts rather than redefining them.
 
@@ -110,14 +110,14 @@ Use these labels exactly; do not infer verification from code existence or docum
 
 ### Phase and PLAN destination
 
-| Scope                                             | Current maturity          |
-| ------------------------------------------------- | ------------------------- |
-| `PHASE_01`                                        | `IMPLEMENTED & VERIFIED`  |
-| `PHASE_02`                                        | `IMPLEMENTED, UNVERIFIED` |
-| `PHASE_02_PLAN_01` — Identity & Authentication    | `IMPLEMENTED & VERIFIED`  |
-| `PHASE_02_PLAN_02` — Authenticated Drive Backend  | `IMPLEMENTED & VERIFIED`  |
-| `PHASE_02_PLAN_03` — Client Authentication        | `IMPLEMENTED & VERIFIED`  |
-| `PHASE_02_PLAN_04` — Drive Dashboard & Acceptance | `IMPLEMENTED, UNVERIFIED` |
+| Scope                                             | Current maturity         |
+| ------------------------------------------------- | ------------------------ |
+| `PHASE_01`                                        | `IMPLEMENTED & VERIFIED` |
+| `PHASE_02`                                        | `IMPLEMENTED & VERIFIED` |
+| `PHASE_02_PLAN_01` — Identity & Authentication    | `IMPLEMENTED & VERIFIED` |
+| `PHASE_02_PLAN_02` — Authenticated Drive Backend  | `IMPLEMENTED & VERIFIED` |
+| `PHASE_02_PLAN_03` — Client Authentication        | `IMPLEMENTED & VERIFIED` |
+| `PHASE_02_PLAN_04` — Drive Dashboard & Acceptance | `IMPLEMENTED & VERIFIED` |
 
 - **Completed PLAN:** `PHASE_02_PLAN_03 — Client Authentication`; Amendments 01 and 02 are verified; Amendment 03 registration/verification/resend UI is `IMPLEMENTED & VERIFIED`; Amendment 04 login/logout UI is `IMPLEMENTED & VERIFIED`; Amendment 05 protected navigation/minimal dashboard and PLAN_03 are `IMPLEMENTED & VERIFIED` after approved Stage 02 acceptance.
 - **Last inspected branch:** `phase-02/plan-04`; inspect Git again before each task.
@@ -358,6 +358,7 @@ client/
 
 - `src/routes/` contains route registration, typed parameter access, thin layouts and page composition only; no transport, auth cryptography, database access, RAG parser or business logic.
 - `src/main.tsx` initializes app providers and the router; avoid hidden duplicate session initialization.
+- Drive directory routes use an Outlet-only `drive/route.tsx` parent with `drive/index.tsx`, `drive/$id.tsx` and `drive/file/$id.tsx`; canonical `/drive` links remain unchanged. Directory routing is `IMPLEMENTED & VERIFIED` after approved Amendment 06 final packaged/static-browser acceptance; deterministic generation and the explicitly accepted historical cache exception are recorded in PLAN_04 CONTEXT/MANUAL.
 - Keep root, folder and file pages separate. `/dashboard` is retired; do not maintain dead routes or the superseded legacy RAG workspace in the new application.
 - The TanStack Router Vite plugin owns route-tree generation. Preserve its required filenames even when they differ from Atlas user-controlled filename conventions.
 - `components/ui/` remains shadcn-only; domain presentation belongs to `components/<Domain>/` with PascalCase component filenames.

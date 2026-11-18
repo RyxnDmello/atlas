@@ -371,7 +371,11 @@ test.each([null, id])(
       },
     );
 
-    expect(router.state.matches.at(-1)?.routeId).toBe("/drive_/file/$id");
+    expect(router.state.matches.map((match) => match.routeId)).toEqual([
+      "__root__",
+      "/drive",
+      "/drive/file/$id",
+    ]);
     expect(html).toContain(`href="${parent ? `/drive/${parent}` : "/drive"}"`);
     expect(html).toContain("&lt;script&gt;");
     expect(html).not.toContain("<script>private");
@@ -381,6 +385,8 @@ test.each([null, id])(
     expect(html).not.toContain("Sources");
     expect(html).not.toContain("Edit File");
     expect(html).not.toContain("Delete File");
+    expect(html).not.toContain("Logout");
+    expect(html).not.toContain("Loading folder");
     expect(requests).toHaveLength(0);
   },
 );

@@ -1,9 +1,11 @@
 import { afterEach, expect, test } from "bun:test";
+import { existsSync, readdirSync } from "node:fs";
 import { renderToString } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   createRouter,
   createMemoryHistory,
+  Outlet,
   RouterProvider,
 } from "@tanstack/react-router";
 
@@ -155,4 +157,66 @@ test("the generated route tree registers the seven approved routes including fil
     "/register",
     "/verify",
   ]);
+});
+
+test("the drive parent owns only an Outlet and three independent child pages", () => {
+  const router = createTestRouter("/drive");
+  const parent = router.routesById["/drive"];
+
+  expect(parent.options.component).toBe(Outlet);
+  expect(parent.options.loader).toBeUndefined();
+  expect(parent.options.beforeLoad).toBeUndefined();
+  expect(
+    Object.values(parent.children ?? {})
+      .map((route) => route.id)
+      .sort(),
+  ).toEqual(["/drive/", "/drive/$id", "/drive/file/$id"]);
+
+  const target = router.buildLocation({
+    to: "/drive",
+  });
+
+  expect(target.pathname).toBe("/drive");
+});
+
+test.each([
+  ["/drive", "/drive/"],
+  ["/drive/", "/drive/"],
+  [folderPath, "/drive/$id"],
+  [`${folderPath}/`, "/drive/$id"],
+  [filePath, "/drive/file/$id"],
+  [`${filePath}/`, "/drive/file/$id"],
+] as const)("%s matches exactly its nested page %s", (path, leaf) => {
+  const router = createTestRouter(path);
+  const matches = router.matchRoutes(path);
+
+  expect(matches.map((match) => match.routeId)).toEqual([
+    "__root__",
+    "/drive",
+    leaf,
+  ]);
+});
+
+test("the route directory contains no old flat or unintended route definitions", () => {
+  const directory = new URL("../../src/routes/", import.meta.url);
+  const files = readdirSync(directory, {
+    encoding: "utf8",
+    recursive: true,
+  })
+    .map((path) => path.replaceAll("\\", "/"))
+    .filter((path) => path.endsWith(".tsx"))
+    .sort();
+
+  expect(files).toEqual([
+    "__root.tsx",
+    "drive/$id.tsx",
+    "drive/file/$id.tsx",
+    "drive/index.tsx",
+    "drive/route.tsx",
+    "index.tsx",
+    "login.tsx",
+    "register.tsx",
+    "verify.tsx",
+  ]);
+  expect(existsSync(new URL("drive.tsx", directory))).toBe(false);
 });

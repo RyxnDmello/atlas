@@ -1,12 +1,12 @@
 # PHASE_02 — Authenticated Personal Drive
 
-| Field                    | Current baseline                                           |
-| ------------------------ | ---------------------------------------------------------- |
-| PHASE status             | `IMPLEMENTED, UNVERIFIED`                                  |
-| Verified prerequisite    | `PHASE_01 — MVP Core RAG`                                  |
-| Completed PLANS          | `PHASE_02_PLAN_01`, `PHASE_02_PLAN_02`, `PHASE_02_PLAN_03` |
-| Current development PLAN | `PHASE_02_PLAN_04 — Drive Dashboard & Phase Acceptance`    |
-| Final milestone          | `PHASE_02_PLAN_04 — Drive Dashboard & Phase Acceptance`    |
+| Field                 | Current baseline                                           |
+| --------------------- | ---------------------------------------------------------- |
+| PHASE status          | `IMPLEMENTED & VERIFIED`                                   |
+| Verified prerequisite | `PHASE_01 — MVP Core RAG`                                  |
+| Completed PLANS       | `PHASE_02_PLAN_01`, `PHASE_02_PLAN_02`, `PHASE_02_PLAN_03` |
+| Final completed PLAN  | `PHASE_02_PLAN_04 — Drive Dashboard & Phase Acceptance`    |
+| Final milestone       | `PHASE_02_PLAN_04 — Drive Dashboard & Phase Acceptance`    |
 
 - **Authority:** This PHASE defines the destination, cross-PLAN contracts, exclusions, and final acceptance; individual PLANS own their detailed specifications.
 - **Execution:** Verify server contracts before client consumption unless an approved PLAN explicitly provides an exception.
@@ -60,14 +60,14 @@ flowchart LR
 
 ### PHASE and PLAN maturity
 
-| PLAN               | Status                    | Responsibility                                                                                                                                                           |
-| ------------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `PHASE_02_PLAN_01` | `IMPLEMENTED & VERIFIED`  | PostgreSQL identity and complete backend authentication/session contracts                                                                                                |
-| `PHASE_02_PLAN_02` | `IMPLEMENTED & VERIFIED`  | Owner-scoped drive backend, file lifecycle, and authorized single-file RAG                                                                                               |
-| `PHASE_02_PLAN_03` | `IMPLEMENTED & VERIFIED`  | Verified auth foundation; registration/verification/resend UI verified; login/logout UI verified; protected navigation/minimal dashboard and integrated closure verified |
-| `PHASE_02_PLAN_04` | `IMPLEMENTED, UNVERIFIED` | Vite/TanStack Router migration, owner-scoped file-detail GET, drive/folder/file pages and workflows, selected-file RAG and final acceptance                              |
+| PLAN               | Status                   | Responsibility                                                                                                                                                           |
+| ------------------ | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PHASE_02_PLAN_01` | `IMPLEMENTED & VERIFIED` | PostgreSQL identity and complete backend authentication/session contracts                                                                                                |
+| `PHASE_02_PLAN_02` | `IMPLEMENTED & VERIFIED` | Owner-scoped drive backend, file lifecycle, and authorized single-file RAG                                                                                               |
+| `PHASE_02_PLAN_03` | `IMPLEMENTED & VERIFIED` | Verified auth foundation; registration/verification/resend UI verified; login/logout UI verified; protected navigation/minimal dashboard and integrated closure verified |
+| `PHASE_02_PLAN_04` | `IMPLEMENTED & VERIFIED` | Vite/TanStack Router migration, owner-scoped file-detail GET, drive/folder/file pages and workflows, selected-file RAG and final acceptance                              |
 
-- **PHASE_02** remains `IMPLEMENTED, UNVERIFIED` until all four PLANS and end-to-end acceptance are verified.
+- **PHASE_02** is independently `IMPLEMENTED & VERIFIED`; all four PLANS and all fifteen PHASE criteria passed final Amendment 06 acceptance. Generation was deterministic; the historical cache-loss exception was explicitly accepted by the user. See PLAN_04 CONTEXT/MANUAL for literal comparisons and final ledgers.
 - **Completed PLAN:** `PHASE_02_PLAN_03`; Amendments 01 and 02 are verified; Amendment 03 registration/verification/resend UI is `IMPLEMENTED & VERIFIED`; Amendment 04 login/logout UI is `IMPLEMENTED & VERIFIED`; Amendment 05 protected navigation/minimal dashboard and PLAN_03 are `IMPLEMENTED & VERIFIED` after approved Stage 02 acceptance.
 - **Backend closure:** PLAN_02 Amendment 06 records integrated two-owner real PostgreSQL/Qdrant, running HTTP, packaged regression/equivalence, security and exact resource-preservation acceptance.
 - **Evidence:** The PLAN_02 record reports 159 passing evidence rows; this document does not claim those checks were rerun.
@@ -380,7 +380,7 @@ flowchart TB
 - **Approved architecture (migration/folder workspace `IMPLEMENTED & VERIFIED`; file detail/Ask `IMPLEMENTED & VERIFIED`):** React + Vite SPA, TanStack Router file-based routing with `/drive`, `/drive/$id`, `/drive/file/$id`, Bun/strict TypeScript, static hosting with deep-link history fallback. Migration preserved the original Next.js client and selectively transferred verified authentication and SSE foundations into a clean `client/`; the legacy reference was separately approved for removal after acceptance and is now retired.
 - **Backend consolidation (`IMPLEMENTED & VERIFIED`):** both folder GETs replace historical backend `/drive`; public file `/query` is unregistered; authenticated owner-scoped `GET /files/{file_id}` returning the existing canonical File DTO, `404 FILE_NOT_FOUND` for missing or foreign IDs; metadata access allowed for `processing`, `ready`, and `deleting`; no migration, Qdrant, original-byte or RAG processing. Approved Stage 02 verified matching-source native HTTP against retained datastores; its file-page consumer passed Amendment 05 scoped Stage 02 acceptance.
 - **Browser destination:** Root/direct-child listings, lazy folder navigation with Root/Up, create/edit folder dialogs, authenticated file-upload/edit/delete dialogs, explicit `processing`/`ready`/`deleting`, confirmation of irreversible delete and retryable `deleting`, TanStack Query drive-scope invalidation/refetch without a hard refresh, separate owned `ready` file Ask page reusing native POST-SSE/citations, and safe account/session cleanup. No persistent drive cache or second Zustand data store.
-- **Current Amendment boundary:** Amendments 01–04 are `IMPLEMENTED & VERIFIED`; Amendment 05 file detail/selected-file Ask is `IMPLEMENTED & VERIFIED` after approved scoped Stage 02 acceptance. The earlier assignment of full PLAN/PHASE acceptance to Amendment 05 is **SUPERSEDED**. Final comprehensive acceptance belongs to a subsequent user-defined Amendment; no future artifact or scope is authored here.
+- **Current Amendment boundary:** Amendments 01–04 are `IMPLEMENTED & VERIFIED`; Amendment 05 file detail/selected-file Ask is `IMPLEMENTED & VERIFIED` after approved scoped Stage 02 acceptance. The earlier assignment of full PLAN/PHASE acceptance to Amendment 05 is **SUPERSEDED**. Final comprehensive acceptance now belongs to Amendment 06; directory routing/root Compose and final PLAN/PHASE acceptance are `IMPLEMENTED & VERIFIED`. Separately approved Stage 02A fresh deployment and Stage 02B packaged/static-browser/two-owner acceptance passed. The user explicitly accepted the historical cache-loss exception; no fresh Gemini invocation is claimed. See PLAN_04 CONTEXT/MANUAL for evidence.
 - **Acceptance:** Bun/format/lint/strict-TypeScript/test/Vite `dist/` build; real SPA history-fallback direct links and browser/session equivalence; actual FastAPI/PostgreSQL/Qdrant, two-user isolation, SSE and citation fidelity, exact datastore/resource preservation, and all 15 PHASE criteria. Stage 01 local verification/review and separately authorized Stage 02 live/browser checks apply to each Amendment.
 - **Boundary:** No new Phase 2 excluded functionality, Next.js runtime/BFF, TanStack Start, client application server, new datastore, provider redesign or broad backend API expansion.
 
@@ -551,4 +551,4 @@ flowchart LR
 
 - Confirm the full workflow: **register → inspect OTP → verify → authenticated `/drive` → `/drive/$id` nested folders → upload → refetch listing → edit metadata → `/drive/file/$id` selected-file Ask → refresh/restore session → logout/login → cross-user denial → delete → PostgreSQL/Qdrant cleanup**. Verify fresh direct-link/reload and browser history behavior with real static-SPA hosting.
 - Treat the completed PLAN_01/02 evidence as prerequisites, not proof of unbuilt client workflows.
-- Until the final acceptance gate passes, PHASE_01 remains the verified baseline and PHASE_02 remains `IMPLEMENTED, UNVERIFIED`.
+- Final acceptance passed under Amendment 06: PHASE_01 remains the historical verified foundation; PHASE_02 is independently `IMPLEMENTED & VERIFIED`. No successor PHASE or PLAN is assigned by this closure.

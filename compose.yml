@@ -2,6 +2,8 @@
 # ==================[ DOCKER COMPOSE ]==================
 # ======================================================
 
+name: atlas
+
 services:
   # ======================================================
   # ======================[ SERVER ]======================
@@ -9,7 +11,7 @@ services:
 
   server:
     build:
-      context: .
+      context: ./server
       args:
         PORT: ${PORT}
     ports:
@@ -104,6 +106,18 @@ services:
       timeout: ${POSTGRES_HEALTHCHECK_TIMEOUT:-3}s
       interval: ${POSTGRES_HEALTHCHECK_INTERVAL:-5}s
       start_period: ${POSTGRES_HEALTHCHECK_START_PERIOD:-5}s
+
+# ======================================================
+# =====================[ NETWORKS ]=====================
+# ======================================================
+
+networks:
+  default:
+    name: atlas
+
+# ======================================================
+# =====================[ VOLUMES ]======================
+# ======================================================
 
 volumes:
   qdrant_storage:

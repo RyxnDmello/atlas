@@ -7,7 +7,8 @@
 - Amendment 03: `IMPLEMENTED & VERIFIED`; local/style/route review and approved production-SPA/current-source API/two-owner Stage 02 acceptance passed with exact cleanup/full preservation. Sections 13–14 preserve the earlier Stage 01 review boundary; Section 15 records completed Stage 02 and supersedes those pending approvals.
 - Amendment 04: `IMPLEMENTED & VERIFIED`; Stage 01, cosmetic review and separately approved Stage 02 completed. Section 18 supersedes earlier pending approval summaries; the cached-runtime packaging deviation remains explicit.
 - Amendment 05: `IMPLEMENTED & VERIFIED`; reviewed Stage 01, `$id` route rename and approved scoped Stage 02 acceptance passed. Section 20 supersedes the earlier approval/status boundary in Section 19; optional actual Gemini and fresh packaged-runtime verification were not performed.
-- PLAN_04 / PHASE_02: `IMPLEMENTED, UNVERIFIED`; Amendments 01–05 remain verified; final comprehensive acceptance/crosswalk is reserved for a subsequent user-defined Amendment.
+- Amendment 06: `IMPLEMENTED, UNVERIFIED`; Stage 01 directory routes/root Compose and local checks complete; STOP for code review. Section 21 records local reproduction. Stage 02A/02B are NOT APPROVED / NOT RUN; exact destructive targets require approval after inventory.
+- PLAN_04 / PHASE_02: `IMPLEMENTED, UNVERIFIED`; Amendments 01–05 retain recorded verification; Amendment 06 now owns final acceptance/crosswalk under separate gates.
 - Sections 2–4 reproduce local checks. Section 6 records approved production-SPA/Chromium/live FastAPI/Docker/datastore acceptance and exact preservation.
 - Historical PLAN_03 browser procedures remain in its original MANUAL. Stage 02 approval was granted for this run; future independent live reruns still require authorization.
 - After verified acceptance, the user separately approved removal of `client-legacy/` and one amendment commit. The legacy directory is now absent; preserved-source checks below describe the completed run, not an available local fixture.
@@ -999,3 +1000,336 @@ Downstream client/API mapping (frontend implementation remains pending):
    Expected: complete PostgreSQL, Qdrant, Docker resources and source/config/dist fingerprints match, with exact hashes in CONTEXT. Native/static hosts and isolated browser contexts are closed; retained PostgreSQL/Qdrant restored stopped; API/Mongo stayed stopped. Existing user/folders/sessions remain. Raw private snapshots/credentials/capabilities are removed; sanitized reports/ledgers/hashes/harness remain.
 
    Expected final Git check: `git -c core.safecrlf=false diff --check` passes; branch `phase-02/plan-04`, unchanged HEAD, empty index. All thirteen PLAN sections, seventeen PLAN and fifteen PHASE criteria remain. Comprehensive PLAN/PHASE acceptance is still pending a subsequent user-defined Amendment.
+
+## 21. Amendment 06 — directory routes/root Compose local reproduction and review STOP
+
+1. Inspect the local workspace from repository root.
+
+   ```powershell
+   git branch --show-current
+   git rev-parse HEAD
+   git status --short --untracked-files=all
+   git diff --cached --name-only
+   git check-ignore server/.env client/.env.local
+   ```
+
+   Expected in this execution: branch `phase-02/plan-04`, HEAD `eb7d228f1619552896ff18120b56754bcbc95c22`, empty index, private files ignored. The existing untracked Amendment 06 prompt remains byte-identical. CONTEXT lists every changed/new/moved path; no staging/commit/push/branch operation occurred.
+
+2. Generate and verify directory routes from `client/`. Build first if reproducing from edited route source before the generated tree is current.
+
+   ```powershell
+   Set-Location client
+   bun install --frozen-lockfile
+   bun run build
+   bun run format:check
+   bun run lint
+   bun run typecheck
+   bun test tests/unit/router.test.tsx tests/unit/auth tests/unit/folder tests/unit/file tests/unit/ask tests/unit/http tests/unit/stream
+   bun run test
+   ```
+
+   Expected: all exit 0. Recorded frozen install: 498 installs / 529 packages, no changes. Focused suite: 419 tests / 2,173 assertions / 19 files. Full suite: 424 tests / 2,232 assertions / 21 files. Vite 8.3.8 transforms 582 modules and emits `dist/index.html` plus 20 assets. Generated route tree is plugin-owned; do not edit or manually format it.
+
+3. Inspect generated composition without claiming browser acceptance.
+
+   ```powershell
+   bun test tests/unit/router.test.tsx
+   Get-Content src/routes/drive/route.tsx
+   Get-Content src/routeTree.gen.ts
+   ```
+
+   Expected: 42 router tests pass. `/drive` has an Outlet-only parent; child IDs `/drive/`, `/drive/$id`, `/drive/file/$id` each mount only their existing page. `/drive` remains the canonical typed root link. Exactly seven canonical public paths remain; `/dashboard` and old flat definitions are absent. Slash variants match the correct child locally. SSR canonical redirects explain the corrected initial slash-test failures; real browser slash/reload/history and parent request-count acceptance await Stage 02B.
+
+4. Run safe YAML/interpolation and API inventory checks using existing dependencies, from `server/` in a fresh shell.
+
+   ```powershell
+   Set-Location server
+   $env:HF_HUB_OFFLINE='1'
+   $env:TRANSFORMERS_OFFLINE='1'
+   $env:HF_HUB_DISABLE_TELEMETRY='1'
+   $env:PYTHONDONTWRITEBYTECODE='1'
+   .venv/Scripts/python.exe -m unittest -q tests.test_01_constants tests.test_26_api
+   ```
+
+   Expected: 19 tests pass using `.env.example` interpolation, no Docker invocation, application lifespan, model download, live datastore, migration or provider call. Existing Starlette/httpx deprecation warning may appear. Tests resolve root `compose.yml`, assert `name: atlas`/`./server`, required settings/defaults/volumes/health/dependencies, server-local Dockerfile/COPY/.dockerignore, and the exact unchanged 18-operation API contract.
+
+5. Review deployment source and preserved boundaries from root.
+
+   ```powershell
+   Get-Content compose.yml
+   git diff -- server/tests/test_01_constants.py server/tests/current_http.py server/tests/folders_http.py server/tests/login_http.py server/tests/registration_http.py server/tests/sessions_http.py
+   git diff --exit-code -- server/app server/migrations server/Dockerfile server/.dockerignore server/requirements.txt server/alembic.ini client/package.json client/bun.lock client/components.json client/vite.config.ts .agents
+   git -c core.safecrlf=false diff --check
+   ```
+
+   Expected: root Compose contains unexpanded variables; no private values are printed. Only `name: atlas` and build context differ semantically from the former server Compose. Old active file is absent; server Dockerfile/.dockerignore/private `.env` stay in place. The five opt-in live helpers now compute absolute Compose/env paths from their own source location; reviewing them does not authorize running them. Protected source/package/dependency/RAG boundaries have no diff. Whitespace check passes.
+
+6. Reproduce the local one-off preservation review if its run-owned artifact remains available, from root.
+
+   ```powershell
+   server/.venv/Scripts/python.exe "$env:TEMP/atlas-a06-stage01-22rb5an7/review.py"
+   ```
+
+   Expected: parsed Compose comparison, exact route-source move comparison, five helper argument-list checks (without executing subprocesses), changed-Python compilation, UTF-8/LF/whitespace, protected file hashes, selected credential-value scan and entry asset references all pass. Original PLAN's 17 and PHASE's 15 criterion lines remain unchanged. This artifact uses the captured local baseline/HEAD; a later run after further authorized changes needs a fresh baseline, not altered historical assertions.
+
+7. Stop at the Stage 01 review boundary.
+
+   Expected: Amendment 06, PLAN_04 and PHASE_02 remain `IMPLEMENTED, UNVERIFIED`. No Docker command, live browser/datastore check, reset, image pull/build, migration or Gemini invocation ran in Stage 01. Current deployment commands are expressed from root as `docker compose --env-file server/.env -f compose.yml ...`; they have not been executed or verified here. `server/.env` stays private and ignored; do not copy it to root.
+
+   Stage 02A requires fresh environment/inventory/operation authorization, followed by another approval of exact immutable deletion targets and permanent PostgreSQL/Qdrant data loss AFTER inventory. Project-name availability is still unverified. Fresh upstream database pulls, no-cache API build and existing-head initialization remain pending that approved workflow. Stage 02B separately requires packaged API/production SPA/two-owner fixture and exact-cleanup approval. Individual 17-criterion PLAN and 15-criterion PHASE evidence ledgers and retained new-resource preservation must pass before closure. Optional actual Gemini requires separate provider/spend permission. Earlier MANUAL sections retain their historical command paths/outcomes; Section 21 supersedes the active Compose location only.
+
+## 22. Amendment 06 — exact Atlas network and data-volume names
+
+1. Inspect the root `compose.yml` declarations.
+
+   Expected: `networks.default.name` is exactly `atlas`. All three services use that default network implicitly. `volumes.postgres_storage.name` is `atlas_postgres_data`; `volumes.qdrant_storage.name` is `atlas_qdrant_data`. Logical mount keys and container storage paths remain unchanged. These are Compose-managed resources; none is declared external.
+
+2. Run the focused offline configuration regression from `server/`, using existing local dependencies.
+
+   ```powershell
+   Set-Location server
+   $env:HF_HUB_OFFLINE='1'
+   $env:TRANSFORMERS_OFFLINE='1'
+   $env:HF_HUB_DISABLE_TELEMETRY='1'
+   $env:PYTHONDONTWRITEBYTECODE='1'
+   .venv/Scripts/python.exe -m unittest -q tests.test_01_constants
+   ```
+
+   Expected: 17 tests pass, including the exact volume names and shared customized default network; no Docker command, datastore connection, migration or model/provider work occurs. The recorded run passed in 0.128 s.
+
+3. From root, run `git -c core.safecrlf=false diff --check` and review source changes.
+
+   Expected: whitespace check passes. The only additional Compose semantics beyond the original Stage 01 project-name/context relocation are the explicitly approved network/volume names. Service settings/mounts/health checks are unchanged; the independently executed parsed-YAML comparison passed. No broader client/backend test rerun is claimed for this follow-up.
+
+4. Keep the review and deployment gates in place.
+
+   Expected: `IMPLEMENTED, UNVERIFIED`; STOP for code review. Section 22 supersedes Section 21's initial resource-name expectations. Section 21 step 6's archived `review.py` remains historical and asserts the earlier source shape; do not treat it as a current passing naming check or alter its old baseline. No actual network or volume has been created or renamed. Stage 02A must inspect ownership/collisions for exact names `atlas`, `atlas_postgres_data` and `atlas_qdrant_data` before deployment; existing unrelated resources must never be adopted by matching names. Separate Stage 02A/02B and post-inventory destructive approvals remain required.
+
+## 23. Amendment 06 — automatic volume names and approved Stage 02A build-first preflight
+
+1. Reconcile the latest user resource-name decision before interpreting earlier evidence.
+
+   Expected current source: `networks.default.name: atlas`; logical `postgres_storage` and `qdrant_storage` volume declarations have no explicit engine `name`. Compose resolves them to `atlas_postgres_storage` and `atlas_qdrant_storage`. Section 22's `_data` names describe the earlier implementation and are superseded by the user's revert. The configuration test now expects the uncustomized logical volume declarations.
+
+2. Confirm repository identity and inspect the actual Docker context under approved Stage 02A authorization.
+
+   ```powershell
+   git branch --show-current
+   git rev-parse HEAD
+   git diff --cached --name-only
+   docker context show
+   docker version --format '{{json .}}'
+   docker compose version
+   docker ps -a --no-trunc --format '{{.ID}} {{.Names}} {{.Image}} {{.Status}} {{.Labels}}'
+   docker image ls --no-trunc --digests --format '{{json .}}'
+   docker volume ls --format '{{json .}}'
+   docker network ls --no-trunc --format '{{json .}}'
+   docker system df --format '{{json .}}'
+   ```
+
+   Expected recorded execution: correct `phase-02/plan-04` branch, unchanged HEAD, empty index; Docker context `desktop-linux`, engine 29.9.2, Compose v5.6.1. Sandbox pipe/config access failed; the authorized elevated retry succeeded without changing Docker settings. Actual inventory contains zero containers/images/volumes and only built-in `bridge`, `host`, `none` networks. No old Atlas/Mongo data is available to snapshot; this run removed nothing. Reinspect on any later run; this historical empty inventory never authorizes deleting newly appeared resources.
+
+   Expected safety boundary: empty deletion manifest, no deletion approval needed for nonexistent targets; preserve built-in networks and 111 mixed/ambiguous cache records (21.43 GB reported). If any actual deletion becomes necessary, stop for approval of exact immutable targets and permanent data loss after a new inventory. No prune/down/removal command was run.
+
+3. Validate root Compose safely and complete the independent build steps before acceptance.
+
+   ```powershell
+   docker compose --env-file server/.env -f compose.yml config --quiet
+   docker compose --env-file server/.env -f compose.yml config --images
+   docker compose --env-file server/.env -f compose.yml pull postgres qdrant
+   docker compose --env-file server/.env -f compose.yml --progress plain build --pull --no-cache server
+   ```
+
+   From `client/`:
+
+   ```powershell
+   bun install --frozen-lockfile
+   bun run build
+   ```
+
+   Expected recorded outcomes so far: quiet Compose validation and both configured database pulls pass; client frozen install checks 498 installs/529 packages without changes; Vite build passes with 582 modules, entry plus 20 assets in 593 ms. API cold-build outcome is pending at this checkpoint. Never substitute an old runtime image for this required no-cache build. Keep `server/.env` ignored/in place and never print expanded Compose environment values.
+
+   Expected evidence: immutable PostgreSQL/Qdrant pull digests and full resource classifications are in the latest CONTEXT entry. Docker logs and network/cache inventory are in `%TEMP%/atlas-a06-stage02a-docker-heu7ipvi`; the source/private-file hash baseline is in `%TEMP%/atlas-a06-stage02a-heu7ipvi`. The first elevated snapshot write into the sandbox-owned directory failed; the second dedicated directory succeeded. Preserve that failed attempt in chronology.
+
+4. Retain the separate acceptance gate and accurate maturity.
+
+   Expected current checkpoint: Stage 02A approved/in progress; Stage 02B and actual Gemini remain pending separate approval. No deployment containers/volumes/network, migrations, live fixture/browser/provider checks have run yet. Amendment 06 / PLAN_04 / PHASE_02 remain `IMPLEMENTED, UNVERIFIED`; full 17/15 criterion ledgers cannot be declared passed from builds alone.
+
+5. Interpret the completed first cold-build attempt before retrying.
+
+   Expected recorded result, superseding step 3's pending checkpoint: the Docling/TableFormer Xet download stalled; the agent interrupted its exact build-owned download process after a 45-minute observation deadline. Step exit 143 / Compose exit 1 reflect that interruption, not an upstream timeout exception. No API image, deployment startup, migration or packaged probe resulted. The offline configuration/API command from Section 21, now including the corrected automatic-volume expectation, passed 20 tests in 0.731 s. Full PLAN acceptance did not run.
+
+   Expected preservation evidence: zero containers/volumes and exactly equal built-in-network JSON; the two pulled database images remain. Cache preservation is an unresolved exception: 111 records became 93, with 21 old IDs missing and three new IDs. No prune/removal command ran; the cause is unproven. See CONTEXT and `preservation-after.json` for actual IDs. Never claim all resources/cache were preserved.
+
+6. Resume only from the actual current state under the user's explicit continuation.
+
+   Expected current authorization: the user requested Stage 02 continuation; retry the unchanged no-cache API build after read-only inventory. Preserve prior logs and use a separate retry log. Do not change Dockerfile/model/dependency behavior or substitute retained runtime layers. An unsuccessful retry leaves A14 blocked, A15/A16 unexecuted and final Stage 02B acceptance pending its separate approval. No broad cleanup or builder/daemon setting changes are authorized.
+
+7. Interpret the successful unchanged cold-build retry and preserve its evidence.
+
+   Expected recorded result: the step 3 no-cache command passed on retry, BuildKit `default/default/advm9yvfl692bok9fkhq5f0sg`, 24 minutes 28 seconds. All dependency/model RUN steps executed afresh; only WORKDIR was cached. Docling models completed in 118.4 s; BGE-M3 snapshot/weight loading completed in 933.1 s. Retain API immutable image `sha256:5c42bb33604eb9d9f535b3eb34313965927b7b99f272009c52a766591f1906d7`. The first failed/interrupted attempt remains historical. Full retry logs and safe inventories live under `%TEMP%/atlas-a06-stage02a-retry-20261117/`.
+
+8. Initialize only newly created Atlas datastores under approved Stage 02A, after current inventory/collision/port checks.
+
+   ```powershell
+   docker compose --env-file server/.env -f compose.yml up -d --no-build --pull never --wait --wait-timeout 120 postgres qdrant
+   ```
+
+   Expected recorded result: new `atlas` network and automatic `atlas_postgres_storage` / `atlas_qdrant_storage` volumes; both new datastore containers healthy. Never rerun a fresh/blank assertion or migration blindly against an existing user database. The actual controlled one-off `run --rm -T --no-deps server python -` checked 89 packaged source/config files and asserted no public tables before invoking `alembic upgrade head` then `alembic check` internally. The underlying explicit commands, once the fresh schema/ownership prerequisites are confirmed, are:
+
+   ```powershell
+   docker compose --env-file server/.env -f compose.yml run --rm -T --no-deps server alembic upgrade head
+   docker compose --env-file server/.env -f compose.yml run --rm -T --no-deps server alembic check
+   docker compose --env-file server/.env -f compose.yml up -d --no-build --pull never server
+   ```
+
+   Expected recorded result: existing `0002_drive` head, no new upgrade operations detected, zero users/verifications/sessions/folders/files, and current packaged API startup. No migration revision was authored. The direct Alembic examples are the same commands invoked inside the executed controlled helper; they are not additional claimed executions.
+
+9. Check packaged readiness without creating acceptance fixtures.
+
+   ```powershell
+   docker compose --env-file server/.env -f compose.yml ps
+   curl.exe --fail http://localhost:8080/system/health
+   curl.exe --fail http://localhost:8080/system/health/databases
+   ```
+
+   Expected: all three services running, datastore Docker health checks healthy, API HTTP liveness and both database statuses healthy. Recorded execution used the exact prepared Python HTTP/packaged probe rather than separate curl invocations: 16 checks passed for source parity, health, 18 operations, retired routes, anonymous rejection, configured/disallowed CORS, no-session cookie clearing, migration head, empty canonical tables and empty 1024-dimensional cosine Qdrant collection. The final two curl lines are equivalent read-only human probes, not extra recorded test runs. No live provider or browser/fixture acceptance occurred.
+
+   Expected helper reproduction: run the retained `stage02a_probe.py` from the retry evidence directory with the server venv Python while at repository root and with authorized Docker access. It uses private `server/.env` in memory and saves only the probe report. The successful elevated execution used uniquely named ignored workspace handoff files because the elevated process could not read sandbox-private temp directly. The command-string fallback exceeded Windows command length and never launched; preserve these failures as helper chronology.
+
+10. Record preservation limits and stop before Stage 02B.
+
+Expected retained state: the three new Atlas containers/images, network, two volumes and logs remain; original built-in networks compare exactly equal. No application fixture cleanup is needed because no synthetic user/file/vector was created. Current canonical tables and Qdrant points are empty. Do not issue down/prune or delete fresh resources.
+
+Expected exception: cumulative cache comparison is 111 → 73 records, 42 original IDs absent / four added. The retry's own comparison is 93 → 73, 24 absent / four added. No prune/cache-removal command ran; automatic GC is plausible but unproven. This is an unresolved preservation failure, not a passing criterion. Exact IDs are in `final-safe-inventory.json` and the cache inventories.
+
+Expected checkpoint: A13–A16 technical checks pass; cache preservation remains unresolved. Amendment 06, PLAN_04 and PHASE_02 stay `IMPLEMENTED, UNVERIFIED`. Separate approval under Amendment 06 Requirement 8 is still needed for Stage 02B full local/packaged/production-browser regression, two-owner fixtures and exact cleanup. Actual Gemini needs its own approval. The individual 17/15 acceptance ledgers remain pending; new readiness checks alone do not close them.
+
+11. Review repository preservation and the final acceptance boundary.
+
+```powershell
+git branch --show-current
+git rev-parse HEAD
+git diff --cached --name-only
+git -c core.safecrlf=false diff --check
+```
+
+Expected recorded result: branch `phase-02/plan-04`, unchanged HEAD, empty index and passing diff check. Full source/hash/encoding review passed: 363 baseline files, only the corrected configuration test and six evidence/current-state documents differ; 21 SPA output hashes unchanged; all 13 PLAN sections / 17 criteria and 15 PHASE criteria preserved. Compose/private configuration/user Amendment are unchanged. The two uniquely named ignored helper handoff files were removed after exact ownership/content checks; retained temp evidence and all new Docker services/storage remain. No final verified status or Stage 02B result is implied.
+
+## 24. Amendment 06 — approved Stage 02B final packaged acceptance
+
+1. Establish the actual authorization and preserved environment before any independent rerun.
+
+   ```powershell
+   git branch --show-current
+   git rev-parse HEAD
+   git status --short
+   git diff --cached --name-only
+   docker compose --env-file server/.env -f compose.yml ps
+   ```
+
+   Expected recorded execution: user approved the proposed Stage 02B plan, deterministic generation, brief retained-API pause and exact fixture cleanup. User explicitly accepted only the historical Stage 02A cache loss for closure if every other criterion passes. Branch `phase-02/plan-04`, HEAD `eb7d228f1619552896ff18120b56754bcbc95c22`, empty index. Stage 02A API/image/datastore identities match. A newly present unrelated `lightning` Mongo project is inventoried and preserved; no Mongo data-content check is claimed.
+
+   Expected boundary: do not infer permission for a new independent fixture run, Gemini, migration, rebuild, unrelated resource action or destructive cleanup from this completed procedure. Current stack remains running; historical Section 23's pending Stage 02B status is superseded by this section.
+
+2. Run the canonical client and focused offline server checks.
+
+   From `client/`:
+
+   ```powershell
+   bun install --frozen-lockfile
+   bun run format:check
+   bun run lint
+   bun run typecheck
+   bun test tests/unit/auth tests/unit/http tests/unit/stream tests/unit/ask tests/unit/file tests/unit/folder tests/unit/router.test.tsx
+   bun run test
+   bun run build
+   ```
+
+   From `server/`:
+
+   ```powershell
+   $env:HF_HUB_OFFLINE='1'
+   $env:TRANSFORMERS_OFFLINE='1'
+   $env:HF_HUB_DISABLE_TELEMETRY='1'
+   $env:PYTHONDONTWRITEBYTECODE='1'
+   .venv/Scripts/python.exe -m unittest -q tests.test_01_constants tests.test_26_api
+   ```
+
+   Expected actual results: every check PASS; frozen install checks 498 installs / 529 packages unchanged; full client suite 424 tests / 2,232 assertions / 21 files; Vite 582 modules / 21 output files; offline server 20 tests. Focused tests pass without a separately retained focused count. Existing Starlette/httpx deprecation remains.
+
+3. Distinguish the actually executed packaged regression from live datastore acceptance.
+
+   Actual run-owned coordinator command from `server/`:
+
+   ```powershell
+   .venv/Scripts/python.exe .venv/atlas_a06_stage02b/regression.py
+   ```
+
+   Expected recorded result: helper created from immutable API image `sha256:5c42bb33604eb9d9f535b3eb34313965927b7b99f272009c52a766591f1906d7`; packaged application files preserved. Existing test sources/safe fixture files copied into its writable layer. Only missing `reportlab==5.1.0 --no-deps` added; all 157 existing package versions unchanged. Internal `python -m tests.run` passes 329 tests, using isolated SQLite/in-memory Qdrant and real cached BGE-M3/Docling upload probes. Exact newly created helper stopped/removed without volume removal. Production image/container dependencies unchanged.
+
+   Expected evidence: retained `regression.py`, `regression-runtime.json`, fixture-install log and `packaged-regression.log`. These paths describe this completed run; a repeat needs a fresh ownership ledger and should recheck actual image/package state first.
+
+4. Establish full private baselines and run the packaged HTTP/browser coordinator.
+
+   Actual command from `server/`:
+
+   ```powershell
+   .venv/Scripts/python.exe .venv/atlas_a06_stage02b/acceptance.py
+   ```
+
+   Expected recorded setup: baseline includes all PostgreSQL rows/schema/catalog/roles/sequences, Qdrant collections/config/index/aliases/full vectors/payloads, Docker image/container/network/mount/volume identities/configuration and 363 source/private-input hashes. Existing head `0002_drive`, five canonical tables/collection empty. No migration/reset. Retain/stop original API by exact ID, then create a uniquely owned temporary API from the exact fresh image with its original environment privately forwarded, existing network and port 8080. Do not overwrite packaged app/migrations.
+
+   Expected runtime: an external temporary launcher provides deterministic generation and exact-fixture fault controls in memory. Normal packaged FastAPI/auth/PG ownership/readiness/Docling/BGE-M3/Qdrant/grounding/native SSE are real. Check 89 packaged hashes before and after; eighteen operations. Actual Vite `dist/` history host on `http://127.0.0.1:3000`, direct browser API `http://127.0.0.1:8080`, valid JS MIME, seven route entries and preserved asset/API 404. No client container/proxy/native-source API substitute.
+
+   Expected replay restriction: completed harness runtime/private files cannot be blindly reused. Sanitized templates and coordinators are retained below; an independently approved rerun requires a new empty ignored workspace harness directory, fresh UUID/capability/private baselines, inspected current identities and a guarded restoration path. Private snapshots were intentionally removed after this run. Never paste credentials/OTPs/cookies into tools, reports or tracked files.
+
+5. Inspect the actually executed production-browser and HTTP matrix.
+
+   Expected: Playwright MCP Chromium 157.0.8103.79; **222 passing browser checks**, zero uncaught application exceptions. Batches: auth 18; lifecycle 131; Ask 41; Ask races nine; complete uploaded-file journey 19; key/ciphertext recovery four. Contexts close after each batch; the tool's blank root context is not an application session.
+
+   Expected real boundaries: register/resend/verify/login/rotation/restore/logout; recursive folder create/edit/direct-child navigation; canonical multipart ready uploads; metadata with unchanged complete vectors; permanent confirmation/deleting retry; direct file page; real exact-file retrieval/deterministic native SSE/trusted citations/fallback; two-owner privacy and route/account retirement. Complete browser journey uses the same uploaded file through edit/Ask/reload/foreign denial/delete.
+
+   Expected separately labelled faults: browser interception delays/losses/invalid responses and injected malformed SSE; exact-fixture backend provider error/invalid citation/deletion/ingestion failures. No actual Gemini invocation or production datastore outage is claimed.
+
+   Additional actual commands from `server/`:
+
+   ```powershell
+   .venv/Scripts/python.exe .venv/atlas_a06_stage02b/auth_http.py
+   .venv/Scripts/python.exe .venv/atlas_a06_stage02b/provenance.py
+   .venv/Scripts/python.exe .venv/atlas_a06_stage02b/folders_http.py
+   ```
+
+   Expected recorded results: ten auth checks (including concurrent single-use refresh and empty-retrieval provider bypass), four exact-Qdrant-provenance checks and six folder checks PASS. Controlled coordinator supplement confirms pre-retrieval denial, error SSE without success, recoverable deleting/retry and exact ingestion compensation. First Ask wording assertion, missing Boolean in first journey assertion, and incorrect punctuation-name validation sample were harness errors; corrected full runs pass and failed-attempt reports/chronology remain. No product fix was made to force acceptance.
+
+6. Inspect exact cleanup, the literal comparison failure and the explicit final review.
+
+   Expected exact ledger: two users, two verification IDs, 43 sessions, 14 folders, 20 files, 17 points. Remove only exact point IDs, exact dependent records, leaf-first folders and exact users. Complete PostgreSQL/Qdrant snapshots equal their pre-fixture baselines; see final CONTEXT hashes, not just counts.
+
+   Expected restoration: temporary API removed by exact owned ID; original API restarted, packaged hashes and database health pass. Coordinator exits 1 because literal Docker equality is false. Preserve this result. Its diff has only original API EndpointID/MacAddress and the matching two `atlas` attachment fields, recreated by the approved stop/start. Explicit final review excludes only those four exact fields; all other full values, including unrelated Mongo resources, compare equal. No broad omission or additional preservation waiver.
+
+   Actual review commands from `server/`, before private snapshot removal:
+
+   ```powershell
+   .venv/Scripts/python.exe .venv/atlas_a06_stage02b/compare.py
+   .venv/Scripts/python.exe .venv/atlas_a06_stage02b/final_review.py
+   ```
+
+   Expected final review: PASS; original literal failure retained separately. API/datastores healthy, original IDs/configuration/images/volumes/IPs retained; static host closed. Cache inventory equals the Stage 02A final 73 records and Stage 02B 73 → 73 with zero missing/new. The user-accepted historical 42-missing-cache-ID exception remains a failed historical comparison with unknown cause.
+
+7. Retain sanitized evidence, remove only private run-owned snapshots, and verify the live stack.
+
+   ```powershell
+   docker compose --env-file server/.env -f compose.yml ps
+   curl.exe --fail http://127.0.0.1:8080/system/health/databases
+   git -c core.safecrlf=false diff --check
+   git diff --cached --name-only
+   ```
+
+   Expected: Atlas API and both datastores remain running/healthy; unrelated Mongo unchanged; no down/prune/final volume removal. The curl is an equivalent human read-only health probe; actual coordinator/final review used Python HTTP. No further fixture/migration operation is needed.
+
+   Expected evidence location: `%TEMP%/atlas-a06-stage02b-fb01a124c71c4836bfd7ec03bb004c9f/`. `final-review.json`, original `report.json`, `browser-report.json`, failed-attempt reports, HTTP reports, cache comparison, package/regression logs, source hashes, exact-ID ledger and harness templates are retained. Seven private snapshot/fixture files and runtime control file were removed after comparison and a secret/password scan of retained artifacts. Original private env files remain intact.
+
+8. Read the individual acceptance ledgers before assigning completion.
+
+   Expected: final CONTEXT has every Amendment A01–A27, PLAN AC-01–AC-17 and independent PHASE AC-01–AC-15, with actual evidence and the explicit cache exception. Earlier Stage 01/02A failures/checkpoints remain historical. Amendment 06 / PLAN_04 / PHASE_02 are independently `IMPLEMENTED & VERIFIED` after final review; real Gemini remains unexecuted by explicit scope. No new PLAN, stage, branch, commit, push or merge follows automatically.

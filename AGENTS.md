@@ -161,18 +161,19 @@ Use these labels exactly; do not infer verification from code existence or docum
 
 ### Phase roadmap
 
-| PHASE                                   | Objective                                                      | Current maturity          |
-| --------------------------------------- | -------------------------------------------------------------- | ------------------------- |
-| PHASE_01 — MVP Core RAG                 | Single-file RAG baseline                                       | `IMPLEMENTED & VERIFIED`  |
-| PHASE_02 — Authenticated Personal Drive | Identity, canonical drive, scoped ownership, browser workflows | `IMPLEMENTED, UNVERIFIED` |
+| PHASE                                   | Objective                                                      | Current maturity         |
+| --------------------------------------- | -------------------------------------------------------------- | ------------------------ |
+| PHASE_01 — MVP Core RAG                 | Single-file RAG baseline                                       | `IMPLEMENTED & VERIFIED` |
+| PHASE_02 — Authenticated Personal Drive | Identity, canonical drive, scoped ownership, browser workflows | `IMPLEMENTED & VERIFIED` |
 
 ### Development destination
 
-- **Active PHASE:** `PHASE_02 — Authenticated Personal Drive`.
+- **Most recently completed PHASE:** `PHASE_02 — Authenticated Personal Drive`; no successor PHASE/PLAN is assigned.
 - **Completed PLAN:** `PHASE_02_PLAN_01 — PostgreSQL Identity & Authentication Foundation`.
 - **Completed PLAN:** `PHASE_02_PLAN_02 — Authenticated Drive Backend`.
 - **Completed PLAN:** `PHASE_02_PLAN_03 — Client Authentication` (`IMPLEMENTED & VERIFIED`); Amendments 01 and 02 are verified; Amendment 03 registration/verification/resend UI is `IMPLEMENTED & VERIFIED`; Amendment 04 login/logout UI is `IMPLEMENTED & VERIFIED`; Amendment 05 protected navigation/minimal dashboard and PLAN_03 are `IMPLEMENTED & VERIFIED` after approved Stage 02 acceptance.
-- **Current PLAN:** `PHASE_02_PLAN_04 — Drive Dashboard & Phase Acceptance` (`IMPLEMENTED, UNVERIFIED`; Amendment 01 migration, Amendment 02 backend consolidation and Amendment 03 folder workspace `IMPLEMENTED & VERIFIED` after their approved Stage 02 acceptance).
+- **Completed PLAN:** `PHASE_02_PLAN_04 — Drive Dashboard & Phase Acceptance` (`IMPLEMENTED & VERIFIED`); all seventeen PLAN criteria and all fifteen PHASE criteria passed final acceptance.
+- **Amendment 06:** directory routes/root Compose and final fresh packaged acceptance are `IMPLEMENTED & VERIFIED` after separately approved Stage 02A/02B. The user accepted the documented historical cache-loss exception; the failed comparison and unknown cause remain in CONTEXT. Final acceptance used deterministic generation, with no new Gemini call. All new Atlas resources remain running/preserved.
 - **Last inspected repository branch:** `phase-02/plan-04`; inspect it again before each task.
 - **Planned PLAN_04 branch convention:** `phase-02/plan-04`; inspect current Git state; do not switch branches automatically.
 - **Branch source of truth:** inspect the current local Git state before work; never switch branches automatically.
@@ -304,6 +305,16 @@ Phase 2 extends or explicitly supersedes these contracts; Phase 1 evidence remai
 - [PLAN_04 MANUAL](prompts/PHASE_01/PLAN_04/PHASE_01_PLAN_04_MANUAL.md)
 - [PLAN_05 CONTEXT](prompts/PHASE_01/PLAN_05/PHASE_01_PLAN_05_CONTEXT.md)
 - [PLAN_05 MANUAL](prompts/PHASE_01/PLAN_05/PHASE_01_PLAN_05_MANUAL.md)
+
+---
+
+### PHASE_02 — Authenticated Personal Drive
+
+- Verified PostgreSQL identity/sessions, canonical owner-scoped recursive folders/files, transient upload, metadata editing and recoverable exact-file deletion.
+- Verified static Vite/TanStack Router SPA auth/drive/file workflows and owner/ready-gated single-file RAG with native SSE/trusted citations against the fresh packaged deployment.
+- Final generation was deterministic; no fresh Gemini invocation. Historical cache-loss exception was explicitly accepted; exact current datastore preservation and retained runtime checks passed.
+- Multi-file/folder/drive RAG, sharing, stored originals and other excluded capabilities remain outside this completed PHASE.
+- Evidence: [PLAN_04 CONTEXT](prompts/PHASE_02/PLAN_04/PHASE_02_PLAN_04_CONTEXT.md) and [MANUAL](prompts/PHASE_02/PLAN_04/PHASE_02_PLAN_04_MANUAL.md).
 
 ---
 
@@ -439,6 +450,7 @@ If this high-level summary conflicts with the RAG skill, stop and report the dis
 atlas/
 ├── AGENTS.md
 ├── .gitignore
+├── compose.yml                  # server + PostgreSQL + Qdrant; root entrypoint
 ├── .agents/
 │   └── skills/
 │       └── rag/
@@ -448,7 +460,6 @@ atlas/
 │   ├── AGENTS.md
 │   ├── .env
 │   ├── .env.example
-│   ├── docker-compose.yml
 │   ├── Dockerfile
 │   ├── app/
 │   ├── migrations/
@@ -466,7 +477,7 @@ atlas/
     └── PHASE_02/
 ```
 
-Amendment 01 Stage 01 preserved the original source and local artifacts in `client-legacy/` through review and Stage 02 acceptance. The directory was subsequently removed with separate user approval. Read the checked-out repository before making structural claims. Only `client/` is the active application; migration integration is verified. Full drive workflows remain pending.
+Amendment 01 Stage 01 preserved the original source and local artifacts in `client-legacy/` through review and Stage 02 acceptance. The directory was subsequently removed with separate user approval. Read the checked-out repository before making structural claims. Only `client/` is the active application; migration integration and full Phase 2 drive workflows are verified.
 
 ### Ownership boundaries
 
@@ -479,7 +490,7 @@ Amendment 01 Stage 01 preserved the original source and local artifacts in `clie
 
 Additional rules:
 
-- Backend Compose remains under `server/`.
+- Backend Compose is root `compose.yml` with project name `atlas`; invoke from root with `--env-file server/.env -f compose.yml`. Dockerfile, `.dockerignore` and private `.env` remain under `server/`.
 - The approved Vite SPA is a static hosting artifact, not a Compose-managed application service.
 - During PLAN_04 Amendment 01, inspect Git/worktree and the legacy client before renaming `client/` to `client-legacy/`; preserve uncommitted and ignored user files, never silently overwrite or delete them.
 - Scaffold the replacement `client/` cleanly, migrate only required application code and tests, and verify auth parity before building drive features. Legacy retirement requires separate approval; that approval was granted after Amendment 01 acceptance and the directory is now removed.

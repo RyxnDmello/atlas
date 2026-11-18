@@ -5,6 +5,7 @@ import time
 import secrets
 import subprocess
 from uuid import uuid4
+from pathlib import Path
 from http.cookies import SimpleCookie
 
 from sqlalchemy.orm import sessionmaker
@@ -131,7 +132,9 @@ def main() -> None:
         ) if path.startswith('/auth')}
         assert routes == {'/auth': {'get'}, **{'/auth/'+name: {'post'} for name in (
             'register', 'verify', 'resend', 'login', 'refresh', 'logout')}}
-        logs = subprocess.run(['docker', 'compose', '--env-file', '.env', '-f', 'docker-compose.yml',
+        logs = subprocess.run(['docker', 'compose', '--env-file', str(Path(__file__).resolve().parents[1] / '.env'),
+                               '-f', str(Path(__file__).resolve()
+                                         .parents[2] / 'compose.yml'),
                                'logs', '--no-color', 'server'], capture_output=True, text=True, check=True)
         assert all(value not in logs.stdout+logs.stderr for value in private)
         print(json.dumps({'current_http': 'passed', 'full_auth_flow': 'passed',

@@ -8,6 +8,6 @@ function FolderPage() {
   return <DrivePanel folderId={id.toLowerCase()} />;
 }
 
-export const Route = createFileRoute("/drive_/$id")({
+export const Route = createFileRoute("/drive/$id")({
   component: FolderPage,
 });

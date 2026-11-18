@@ -6,6 +6,7 @@ import traceback
 import subprocess
 from typing import Any
 from uuid import uuid4
+from pathlib import Path
 from urllib.error import HTTPError
 from datetime import datetime, timezone
 from urllib.request import Request, urlopen
@@ -122,8 +123,8 @@ def main() -> None:
         assert set(body["paths"]["/auth/register"]) == {"post"}
         assert {"/files", "/files/{file_id}/ask", "/files/{file_id}",
                 "/system/health", "/system/health/databases"} <= set(body["paths"])
-        logs = subprocess.run(["docker", "compose", "--env-file", ".env", "-f",
-                               "docker-compose.yml", "logs", "--no-color", "server"],
+        logs = subprocess.run(["docker", "compose", "--env-file", str(Path(__file__).resolve().parents[1] / ".env"),
+                               "-f", str(Path(__file__).resolve().parents[2] / "compose.yml"), "logs", "--no-color", "server"],
                               capture_output=True, text=True, check=True)
         assert plaintext not in logs.stdout + \
             logs.stderr, "Synthetic password appeared in API logs"
