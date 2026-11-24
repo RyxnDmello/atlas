@@ -16,9 +16,9 @@ from app.core.constants import constants
 from app.db.postgres import Database, url
 from app.routers.auth import router as auth
 
-from tests.drive_live import constraints, schema
 from tests.test_21_folders import application
 from tests.folders_acceptance import acceptance
+from tests.metadata_live import constraints, schema
 
 
 def validate(name: str) -> None:
@@ -56,7 +56,7 @@ def main() -> None:
         app = application()
         app.include_router(auth)
         configure_cors(app)
-        with patch("app.pipeline.drive.postgres", return_value=database), patch(
+        with patch("app.pipeline.folders.postgres", return_value=database), patch(
                 "app.pipeline.auth.current.postgres", return_value=database), patch(
                 "app.pipeline.auth.login.postgres", return_value=database), TestClient(app) as client:
             result = acceptance(database, client, [])

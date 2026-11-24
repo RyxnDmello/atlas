@@ -17,8 +17,8 @@ from app.pipeline.generation.prompt import FALLBACK
 from app.models.postgres import File
 from app.schemas.pipeline import Chunk
 
-from tests.rag import seed
 from tests.test_10_ask import events
+from tests.rag import retrieved, seed
 from tests.uploads_acceptance import scope
 from tests.folders_acceptance import actors
 from tests.files_acceptance import canonical, vectors
@@ -54,16 +54,13 @@ def acceptance(database: Database, client: Client | TestClient, storage: Storage
             preserved = vectors(storage)
 
             for owner, identifier in enumerate(files):
-                response = client.post(f"/files/{identifier}/query", headers=headers[owner],
-                                       json={"question": "How long are records kept?"})
-                assert response.status_code == 200
-                results = response.json()["results"]
-                assert results and all(set(item) == {"score", "text", "index", "count", "page", "heading", "section"}
-                                       for item in results)
-                assert all(
-                    f"Owner {owner}" in item["text"] for item in results)
+                results = retrieved(database, storage, users[owner].id, identifier,
+                                    "How long are records kept?")
+                assert results and all(
+                    item.file_id == identifier for item in results)
+                assert all(f"Owner {owner}" in item.text for item in results)
                 if generation:
-                    citation = results[0]["index"]
+                    citation = results[0].chunk_index
 
                     class Provider:
                         """Deterministic test-only provider with actual retrieval and trusted citations."""
@@ -92,7 +89,7 @@ def acceptance(database: Database, client: Client | TestClient, storage: Storage
             storage.write([Chunk(id=str(orphan), text="Synthetic orphan",
                           display_text="Synthetic orphan", index=0, count=2)])
             seed(database, users[0].id, empty)
-            for route in ("query", "ask"):
+            for route in ("ask",):
                 for auth in ({}, {"Authorization": "Bearer invalid"}):
                     response = client.post(
                         f"/files/{files[0]}/{route}", headers=auth, json={"question": "question"})
@@ -119,7 +116,7 @@ def acceptance(database: Database, client: Client | TestClient, storage: Storage
                         calls.append(stack.enter_context(
                             patch.object(storage.client, "query_points")))
                     for owner, identifier in enumerate(files):
-                        for route in ("query", "ask"):
+                        for route in ("ask",):
                             cases = [(identifier, headers[1 - owner], 404), (orphan, headers[owner], 404),
                                      (missing, headers[owner], 404)]
                             if status != "ready":
@@ -136,10 +133,7 @@ def acceptance(database: Database, client: Client | TestClient, storage: Storage
                     for call in calls:
                         call.assert_not_called()
 
-            response = client.post(
-                f"/files/{empty}/query", headers=headers[0], json={"question": "question"})
-            assert response.status_code == 200 and response.json() == {
-                "results": []}
+            assert retrieved(database, storage, users[0].id, empty) == []
             response = client.post(
                 f"/files/{empty}/ask", headers=headers[0], json={"question": "question"})
             assert response.status_code == 200
@@ -151,7 +145,7 @@ def acceptance(database: Database, client: Client | TestClient, storage: Storage
             assert response.status_code == 204
             assert canonical(database, files[1]) == survivor
             assert vectors(storage, scope(files[1])) == survivor_points
-            for route in ("query", "ask"):
+            for route in ("ask",):
                 response = client.post(
                     f"/files/{files[0]}/{route}", headers=headers[0], json={"question": "question"})
                 assert response.status_code == 404 and response.json()[

@@ -4,6 +4,7 @@ import json
 import secrets
 import subprocess
 from uuid import uuid4
+from pathlib import Path
 from threading import Barrier
 from http.cookies import SimpleCookie
 from email.utils import parsedate_to_datetime
@@ -196,7 +197,9 @@ def main() -> None:
         assert set(spec['paths']['/auth']) == {'get'}
         assert all(set(spec['paths'][path]) == {
                    'post'} for path in paths - {'/auth'})
-        logs = subprocess.run(['docker', 'compose', '--env-file', '.env', '-f', 'docker-compose.yml',
+        logs = subprocess.run(['docker', 'compose', '--env-file', str(Path(__file__).resolve().parents[1] / '.env'),
+                               '-f', str(Path(__file__).resolve()
+                                         .parents[2] / 'compose.yml'),
                                'logs', '--no-color', 'server'], capture_output=True, text=True, check=True)
         assert all(value not in logs.stdout + logs.stderr for value in private)
         print(json.dumps({'sessions_http': 'passed', 'rotation_replay': 'passed', 'concurrency': 'one_winner_one_loser',

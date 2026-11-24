@@ -1,12 +1,17 @@
-# IGNORE
-
+# BUILDS
+dist/
+.tanstack/
 out/
 .next/
 build/
 coverage/
 node_modules/
 
+# ENVIRONMENT
 .env*
 bun.lock
 *.tsbuildinfo
 next-env.d.ts
+
+# GENERATED ROUTES
+src/routeTree.gen.ts

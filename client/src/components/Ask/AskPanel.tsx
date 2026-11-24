@@ -1,115 +1,72 @@
-"use client";
-
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import type { UseAskResult } from "@hooks/ask/useAsk";
+import useAsk from "@hooks/ask/useAsk";
 
-import {
-  Card,
-  CardTitle,
-  CardHeader,
-  CardContent,
-  CardDescription,
-} from "@components/ui/card";
-import { Label } from "@components/ui/label";
 import { Input } from "@components/ui/input";
 import { Button } from "@components/ui/button";
-
 import CitationList from "@components/Citations/CitationList";
 
 import { askFormSchema, type AskForm } from "@schemas/ask/ask";
 
-export interface AskPanelProps {
-  ask: UseAskResult;
-  disabled: boolean;
+interface AskPanelProps {
+  fileId: string;
+  onDenied(status: number, code: string): Promise<void>;
 }
 
-export default function AskPanel({ ask, disabled }: AskPanelProps) {
-  const form = useForm<AskForm>({
+export default function AskPanel({ fileId, onDenied }: AskPanelProps) {
+  const { askState, askQuestion } = useAsk(fileId, onDenied);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<AskForm>({
     resolver: zodResolver(askFormSchema),
     defaultValues: {
       question: "",
     },
   });
 
-  const streaming = ask.status === "streaming";
+  const pending = isSubmitting || askState.status === "streaming";
+
+  const onSubmit = async (form: AskForm) => {
+    await askQuestion(form.question);
+  };
 
   return (
-    <Card className="w-full max-w-xl">
-      <CardHeader>
-        <CardTitle>Ask this file</CardTitle>
+    <section className="space-y-4">
+      <h2 className="text-lg font-semibold">Ask this file</h2>
 
-        <CardDescription>
-          {disabled
-            ? "Upload a file to ask a question."
-            : "Ask a question about your active file."}
-        </CardDescription>
-      </CardHeader>
+      <form className="space-y-3" onSubmit={handleSubmit(onSubmit)}>
+        <label className="block space-y-2">
+          <span>Question</span>
+          <Input disabled={pending} {...register("question")} />
+        </label>
 
-      <CardContent className="space-y-6">
-        <form
-          className="space-y-4"
-          onSubmit={form.handleSubmit(({ question }) => ask.submit(question))}
-        >
-          <div className="space-y-2">
-            <Label htmlFor="question">Question</Label>
+        {errors.question && <p role="alert">{errors.question.message}</p>}
 
-            <Input
-              id="question"
-              {...form.register("question")}
-              disabled={disabled || streaming}
-            />
+        <Button type="submit" disabled={pending}>
+          {pending ? "Asking…" : "Ask"}
+        </Button>
+      </form>
 
-            {form.formState.errors.question && (
-              <p
-                id="question-error"
-                role="alert"
-                className="text-sm text-destructive"
-              >
-                {form.formState.errors.question.message}
-              </p>
-            )}
-          </div>
+      {askState.status === "streaming" && (
+        <p role="status">Answering… This answer is provisional.</p>
+      )}
 
-          <Button type="submit" disabled={disabled || streaming}>
-            {streaming ? "Answering…" : "Ask"}
-          </Button>
-        </form>
+      {askState.error && <p role="alert">{askState.error}</p>}
 
-        {streaming && (
-          <p role="status" className="text-sm text-muted-foreground">
-            Answering… Text is provisional until complete.
-          </p>
-        )}
+      {askState.answer && (
+        <p className="whitespace-pre-wrap wrap-anywhere">{askState.answer}</p>
+      )}
 
-        {ask.status === "success" && (
-          <p role="status" className="text-sm text-muted-foreground">
-            Answer complete.
-          </p>
-        )}
-
-        {ask.error && (
-          <p role="alert" className="text-sm text-destructive">
-            {ask.error}
-          </p>
-        )}
-
-        {ask.answer && (
-          <section className="space-y-2">
-            <h2 className="font-medium">Answer</h2>
-
-            <div
-              data-testid="answer"
-              className="whitespace-pre-wrap wrap-break-word rounded-lg border p-4 text-sm"
-            >
-              {ask.answer}
-            </div>
-          </section>
-        )}
-
-        {ask.status === "success" && <CitationList citations={ask.citations} />}
-      </CardContent>
-    </Card>
+      {askState.status === "success" && (
+        <>
+          <p role="status">Answer complete.</p>
+          <CitationList citations={askState.citations} />
+        </>
+      )}
+    </section>
   );
 }

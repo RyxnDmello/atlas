@@ -5,6 +5,7 @@ import json
 import secrets
 import subprocess
 from uuid import uuid4
+from pathlib import Path
 
 from argon2 import PasswordHasher
 from sqlalchemy.orm import sessionmaker
@@ -135,8 +136,8 @@ def main() -> None:
         authenticated(database, email, body, headers, 3, private)
         assert snapshot(database, email)[0] == after[0]
 
-        logs = subprocess.run(["docker", "compose", "--env-file", ".env", "-f",
-                               "docker-compose.yml", "logs", "--no-color", "server"],
+        logs = subprocess.run(["docker", "compose", "--env-file", str(Path(__file__).resolve().parents[1] / ".env"),
+                               "-f", str(Path(__file__).resolve().parents[2] / "compose.yml"), "logs", "--no-color", "server"],
                               capture_output=True, text=True, check=True)
         assert not any(value in logs.stdout + logs.stderr for value in private)
         print(json.dumps({"live_login": "passed", "invalid_credentials": "identical",

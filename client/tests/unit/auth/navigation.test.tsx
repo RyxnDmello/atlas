@@ -3,7 +3,7 @@ import { afterEach, expect, test } from "bun:test";
 import "./environment";
 
 import AuthGate from "@components/Auth/AuthGate";
-import DashboardPanel from "@components/Auth/DashboardPanel";
+import DrivePanel from "@components/Drive/DrivePanel";
 import RegisterPanel from "@components/Auth/RegisterPanel";
 import VerifyPanel from "@components/Auth/VerifyPanel";
 import LoginPanel from "@components/Auth/LoginPanel";
@@ -37,7 +37,7 @@ const routes: [string, AuthRouteMode][] = [
   ["/register", "anonymous"],
   ["/verify", "anonymous"],
   ["/login", "anonymous"],
-  ["/dashboard", "protected"],
+  ["/drive", "protected"],
 ];
 
 afterEach(() => {
@@ -74,7 +74,7 @@ for (const [path, mode] of routes) {
 
     const destination =
       status === "authenticated" && mode !== "protected"
-        ? "/dashboard"
+        ? "/drive"
         : status === "unauthenticated" && mode !== "anonymous"
           ? "/login"
           : null;
@@ -164,7 +164,7 @@ test.each(["pending", "confirmed", "unconfirmed"] as const)(
       user,
     });
 
-    const privateHtml = renderAuth(<DashboardPanel />, "/dashboard");
+    const privateHtml = renderAuth(<DrivePanel />, "/drive");
     const loginHtml = renderAuth(<LoginPanel />, "/login");
 
     expect(privateHtml).toContain("Redirecting");
@@ -174,19 +174,19 @@ test.each(["pending", "confirmed", "unconfirmed"] as const)(
   },
 );
 
-test("terminal refresh failure denies dashboard; uncertainty offers explicit recovery only", () => {
+test("terminal refresh failure denies drive; uncertainty offers explicit recovery only", () => {
   Object.assign(initial, {
     status: "unauthenticated",
     user: null,
   });
 
-  expect(renderAuth(<DashboardPanel />, "/dashboard")).toContain("Redirecting");
+  expect(renderAuth(<DrivePanel />, "/drive")).toContain("Redirecting");
 
   Object.assign(initial, {
     status: "error",
   });
 
-  const html = renderAuth(<DashboardPanel />, "/dashboard");
+  const html = renderAuth(<DrivePanel />, "/drive");
 
   expect(html).toContain("Retry session check");
   expect(html).not.toContain("Redirecting");
@@ -217,20 +217,20 @@ test("redirect dispatch rechecks live state/path and suppresses duplicate effect
     "anonymous",
     false,
     "/login",
-    "/dashboard",
+    "/drive",
     authenticated,
     "/login/",
     null,
     replace,
   );
 
-  expect(calls).toEqual(["/dashboard"]);
+  expect(calls).toEqual(["/drive"]);
   expect(
     replaceAuthRoute(
       "anonymous",
       false,
       "/login",
-      "/dashboard",
+      "/drive",
       authenticated,
       "/login",
       first,
@@ -241,7 +241,7 @@ test("redirect dispatch rechecks live state/path and suppresses duplicate effect
     "anonymous",
     false,
     "/login",
-    "/dashboard",
+    "/drive",
     signedOut,
     "/login",
     null,
@@ -251,19 +251,19 @@ test("redirect dispatch rechecks live state/path and suppresses duplicate effect
     "anonymous",
     false,
     "/login",
-    "/dashboard",
+    "/drive",
     authenticated,
-    "/dashboard",
+    "/drive",
     null,
     replace,
   );
   replaceAuthRoute(
     "protected",
     false,
-    "/dashboard",
+    "/drive",
     "/login",
     authenticated,
-    "/dashboard",
+    "/drive",
     null,
     replace,
   );
@@ -273,15 +273,15 @@ test("redirect dispatch rechecks live state/path and suppresses duplicate effect
   replaceAuthRoute(
     "protected",
     false,
-    "/dashboard",
+    "/drive",
     "/login",
     signedOut,
-    "/dashboard",
+    "/drive",
     null,
     replace,
   );
 
-  expect(calls).toEqual(["/dashboard", "/login"]);
+  expect(calls).toEqual(["/drive", "/login"]);
 });
 
 for (const [path, Panel] of [

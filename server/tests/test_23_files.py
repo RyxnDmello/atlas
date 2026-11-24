@@ -24,12 +24,12 @@ from app.core.cors import configure_cors
 from app.pipeline.storage import Storage
 from app.pipeline.files import finish, owned
 
-from app.routers.file_mutations import router
-from app.routers.drive import router as drive
+from app.routers.files import router
+from app.routers.folders import router as folders
 
 from app.schemas.pipeline import Chunk
-from app.schemas.drive.upload import FileUpload
-from app.schemas.drive.metadata import FilePatch
+from app.schemas.files.upload import FileUpload
+from app.schemas.files.metadata import FilePatch
 
 from app.models.postgres import File, Folder, User
 
@@ -112,7 +112,7 @@ class FileMutationTests(unittest.TestCase):
         self.addCleanup(self.scope.close)
         self.database, self.user, self.headers = self.scope.enter_context(
             environment())
-        for target in ("app.pipeline.files.postgres", "app.pipeline.drive.postgres"):
+        for target in ("app.pipeline.files.postgres", "app.pipeline.folders.postgres"):
             self.scope.enter_context(patch(target, return_value=self.database))
         self.depth = 0
         original = self.database.session
@@ -140,7 +140,7 @@ class FileMutationTests(unittest.TestCase):
         with patch("app.core.cors.constants.cors.CORS_ORIGINS", ["https://atlas.example"]):
             configure_cors(application)
         application.include_router(router)
-        application.include_router(drive)
+        application.include_router(folders)
         application.add_exception_handler(ApiError, cast_handle_api_error())
         self.client = self.scope.enter_context(TestClient(application))
         self.target, self.survivor, self.processing, self.deleting = [
@@ -181,6 +181,117 @@ class FileMutationTests(unittest.TestCase):
         self.assertIsNone(cursor)
         return sorted(points, key=lambda point: str(point.id))
 
+    def test_get_all_states_exact_dto_and_unchanged_canonical_rows(self):
+        fields = {"id", "name", "description", "original_name", "extension", "size_bytes",
+                  "status", "folder_id", "created_at", "updated_at"}
+        identifiers = (self.target, self.processing, self.deleting)
+        with self.database.session() as session:
+            file = session.get(File, self.processing)
+            assert file is not None
+            file.description = None
+            session.commit()
+        before = {identifier: self.row(identifier)
+                  for identifier in identifiers}
+        points = self.points()
+        statements = []
+
+        def capture(connection, cursor, statement, parameters, context, many):
+            statements.append(statement)
+
+        event.listen(self.database.engine, "before_cursor_execute", capture)
+        self.addCleanup(event.remove, self.database.engine,
+                        "before_cursor_execute", capture)
+        with patch.object(Session, "commit") as commit, patch.object(
+                self.qdrant, "query_points") as query, patch.object(self.services.provider, "embed") as embed:
+            for identifier, status in zip(identifiers, ("ready", "processing", "deleting"), strict=True):
+                response = self.request("GET", identifier)
+                self.assertEqual(response.status_code, 200, response.text)
+                body = response.json()
+                self.assertEqual(set(body), fields)
+                self.assertEqual(
+                    (body["id"], body["status"]), (str(identifier), status))
+                self.assertEqual(body["folder_id"], str(
+                    self.folder) if identifier == self.target else None)
+                self.assertEqual(
+                    body["description"], None if identifier == self.processing else "Description")
+                self.assertEqual(body["name"], "Original")
+                self.assertEqual(body["original_name"], "SOURCE.MD")
+                self.assertEqual(
+                    (body["extension"], body["size_bytes"]), (".md", 42))
+                row = before[identifier]
+                assert row is not None
+                for key in ("created_at", "updated_at"):
+                    self.assertEqual(datetime.fromisoformat(body[key]).replace(
+                        tzinfo=None), row[key])
+            for call in (commit, query, embed, self.runtime):
+                call.assert_not_called()
+        self.assertTrue(statements)
+        self.assertTrue(all(statement.lstrip().upper().startswith(
+            "SELECT") for statement in statements))
+        self.assertEqual({identifier: self.row(identifier)
+                         for identifier in identifiers}, before)
+        self.assertEqual(self.points(), points)
+
+    def test_get_privacy_missing_foreign_and_all_foreign_states(self):
+        missing = self.request("GET", uuid4())
+        self.assertEqual(missing.status_code, 404)
+        self.assertEqual(missing.json(), {
+                         "error": "File not found", "code": "FILE_NOT_FOUND"})
+        for status in ("ready", "processing", "deleting"):
+            with self.database.session() as session:
+                file = session.get(File, self.foreign)
+                assert file is not None
+                file.status = status
+                session.commit()
+            response = self.request("GET", self.foreign)
+            self.assertEqual((response.status_code, response.json()),
+                             (missing.status_code, missing.json()))
+        self.runtime.assert_not_called()
+
+    def test_get_authentication_precedes_uuid_and_resource_validation(self):
+        with patch("app.routers.files.read") as read:
+            for identifier in ("not-a-uuid", self.target, self.foreign):
+                for headers in ({}, {"Authorization": "Bearer invalid"}):
+                    response = self.request("GET", identifier, headers=headers)
+                    self.assertEqual(response.status_code, 401)
+                    self.assertEqual(response.json(), {
+                                     "error": "Invalid access token", "code": "INVALID_ACCESS_TOKEN"})
+            response = self.request("GET", "private-invalid-uuid")
+            self.assertEqual(response.status_code, 422)
+            self.assertEqual(response.json(), {
+                             "error": "Invalid request input", "code": "UNPROCESSABLE_ENTITY"})
+            self.assertNotIn("private-invalid-uuid", response.text)
+            read.assert_not_called()
+
+    def test_get_single_owner_scoped_unlocked_select_and_safe_database_failure(self):
+        from app.pipeline.files import read
+        session = Mock(spec=Session)
+        row = self.row()
+        assert row is not None
+        session.scalar.return_value = File(**row)
+        with patch("app.pipeline.files.postgres") as postgres:
+            postgres.return_value.session.return_value.__enter__.return_value = session
+            self.assertEqual(read(self.user.id, self.target).id, self.target)
+        session.scalar.assert_called_once()
+        statement = session.scalar.call_args.args[0]
+        self.assertEqual(set(statement.compile().params.values()), {
+                         self.target, self.user.id})
+        self.assertIn("files.id =", str(statement))
+        self.assertIn("files.owner_id =", str(statement))
+        self.assertIn(" AND ", str(statement))
+        self.assertNotIn("FOR UPDATE", str(statement))
+        for call in (session.commit, session.flush, session.add, session.delete):
+            call.assert_not_called()
+        session.scalar.side_effect = SQLAlchemyError("private SQL credentials")
+        with patch("app.pipeline.files.postgres") as postgres:
+            postgres.return_value.session.return_value.__enter__.return_value = session
+            response = self.request("GET")
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.json(), {
+                         "error": "Unable to complete database operation", "code": "POSTGRES_OPERATION_FAILED"})
+        self.assertNotIn("private SQL", response.text)
+        self.runtime.assert_not_called()
+
     def test_patch_preserves_source_and_index_and_updates_listing(self):
         before, points = self.row(), self.points()
         assert before is not None
@@ -202,7 +313,7 @@ class FileMutationTests(unittest.TestCase):
         self.runtime.assert_not_called()
         self.assertEqual(self.points(), points)
         listing = self.client.get(
-            "/drive", params={"folder_id": str(self.folder)}, headers=self.headers)
+            f"/folders/{self.folder}", headers=self.headers)
         self.assertEqual(listing.status_code, 200)
         self.assertEqual(listing.json()["files"][0]["name"], "Both")
 
@@ -283,7 +394,7 @@ class FileMutationTests(unittest.TestCase):
                          point for point in points if point.payload is not None and point.payload["file_id"] != str(self.target)])
         self.assertEqual(self.request("DELETE").status_code, 404)
         listing = self.client.get(
-            "/drive", params={"folder_id": str(self.folder)}, headers=self.headers)
+            f"/folders/{self.folder}", headers=self.headers)
         self.assertEqual(listing.json()["files"], [])
 
     def test_qdrant_failure_retains_deleting_and_retry_removes_existing_vectors(self):
@@ -297,7 +408,7 @@ class FileMutationTests(unittest.TestCase):
         self.assertEqual(row["status"], "deleting")
         self.assertEqual(self.points(), before)
         listing = self.client.get(
-            "/drive", params={"folder_id": str(self.folder)}, headers=self.headers)
+            f"/folders/{self.folder}", headers=self.headers)
         self.assertEqual(listing.json()["files"][0]["status"], "deleting")
         self.assertEqual(self.request("DELETE").status_code, 204)
         self.assertIsNone(self.row())

@@ -15,6 +15,7 @@ from app.core.constants import constants
 from app.models.postgres import File
 from app.pipeline.storage import Storage
 
+from tests.rag import retrieved
 from tests.uploads_acceptance import scope
 from tests.folders_acceptance import actors
 
@@ -95,7 +96,7 @@ def acceptance(database: Database, client: Client | TestClient, storage: Storage
                 assert file is not None and file.owner_id == users[0].id
                 assert file.created_at == created and file.folder_id == location
             listing = client.get(
-                "/drive", headers=headers[0], params={"folder_id": folder.json()["id"]})
+                "/folders/" + str(folder.json()["id"]), headers=headers[0])
             assert listing.status_code == 200 and listing.json(
             )["files"][0]["name"] == "_-.,()[]&+@'"
             for payload in ({}, {"name": None}, {"name": "a" * 101}, {"description": "d" * 251},
@@ -138,11 +139,10 @@ def acceptance(database: Database, client: Client | TestClient, storage: Storage
             assert canonical(database, survivor) == survivor_row
             assert vectors(storage, scope(survivor)) == preserved
             listing = client.get(
-                "/drive", headers=headers[0], params={"folder_id": folder.json()["id"]})
+                "/folders/" + str(folder.json()["id"]), headers=headers[0])
             assert listing.status_code == 200 and listing.json()["files"] == []
-            query = client.post("/files/" + str(survivor) + "/query",
-                                headers=headers[1], json={"question": "How long are records kept?"})
-            assert query.status_code == 200 and query.json()["results"]
+            assert retrieved(
+                database, storage, users[1].id, survivor, "How long are records kept?")
             assert vectors(storage, scope(survivor)) == preserved
             for origin in [*constants.cors.CORS_ORIGINS, "https://denied-" + uuid4().hex + ".example"]:
                 for method in ("DELETE", "PUT"):

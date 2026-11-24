@@ -1,8 +1,8 @@
 import { afterEach, expect, test } from "bun:test";
 
-const previous = process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL;
+const previous = process.env.VITE_ATLAS_API_BASE_URL;
 
-process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL = "http://localhost:8080";
+process.env.VITE_ATLAS_API_BASE_URL = "http://localhost:8080";
 
 const { default: fetch } = await import("@services/http/fetch");
 const { coordination } = await import("@services/auth/auth");
@@ -12,9 +12,9 @@ const { response: authenticated, seedCredentials } =
 await seedCredentials(authenticated, coordination);
 
 if (previous === undefined) {
-  delete process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL;
+  delete process.env.VITE_ATLAS_API_BASE_URL;
 } else {
-  process.env.NEXT_PUBLIC_ATLAS_API_BASE_URL = previous;
+  process.env.VITE_ATLAS_API_BASE_URL = previous;
 }
 
 const original = globalThis.fetch;
@@ -24,11 +24,11 @@ type FetchHandler = (
   options?: RequestInit,
 ) => Promise<Response>;
 
-function mock(handler: FetchHandler): void {
+const mock = (handler: FetchHandler): void => {
   globalThis.fetch = Object.assign(handler, {
     preconnect: original.preconnect,
   });
-}
+};
 
 afterEach(() => {
   globalThis.fetch = original;
@@ -135,7 +135,7 @@ test("base preserves raw multipart bodies without JSON headers or serialization"
   body.append("file", new File(["synthetic"], "fixture.md"));
 
   mock(async (url, options) => {
-    expect(url).toBe("http://localhost:8080/documents/upload");
+    expect(url).toBe("http://localhost:8080/files");
     expect(options?.method).toBe("POST");
     expect(options?.body).toBe(body);
     expect(new Headers(options?.headers).has("Content-Type")).toBe(false);
@@ -143,7 +143,7 @@ test("base preserves raw multipart bodies without JSON headers or serialization"
     return new Response(null);
   });
 
-  await fetch.base("/documents/upload", {
+  await fetch.base("/files", {
     method: "POST",
     body,
   });

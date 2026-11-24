@@ -7,11 +7,11 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.core.logging import logger
 from app.core.runtime import postgres, storage
 
-from app.pipeline.drive import owned
+from app.pipeline.folders import owned
 from app.pipeline.ingestion import ingest, validate
 
-from app.schemas.drive.file import FileResponse
-from app.schemas.drive.upload import FileUpload
+from app.schemas.files.upload import FileUpload
+from app.schemas.files.response import FileResponse
 
 from app.models.postgres import File
 

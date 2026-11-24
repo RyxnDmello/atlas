@@ -60,10 +60,13 @@ test("every byte split preserves JSON, framing and multibyte UTF-8", () => {
 });
 test("releases each complete record without buffering the answer", () => {
   const parser = createSseParser();
-  for (let index = 0; index < 100; index++)
+
+  for (let index = 0; index < 100; index++) {
     expect(
       parser.push(encoder.encode('event: answer\ndata: {"text":"x"}\n\n')),
     ).toHaveLength(1);
+  }
+
   expect(parser.finish()).toEqual([]);
 });
 for (const tail of [

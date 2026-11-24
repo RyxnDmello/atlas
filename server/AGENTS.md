@@ -90,19 +90,20 @@ Use these labels exactly; do not infer verification from code existence or docum
 
 ### Phase and PLAN destination
 
-| Scope                                             | Current maturity          |
-| ------------------------------------------------- | ------------------------- |
-| `PHASE_01`                                        | `IMPLEMENTED & VERIFIED`  |
-| `PHASE_02`                                        | `IMPLEMENTED, UNVERIFIED` |
-| `PHASE_02_PLAN_01` — Identity & Authentication    | `IMPLEMENTED & VERIFIED`  |
-| `PHASE_02_PLAN_02` — Authenticated Drive Backend  | `IMPLEMENTED & VERIFIED`  |
-| `PHASE_02_PLAN_03` — Client Authentication        | `IMPLEMENTED & VERIFIED`  |
-| `PHASE_02_PLAN_04` — Drive Dashboard & Acceptance | `NOT YET BUILT`           |
+| Scope                                             | Current maturity         |
+| ------------------------------------------------- | ------------------------ |
+| `PHASE_01`                                        | `IMPLEMENTED & VERIFIED` |
+| `PHASE_02`                                        | `IMPLEMENTED & VERIFIED` |
+| `PHASE_02_PLAN_01` — Identity & Authentication    | `IMPLEMENTED & VERIFIED` |
+| `PHASE_02_PLAN_02` — Authenticated Drive Backend  | `IMPLEMENTED & VERIFIED` |
+| `PHASE_02_PLAN_03` — Client Authentication        | `IMPLEMENTED & VERIFIED` |
+| `PHASE_02_PLAN_04` — Drive Dashboard & Acceptance | `IMPLEMENTED & VERIFIED` |
 
 - **Backend completion:** PLAN_01 and PLAN_02 passed recorded acceptance.
-- **Client milestone:** PLAN_03 client authentication is verified; PLAN_04 drive dashboard is the next destination. No new backend protocol is authorized by this status update.
-- **Last verified branch reference:** `phase-02/plan-02`.
-- **Planned branch convention:** `phase-02/plan-03`; inspect local Git state and do not assume checkout/existence.
+- **Client milestone:** PLAN_03 is the historical Next.js authentication baseline; PLAN_04 Amendment 01 Vite/TanStack Router migration is `IMPLEMENTED & VERIFIED`. Folder browsing and file lifecycle UI are `IMPLEMENTED & VERIFIED`; selected-file detail/Ask and final PLAN_04/PHASE_02 acceptance are `IMPLEMENTED & VERIFIED` after approved Amendment 06 exact-image/static-browser/two-owner acceptance with deterministic generation. The accepted historical cache exception remains documented.
+- **PLAN_04 Amendment 02:** folder/file API consolidation is `IMPLEMENTED & VERIFIED` after approved matching-source native HTTP/PostgreSQL/Qdrant acceptance and exact fixture/resource preservation. Amendment 04 subsequently rebuilt the API with retained runtime/models and current source; packaged-source identity, live ingestion and two-owner file lifecycle acceptance passed. The canonical cold build encountered an external model-download timeout; CONTEXT records that deviation without claiming a fresh dependency/model rebuild.
+- **Last verified branch reference:** `phase-02/plan-04`.
+- **Successor PLAN/branch:** unassigned; inspect local Git state and preserve the current checkout.
 - Server-only changes are not automatically required by client planning.
 
 ### Current server capability maturity
@@ -113,10 +114,12 @@ Use these labels exactly; do not infer verification from code existence or docum
 | Register, verify/resend and login                         | `IMPLEMENTED & VERIFIED` |
 | Sessions, refresh rotation and logout                     | `IMPLEMENTED & VERIFIED` |
 | Credentialed cookie CORS and `GET /auth`                  | `IMPLEMENTED & VERIFIED` |
-| Canonical folders, files and direct-child APIs            | `IMPLEMENTED & VERIFIED` |
+| Canonical folders/files and historical direct-child APIs  | `IMPLEMENTED & VERIFIED` |
 | Authenticated upload and file mutation/deletion           | `IMPLEMENTED & VERIFIED` |
 | PostgreSQL owner/ready-state gate before file-scoped RAG  | `IMPLEMENTED & VERIFIED` |
-| Authenticated browser client and minimal dashboard entry  | `IMPLEMENTED & VERIFIED` |
+| Next.js browser auth and minimal dashboard entry          | `IMPLEMENTED & VERIFIED` |
+| Consolidated folder GET APIs                              | `IMPLEMENTED & VERIFIED` |
+| Owner-scoped file detail `GET /files/{file_id}`           | `IMPLEMENTED & VERIFIED` |
 
 ### Verified Phase 2 evidence
 
@@ -126,7 +129,7 @@ Use these labels exactly; do not infer verification from code existence or docum
 - PLAN_02 Amendment 02: owner-scoped folder APIs and direct-child browsing.
 - PLAN_02 Amendment 03: canonical `POST /files`, transient ingestion, PostgreSQL/Qdrant compensation.
 - PLAN_02 Amendment 04: file mutation, retryable permanent deletion and Qdrant isolation.
-- PLAN_02 Amendment 05: owner/ready authorization before query and native ask/SSE.
+- PLAN_02 Amendment 05: owner/ready authorization before internal retrieval and native Ask/SSE (the public query transport was later superseded).
 - PLAN_02 Amendment 06: integrated real PostgreSQL/Qdrant/HTTP acceptance, including 159 passing evidence rows.
 - These are **recorded acceptance results**, not tests rerun for this documentation revision.
 
@@ -224,7 +227,7 @@ Do not reopen a verified backend contract merely because a later phase consumes 
 - `python-dotenv` for `.env` loading.
 - PostgreSQL begins in Phase 2 as canonical application state.
 - Qdrant remains self-hosted in Docker as the derived retrieval index.
-- Docker Compose remains under `server/`.
+- Docker Compose lives at repository-root `compose.yml` (`name: atlas`, build context `./server`); Dockerfile, `.dockerignore` and private `.env` remain under `server/`.
 - Docling for extraction/chunking.
 - BAAI/bge-m3 / FlagEmbedding for dense embeddings.
 - Gemini Flash through official `google-genai`, behind Atlas `LLMProvider`.
@@ -243,6 +246,7 @@ Do not reopen a verified backend contract merely because a later phase consumes 
 - Citation metadata comes from trusted Atlas retrieval/provenance data.
 - Existing verified public RAG contracts remain authoritative unless a PLAN explicitly changes them.
 - Persistent original-file storage is not part of Phase 2; uploaded bytes are transient input to ingestion/indexing only.
+- PLAN_04 approves a metadata-only file read API; it must reuse PostgreSQL ownership enforcement and must not access Qdrant, generation, or original upload bytes.
 
 Legend: PostgreSQL establishes identity/ownership; Qdrant remains the derived RAG index.
 
@@ -324,7 +328,6 @@ server/
 ├── AGENTS.md
 ├── .env                         # local secrets/runtime config; ignored
 ├── .env.example                 # safe reproducible template
-├── docker-compose.yml           # server + Qdrant + PostgreSQL Compose definition
 ├── Dockerfile                   # backend runtime image
 ├── requirements.txt
 ├── app/
@@ -359,6 +362,11 @@ server/
 Use the current repository implementation if exact names evolve; do not create parallel ownership boundaries merely because this tree shows the intended responsibility.
 
 - HTTP handlers live in `routers/`, not `api/`.
+- Group endpoint handlers by resource prefix in its owning router module. `routers/files.py` owns all five `/files` operations (upload, GET, PATCH, DELETE, Ask) and exports one router for `main.py`.
+- File operations preserve their authentication/validation boundaries via explicit `add_api_route` registration: upload uses `UploadRoute`, metadata GET/PATCH/DELETE use `FileRoute`, and Ask retains its existing native-SSE `APIRoute` dependency behavior. Do not apply a shared wrapper that changes Ask validation or authenticates twice.
+- Folder orchestration lives in `pipeline/folders.py`; shared request validation lives in `routers/validation.py` as `ValidationRoute`.
+- Folder DTOs live in `schemas/folders/`, file DTOs in `schemas/files/`; `FolderListingResponse` retains the `folder`, `folders`, `files` JSON shape. Validation failures use `Invalid request input` with the existing `UNPROCESSABLE_ENTITY` code and HTTP 422.
+- Do not restore active backend `drive` module/schema names. Historical migration identity `0002_drive`, historical evidence and explicit retired-route absence checks remain unchanged.
 - `main.py`:
   - creates the FastAPI app;
   - includes routers;
@@ -580,6 +588,11 @@ flowchart LR
 
 #### Folders and files
 
+- **PLAN_04 Amendment 02 supersession (`IMPLEMENTED & VERIFIED`):** `GET /folders` returns logical-root `FolderListingResponse`; `GET /folders/{folder_id}` returns the owned selected folder and direct children. Both reject every query parameter using `FolderQuery` and shared `ValidationRoute` validation.
+- `GET /files/{file_id}` uses `FileRoute` authentication before UUID parsing, one unlocked SQL SELECT by file ID AND owner, and existing ten-field `FileResponse` for all three statuses. No commit, write, readiness guard, Qdrant or provider access.
+- `GET /drive` and `POST /files/{file_id}/query` are completely unregistered (ordinary framework 404), including OpenAPI. No alias or fallback is allowed; the shared `ValidationRoute` class remains for existing validation callers.
+- The 18 application operations comprise system 2, auth 7, folders 4 and files 5; documentation facilities are excluded. Internal retrieval and public owner/ready-gated Ask/SSE remain intact. Historical PLAN_02 contracts retain their original verification evidence.
+
 - Folders and files are canonical PostgreSQL records owned by one canonical user.
 - Folders are owner-scoped and recursively nestable through a parent-folder relationship.
 - A child folder's parent and a file's optional folder must belong to the same owner; cross-owner placement is invalid.
@@ -589,6 +602,8 @@ flowchart LR
 - Duplicate sibling folder names and duplicate sibling file names are allowed, and files/folders may share the same display name. UUIDs establish identity; names do not.
 - Original file bytes are not persistently stored in Phase 2.
 - File name/description metadata changes do not imply content replacement or Qdrant reindexing.
+- **PLAN_04 metadata read (`IMPLEMENTED & VERIFIED`):** `GET /files/{file_id}` returns the existing canonical File DTO for the authenticated owner. Missing and foreign IDs produce the same privacy-safe `404 FILE_NOT_FOUND`. File metadata reads are permitted for `processing`, `ready`, and `deleting`; internal retrieval and public `/ask` require `ready`. Do not add a schema migration, Qdrant call, download, preview, or RAG operation for this endpoint.
+- Do not claim this public API is verified until backend tests and separately authorized integrated acceptance actually run.
 - Canonical file lifecycle states are `processing`, `ready`, and `deleting`.
 - Canonical upload creates the file UUID/`processing` row before ingestion, uses that exact UUID for Qdrant `file_id`, and transitions to `ready` only after confirmed indexing success.
 - Known ingestion failure cleans any exact-file Qdrant writes and removes the temporary PostgreSQL file row; Phase 2 does not retain a durable `failed` file state.
@@ -766,7 +781,7 @@ Security boundaries:
 - new service boundary;
 - new queue/cache/storage architecture;
 - changes to the approved auth/session architecture;
-- DB schema/public API changes;
+- DB schema/public API changes outside the specifically approved PLAN_04 Amendment 02 folder/file contract consolidation;
 - embedding/retrieval/generation policy changes;
 - provider/resource lifecycle redesign;
 - Docker/Compose topology changes.
@@ -800,15 +815,15 @@ Security boundaries:
 - Inspect `git status` and diff before backend work; protect existing uncommitted changes.
 - Do not commit, push, create/switch branches, reset, rewrite history or discard work without explicit authorization.
 - Preserve PostgreSQL and Qdrant state; never reset databases, drop collections, delete volumes or broadly prune Docker as an incidental test step.
-- `phase-02/plan-02` is the last verified branch **reference**, not an instruction to switch.
+- `phase-02/plan-04` is the last verified branch **reference**, not an instruction to switch.
 - Prefer `git diff --check` before completion; report all changed files.
 
 ---
 
 ## 11. VERIFICATION & ACCEPTANCE
 
-- Backend/datastore service topology remains in `server/docker-compose.yml`; Phase 2 PostgreSQL joins that topology when its server PLAN implements it.
-- `.env` remains beside Compose for the established workflow.
+- Root `compose.yml` owns the server/PostgreSQL/Qdrant topology; relocation is `IMPLEMENTED & VERIFIED` after approved Amendment 06 fresh packaged and final browser/datastore acceptance. The explicitly accepted historical cache-loss exception remains in PLAN_04 CONTEXT; deterministic generation does not claim a fresh Gemini call.
+- Private `server/.env` stays in place; root Compose interpolation REQUIRES explicit `--env-file server/.env`.
 - Reuse existing Docker images/containers/volumes when the task does not require rebuilding.
 - Do not run `docker compose down -v` unless explicitly authorized.
 - Do not delete/reset the Qdrant volume or collection for routine verification.
@@ -834,11 +849,11 @@ python -m pip install -r requirements.txt -r tests/requirements.txt
 python -m tests.run
 ```
 
-Docker/runtime checks when required:
+Docker/runtime checks when required, from repository root (separate Stage 02 approval required for Amendment 06):
 
 ```bash
-docker compose --env-file .env -f docker-compose.yml up --no-build
-docker compose --env-file .env -f docker-compose.yml ps
+docker compose --env-file server/.env -f compose.yml up --no-build
+docker compose --env-file server/.env -f compose.yml ps
 ```
 
 Rules:
@@ -903,8 +918,13 @@ Run from `server/`:
 ```bash
 python -m pip install -r requirements.txt -r tests/requirements.txt
 python -m tests.run
-docker compose --env-file .env -f docker-compose.yml up --no-build
-docker compose --env-file .env -f docker-compose.yml ps
+```
+
+Run Docker commands from repository root, only within approved execution scope:
+
+```bash
+docker compose --env-file server/.env -f compose.yml up --no-build
+docker compose --env-file server/.env -f compose.yml ps
 ```
 
 Use the project venv for local backend debugging.

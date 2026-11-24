@@ -2,13 +2,13 @@
 import sys
 import json
 import subprocess
+from pathlib import Path
 
 from httpx import Client
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.core.constants import constants
-
 from app.db.postgres import Database, url
 
 from tests.folders_acceptance import acceptance, fingerprint
@@ -27,7 +27,9 @@ def main() -> None:
             result = acceptance(database, client, private)
         assert fingerprint(
             database) == before, "Canonical state changed after synthetic cleanup"
-        logs = subprocess.run(["docker", "compose", "--env-file", ".env", "-f", "docker-compose.yml",
+        logs = subprocess.run(["docker", "compose", "--env-file", str(Path(__file__).resolve().parents[1] / ".env"),
+                               "-f", str(Path(__file__).resolve()
+                                         .parents[2] / "compose.yml"),
                                "logs", "--no-color", "server"], capture_output=True, check=True)
         assert not any(value.encode() in logs.stdout +
                        logs.stderr for value in private if value)

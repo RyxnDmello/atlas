@@ -4,8 +4,7 @@ import useAuthStore, {
 } from "@stores/auth";
 
 import { tokenStorage, type TokenStorage } from "@services/auth/token";
-
-import { isAuthFailure, validatedRequest } from "@/services/http/validate";
+import { isAuthFailure, validatedRequest } from "@services/http/validate";
 
 import {
   userSchema,
@@ -68,9 +67,9 @@ const cookieOperation = <T>(
   const result = context.cookieQueue.then(() => {
     if (sessionVersion !== context.sessionVersion) {
       throw new Error("Session superseded.");
-    } else {
-      return operation();
     }
+
+    return operation();
   });
 
   context.cookieQueue = result.then(
@@ -161,9 +160,9 @@ export const finishLogin = async (
 
   if (operation.sessionVersion === context.sessionVersion) {
     return response.user;
-  } else {
-    throw new Error("Session superseded.");
   }
+
+  throw new Error("Session superseded.");
 };
 
 export const finishLogout = async (
@@ -192,11 +191,27 @@ export const onAuthBoundary = (
   context: Coordination = coordination,
 ) => {
   let sessionVersion = context.sessionVersion;
+  let previous = context.store.getState();
 
   return context.store.subscribe(() => {
-    if (sessionVersion !== context.sessionVersion) {
-      sessionVersion = context.sessionVersion;
+    const state = context.store.getState();
 
+    const usable =
+      state.status === "authenticated" &&
+      !!state.user &&
+      !!state.accessToken &&
+      state.logout === "none";
+
+    const retired =
+      previous.status === "authenticated" &&
+      (!usable || previous.user?.id !== state.user?.id);
+
+    const changed = sessionVersion !== context.sessionVersion || retired;
+
+    sessionVersion = context.sessionVersion;
+    previous = state;
+
+    if (changed) {
       try {
         cleanup();
       } catch {}
@@ -512,9 +527,9 @@ export const acquireAccess = async (
       sessionVersion: context.sessionVersion,
       tokenVersion: context.tokenVersion,
     };
-  } else {
-    throw new Error("Authenticated session unavailable.");
   }
+
+  throw new Error("Authenticated session unavailable.");
 };
 
 const requests: RecoveryRequests = {

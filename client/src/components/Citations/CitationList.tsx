@@ -5,7 +5,9 @@ interface CitationListProps {
 }
 
 export default function CitationList({ citations }: CitationListProps) {
-  if (citations.length === 0) return null;
+  if (citations.length === 0) {
+    return null;
+  }
 
   return (
     <section className="space-y-2">

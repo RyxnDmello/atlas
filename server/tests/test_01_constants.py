@@ -57,7 +57,7 @@ class ConstantsTests(TestCase):
 
             return value
 
-        source = (self.root / "docker-compose.yml").read_text(encoding="utf-8")
+        source = (self.root.parent / "compose.yml").read_text(encoding="utf-8")
         expanded = re.sub(
             r"(?<!\$)\$\{([A-Z][A-Z0-9_]*)(?::([-?])([^}]*))?\}", substitute, source)
 
@@ -263,7 +263,7 @@ class ConstantsTests(TestCase):
     def test_postgres_credentials_have_no_compose_fallback(self) -> None:
         """Require each credential for both application and database containers."""
         source = safe_load(
-            (self.root / "docker-compose.yml").read_text(encoding="utf-8"))
+            (self.root.parent / "compose.yml").read_text(encoding="utf-8"))
         for name in ("POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD"):
             for service in ("server", "postgres"):
                 self.assertRegex(source["services"][service]["environment"][name],
@@ -279,12 +279,14 @@ class ConstantsTests(TestCase):
                     self.compose(values)
 
     def test_container_storage_and_volume_identity_are_fixed(self) -> None:
-        """Keep standard persistent paths and Compose-managed logical volume names."""
+        """Keep persistent paths and let Compose prefix logical volume names."""
         compose = self.compose(self.values)
         self.assertEqual(set(compose["services"]), {
                          "server", "qdrant", "postgres"})
         self.assertEqual(compose["volumes"], {
-                         "qdrant_storage": None, "postgres_storage": None})
+            "qdrant_storage": None,
+            "postgres_storage": None,
+        })
         services = compose["services"]
         self.assertEqual(services["postgres"]["volumes"], [
                          "postgres_storage:/var/lib/postgresql"])
@@ -302,10 +304,43 @@ class ConstantsTests(TestCase):
         self.assertIn('-h "127.0.0.1" -p "5432"', probe)
         self.assertIn('"$$POSTGRES_USER"', probe)
         self.assertIn('"$$POSTGRES_DB"', probe)
-        project = self.root.name
-        self.assertEqual(f"{project}_qdrant_storage", "server_qdrant_storage")
-        self.assertEqual(f"{project}_postgres_storage",
-                         "server_postgres_storage")
+
+    def test_all_services_use_the_atlas_default_network(self) -> None:
+        """Attach every service to the Compose-managed network named exactly atlas."""
+        compose = self.compose(self.values)
+        self.assertEqual(compose["networks"], {"default": {"name": "atlas"}})
+
+        for service in compose["services"].values():
+            self.assertNotIn("networks", service)
+            self.assertNotIn("network_mode", service)
+
+    def test_root_compose_resolves_server_build_context(self) -> None:
+        """Resolve deployment inputs from root without Docker or private expansion."""
+        compose = self.compose(self.values)
+        self.assertEqual(compose["name"], "atlas")
+        self.assertFalse((self.root / "docker-compose.yml").exists())
+        build = compose["services"]["server"]["build"]
+        self.assertEqual(build["context"], "./server")
+        context = (self.root.parent / build["context"]).resolve()
+        self.assertEqual(context, self.root)
+        self.assertEqual(build["args"], {"PORT": int(self.values["PORT"])})
+        self.assertEqual(compose["services"]["server"]["depends_on"], {
+            "qdrant": {"condition": "service_healthy"},
+            "postgres": {"condition": "service_healthy"},
+        })
+
+        dockerfile = (context / build.get("dockerfile",
+                      "Dockerfile")).read_text(encoding="utf-8")
+        for source in ("requirements.txt", "app", "alembic.ini", "migrations"):
+            self.assertTrue((context / source).exists())
+            self.assertRegex(dockerfile, r"(?m)^COPY " +
+                             re.escape(source) + r" ")
+
+        ignored = (
+            context / ".dockerignore").read_text(encoding="utf-8").splitlines()
+        self.assertIn(".env", ignored)
+        self.assertIn(".env.*", ignored)
+        self.assertTrue((context / ".env.example").is_file())
 
     def test_deployment_settings_are_not_loaded_by_python(self) -> None:
         """Allow host-side Python to run independently of Compose-only inputs."""

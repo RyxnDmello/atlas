@@ -6,26 +6,36 @@ import {
   type Citation,
 } from "@schemas/ask/ask";
 
-import { createAnswerStream } from "@utils/stream/answerStream";
 import { createSseParser } from "@utils/stream/sseParser";
+import { createAnswerStream } from "@utils/stream/answerStream";
 
 export type AskStatus = "idle" | "streaming" | "success" | "error";
 
 export interface AskState {
   error?: string;
+  httpFailure?: AskHttpFailure;
   status: AskStatus;
   answer: string;
   citations: Citation[];
+}
+
+export interface AskHttpFailure {
+  status: number;
+  code: string;
+}
+
+interface AskSessionOptions {
+  current?(): boolean;
 }
 
 export type AskListener = () => void;
 
 export interface AskSession {
   reset(): void;
-  subscribe(listener: AskListener): AskListener;
   getSnapshot(): AskState;
-  setScope(fileId: string | undefined): void;
   submit(question: string): Promise<void>;
+  setScope(fileId: string | undefined): void;
+  subscribe(listener: AskListener): AskListener;
 }
 
 export const idle: AskState = {
@@ -39,36 +49,51 @@ const failure =
   "Unable to complete the answer. Check the API connection and try again.";
 const generationFailure = "Generation failed. Try again.";
 
-export function createAskSession(): AskSession {
+export const createAskSession = (
+  options: AskSessionOptions = {},
+): AskSession => {
   let state = idle;
   let scope: string | undefined;
   let controller: AbortController | undefined;
+  let activeReader: ReadableStreamDefaultReader<Uint8Array> | undefined;
 
   const listeners = new Set<AskListener>();
 
-  function publish(next: AskState): void {
+  const publish = (next: AskState): void => {
     state = next;
     listeners.forEach((listener) => listener());
-  }
+  };
 
-  function reset(): void {
+  const reset = (): void => {
     controller?.abort();
     controller = undefined;
+    void activeReader?.cancel().catch(() => undefined);
+    activeReader = undefined;
 
     publish(idle);
-  }
+  };
 
-  async function submit(question: string): Promise<void> {
+  const submit = async (question: string): Promise<void> => {
     const form = askFormSchema.safeParse({
       question,
     });
 
-    if (!scope || !form.success || controller) return;
+    if (
+      !scope ||
+      !form.success ||
+      controller ||
+      options.current?.() === false
+    ) {
+      return;
+    }
 
     const owner = new AbortController();
     controller = owner;
 
-    const current = () => controller === owner && !owner.signal.aborted;
+    const current = () =>
+      controller === owner &&
+      !owner.signal.aborted &&
+      options.current?.() !== false;
 
     publish({
       ...idle,
@@ -77,10 +102,12 @@ export function createAskSession(): AskSession {
 
     let complete = false;
     let message = failure;
+    let httpFailure: AskHttpFailure | undefined;
     let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+    let responseBody: ReadableStream<Uint8Array> | null | undefined;
 
     const stream = createAnswerStream({
-      onAnswer(answer) {
+      onAnswer: (answer) => {
         if (current()) {
           publish({
             status: "streaming",
@@ -90,7 +117,7 @@ export function createAskSession(): AskSession {
         }
       },
 
-      onError() {
+      onError: () => {
         if (current()) {
           publish({
             ...idle,
@@ -103,16 +130,27 @@ export function createAskSession(): AskSession {
 
     try {
       const response = await fetch.post(`/files/${scope}/ask`, form.data, {
+        isProtected: true,
         signal: owner.signal,
       });
 
-      if (!current()) return;
+      responseBody = response.body;
+
+      if (!current()) {
+        return;
+      }
 
       if (!response.ok) {
         const payload: unknown = await response.json().catch(() => undefined);
         const result = atlasErrorSchema.safeParse(payload);
 
-        if (result.success) message = result.data.error;
+        if (result.success) {
+          message = result.data.error;
+          httpFailure = {
+            status: response.status,
+            code: result.data.code,
+          };
+        }
 
         throw new Error(failure);
       }
@@ -129,13 +167,19 @@ export function createAskSession(): AskSession {
       }
 
       reader = response.body.getReader();
+      activeReader = reader;
       const parser = createSseParser();
 
       while (current()) {
         const chunk = await reader.read();
 
-        if (!current()) return;
-        if (chunk.done) break;
+        if (!current()) {
+          return;
+        }
+
+        if (chunk.done) {
+          break;
+        }
 
         parser.push(chunk.value).forEach(stream.accept);
       }
@@ -156,39 +200,59 @@ export function createAskSession(): AskSession {
           ...idle,
           status: "error",
           error: stream.failed() ? generationFailure : message,
+          ...(httpFailure
+            ? {
+                httpFailure,
+              }
+            : {}),
         });
       }
     } finally {
       if (!complete) {
         owner.abort();
         await reader?.cancel().catch(() => undefined);
+
+        if (!reader && !responseBody?.locked) {
+          await responseBody?.cancel().catch(() => undefined);
+        }
       }
 
       reader?.releaseLock();
 
-      if (controller === owner) controller = undefined;
+      if (activeReader === reader) {
+        activeReader = undefined;
+      }
+
+      if (controller === owner) {
+        controller = undefined;
+      }
     }
-  }
+  };
+
+  const subscribe = (listener: AskListener) => {
+    listeners.add(listener);
+
+    return () => {
+      listeners.delete(listener);
+    };
+  };
+
+  const getSnapshot = () => (options.current?.() === false ? idle : state);
+
+  const setScope = (fileId: string | undefined) => {
+    if (scope === fileId) {
+      return;
+    }
+
+    scope = fileId;
+    reset();
+  };
 
   return {
     reset,
     submit,
-
-    subscribe(listener) {
-      listeners.add(listener);
-
-      return () => {
-        listeners.delete(listener);
-      };
-    },
-
-    getSnapshot: () => state,
-
-    setScope(fileId) {
-      if (scope === fileId) return;
-
-      scope = fileId;
-      reset();
-    },
+    subscribe,
+    getSnapshot,
+    setScope,
   };
-}
+};

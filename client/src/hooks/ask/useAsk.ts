@@ -1,34 +1,37 @@
-"use client";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
-import { useLayoutEffect, useState, useSyncExternalStore } from "react";
+import { createFileAskSession } from "@services/ask/fileSession";
 
-import {
-  idle,
-  createAskSession,
-  type AskState,
-} from "@services/ask/askSession";
+type AskDenial = (status: number, code: string) => Promise<void>;
 
-export interface UseAskResult extends AskState {
-  submit(question: string): Promise<void>;
-}
+export default function useAsk(fileId: string, onDenied: AskDenial) {
+  const [lifetime] = useState(() => createFileAskSession(fileId));
 
-export default function useAsk(fileId: string | undefined): UseAskResult {
-  const [session] = useState(createAskSession);
+  const { session } = lifetime;
 
   const state = useSyncExternalStore(
     session.subscribe,
     session.getSnapshot,
-    () => idle,
+    session.getSnapshot,
   );
 
-  useLayoutEffect(() => {
-    session.setScope(fileId);
+  useEffect(() => {
+    lifetime.activate();
+    return lifetime.retire;
+  }, [lifetime]);
 
-    return session.reset;
-  }, [fileId, session]);
+  const onAsk = async (question: string) => {
+    await session.submit(question);
+
+    const failure = session.getSnapshot().httpFailure;
+
+    if (failure) {
+      await onDenied(failure.status, failure.code).catch(() => undefined);
+    }
+  };
 
   return {
-    ...state,
-    submit: session.submit,
+    askState: state,
+    askQuestion: onAsk,
   };
 }

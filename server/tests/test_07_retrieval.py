@@ -14,16 +14,15 @@ from app.core.runtime import storage
 from app.core.constants import constants
 
 from app.db.qdrant import store
-from app.pipeline.retrieval import retrieve
 
 from app.models.qdrant.chunk import Chunk
+from app.pipeline.retrieval import retrieve
 
 from app.main import app
 
-from tests.test_05_upload_storage import Provider
-
-from tests.rag import seed
+from tests.rag import retrieved, seed
 from tests.uploads import environment
+from tests.test_05_upload_storage import Provider
 
 
 class RetrievalTests(TestCase):
@@ -77,8 +76,13 @@ class RetrievalTests(TestCase):
         )
 
     def request(self, **body):
-        """Send a question within the seeded file's scope."""
-        return self.http.post(f"/files/{self.file}/query", json={"question": "retention", **body})
+        """Retrieve through the unchanged internal pipeline after canonical authorization."""
+        return [item.model_dump(mode="json") for item in retrieved(
+            self.database, storage(), self.user.id, self.file, **{"question": "retention", **body})]
+
+    def failure(self):
+        """Exercise unchanged pre-stream HTTP error handling through Ask."""
+        return self.http.post(f"/files/{self.file}/ask", json={"question": "retention"})
 
     def snapshot(self):
         """Read all small-fixture points, including stored vectors and payloads."""
@@ -91,12 +95,10 @@ class RetrievalTests(TestCase):
     def test_default_contract_ranking_and_instance_reuse(self) -> None:
         """Require raw Qdrant order/scores, trimmed input, limit five, and prepared resources."""
         with patch.object(self.client, "query_points", wraps=self.client.query_points) as search:
-            response = self.request(question="  retention \n")
+            results = self.request(question="  retention \n")
 
-        self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(set(response.json()), {"results"})
-        results = response.json()["results"]
-        self.assertEqual([item["index"] for item in results], [6, 5, 4, 3, 2])
+        self.assertEqual([item["chunk_index"]
+                         for item in results], [6, 5, 4, 3, 2])
         args = search.call_args.kwargs
         self.assertEqual(args["collection_name"], self.collection)
         self.assertEqual(args["limit"], 5)
@@ -115,9 +117,9 @@ class RetrievalTests(TestCase):
             assert isinstance(point.payload, dict)
 
             self.assertEqual(
-                set(item), {"score", "text", "index", "count", "page", "heading", "section"})
+                set(item), {"file_id", "score", "text", "display_text", "chunk_index", "token_count", "page", "heading", "section"})
             self.assertEqual(item["text"], point.payload["text"])
-            self.assertEqual(item["count"], point.payload["token_count"])
+            self.assertEqual(item["token_count"], point.payload["token_count"])
             self.assertIsNone(item["page"])
             self.assertEqual(item["heading"], "Policy")
             self.assertEqual(item["section"], "Retention")
@@ -142,16 +144,14 @@ class RetrievalTests(TestCase):
 
         for limit in (1, 20):
             with self.subTest(top_k=limit):
-                response = self.request(top_k=limit)
-                self.assertEqual(response.status_code, 200)
-                results = response.json()["results"]
+                results = self.request(top_k=limit)
                 self.assertEqual(len(results), min(limit, 7))
-                self.assertTrue(all(item["index"] != 99 for item in results))
+                self.assertTrue(
+                    all(item["chunk_index"] != 99 for item in results))
 
-        response = self.http.post(
-            f"/files/{self.other}/query", json={"question": "retention"})
-        self.assertEqual([item["index"]
-                         for item in response.json()["results"]], [99])
+        results = retrieved(self.database, storage(),
+                            self.user.id, self.other, "retention")
+        self.assertEqual([item.chunk_index for item in results], [99])
         self.assertEqual(self.client.count(
             self.collection, exact=True).count, count)
         self.assertEqual(self.snapshot(), before)
@@ -166,11 +166,11 @@ class RetrievalTests(TestCase):
             for body in bodies:
                 with self.subTest(body=body):
                     response = self.http.post(
-                        f"/files/{self.file}/query", json=body)
+                        f"/files/{self.file}/ask", json=body)
                     self.assertEqual(response.status_code, 422)
 
             response = self.http.post(
-                "/files/not-a-uuid/query", json={"question": "ok"})
+                "/files/not-a-uuid/ask", json={"question": "ok"})
             self.assertEqual(response.status_code, 422)
             search.assert_not_called()
 
@@ -180,10 +180,8 @@ class RetrievalTests(TestCase):
         """Distinguish zero indexed matches from a missing canonical file."""
         identifier = uuid4()
         seed(self.database, self.user.id, identifier)
-        response = self.http.post(
-            f"/files/{identifier}/query", json={"question": "retention"})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"results": []})
+        self.assertEqual(retrieved(self.database, storage(),
+                         self.user.id, identifier, "retention"), [])
 
     def test_internal_result_preserves_display_text_and_metadata(self) -> None:
         """Keep raw source text and storage vocabulary available downstream."""
@@ -201,7 +199,7 @@ class RetrievalTests(TestCase):
                          side_effect=RuntimeError("sensitive question")),
             patch.object(self.client, "query_points") as search,
         ):
-            response = self.request()
+            response = self.failure()
 
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.json()["code"], "INTERNAL_SERVER_ERROR")
@@ -220,7 +218,7 @@ class RetrievalTests(TestCase):
                 patch.object(self.provider, "embed", return_value=value),
                 patch.object(self.client, "query_points") as search,
             ):
-                response = self.request()
+                response = self.failure()
                 self.assertEqual(response.status_code, 500)
                 self.assertEqual(
                     response.json()["code"], "INTERNAL_SERVER_ERROR")
@@ -233,7 +231,7 @@ class RetrievalTests(TestCase):
 
         for error in failures:
             with self.subTest(error=type(error)), patch.object(self.client, "query_points", side_effect=error):
-                response = self.request()
+                response = self.failure()
                 self.assertEqual(response.status_code, 503)
                 self.assertEqual(
                     response.json()["code"], "QDRANT_CONNECTION_FAILED")
@@ -242,7 +240,7 @@ class RetrievalTests(TestCase):
     def test_collection_query_failure_is_structured(self) -> None:
         """Return a collection error rather than empty success for invalid search."""
         with patch.object(self.client, "query_points", side_effect=ValueError("injected")):
-            response = self.request()
+            response = self.failure()
 
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.json()["code"], "QDRANT_COLLECTION_ERROR")
@@ -260,7 +258,7 @@ class RetrievalTests(TestCase):
                                 score=0.8, payload=value)
 
             with self.subTest(payload=value), patch.object(self.client, "query_points", return_value=QueryResponse(points=[point])):
-                response = self.request()
+                response = self.failure()
                 self.assertEqual(response.status_code, 500)
                 self.assertEqual(
                     response.json()["code"], "INTERNAL_SERVER_ERROR")
@@ -271,7 +269,7 @@ class RetrievalTests(TestCase):
                   for item in (self.payloads[0], self.payload(self.other, 99))]
 
         with patch.object(self.client, "query_points", return_value=QueryResponse(points=points)):
-            response = self.request()
+            response = self.failure()
 
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.json()["code"], "INTERNAL_SERVER_ERROR")
@@ -304,10 +302,10 @@ class RetrievalTests(TestCase):
             self.request(question="private query body")
 
             with patch.object(self.client, "query_points", side_effect=ValueError("private error body")):
-                self.request()
+                self.failure()
 
             with patch.object(self.provider, "embed", side_effect=ValueError("private error body")):
-                self.request()
+                self.failure()
 
         output = "\n".join(logs.output)
 

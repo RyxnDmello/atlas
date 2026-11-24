@@ -19,13 +19,13 @@ from app.pipeline.generation.prompt import FALLBACK
 from app.pipeline.generation.grounded import GroundedStream
 from app.pipeline.generation.gemini import GeminiFlashProvider
 
-from app.routers.files import ask, prepare
-
 from app.models.qdrant.chunk import Chunk
 from app.schemas.generation import AskRequest
 
 from app.errors.api import ApiError
 from app.errors.generation import GenerationError
+
+from app.routers.files import ask, prepare
 
 from app.main import app
 
@@ -344,7 +344,7 @@ class AskTests(TestCase):
             _ = self.streams[0].citations
 
     def test_disconnect_closes_stream_and_runs_blocking_work_offloop(self) -> None:
-        """Drive real ASGI disconnect after one event; teardown waits for sync iteration then closes."""
+        """Exercise real ASGI disconnect after one event; teardown waits for sync iteration then closes."""
         self.provider.deltas = ["delta"] * 1000
         asyncio.run(self.disconnect())
 
@@ -567,10 +567,10 @@ class AskIsolationTests(TestCase):
                 ),
             ]}))
 
-            query = http.post(f"/files/{file}/query",
-                              json={"question": "question"})
-            self.assertEqual(set(query.json()["results"][0]), {
-                "score", "text", "index", "count", "page", "heading", "section",
-            })
+            results = retrieve("question", file, 5)
+            self.assertEqual(len(results), 1)
+            self.assertEqual(results[0].file_id, file)
+            self.assertEqual(results[0].display_text, "Raw source body")
+            self.assertIsInstance(results[0].score, float)
             self.assertEqual(client.count(
                 collection, exact=True).count, before)

@@ -20,12 +20,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.db.qdrant import remove
-from app.routers.uploads import router
+from app.routers.files import router
 
 from app.pipeline.upload import ready
 from app.pipeline.storage import Storage
 
-from app.schemas.drive.upload import FileUpload
+from app.schemas.files.upload import FileUpload
 from app.models.postgres import File, Folder, User
 
 from app.errors.api import ApiError
@@ -174,7 +174,7 @@ class UploadLifecycleTests(unittest.TestCase):
                 response = self.post({field: "untrusted"})
                 self.assertEqual(response.status_code, 422, response.text)
                 self.assertEqual(response.json(), {
-                                 "error": "Invalid drive input", "code": "UNPROCESSABLE_ENTITY"})
+                                 "error": "Invalid request input", "code": "UNPROCESSABLE_ENTITY"})
         for data in ({"folder_id": "invalid"}, {"name": "bad/name"}, {"description": "a" * 251}):
             self.assertEqual(self.post(data).status_code, 422)
         self.assertEqual(self.rows(), [])

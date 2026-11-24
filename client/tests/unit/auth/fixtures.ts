@@ -19,7 +19,6 @@ import {
   currentLease,
   refreshCredentials,
 } from "@services/auth/auth";
-
 import type { TokenStorage } from "@services/auth/token";
 
 import type {

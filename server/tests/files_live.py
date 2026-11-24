@@ -18,11 +18,11 @@ from sqlalchemy import create_engine, event, select, text
 from app.core.runtime import storage
 from app.core.constants import constants
 
-from app.models.postgres import File
-from app.schemas.drive.metadata import FilePatch
-
 from app.pipeline import files
 from app.db.postgres import Database, url
+
+from app.models.postgres import File
+from app.schemas.files.metadata import FilePatch
 
 from app.errors.file import FileNotReadyError
 
@@ -116,7 +116,7 @@ def faults(database: Database, client: TestClient) -> None:
                 with database.session() as session:
                     file = session.get(File, identifier)
                     assert file is not None and file.status == "deleting"
-                listing = client.get("/drive", headers=headers[0])
+                listing = client.get("/folders", headers=headers[0])
                 assert listing.status_code == 200
                 assert any(item["id"] == str(identifier) and item["status"]
                            == "deleting" for item in listing.json()["files"])

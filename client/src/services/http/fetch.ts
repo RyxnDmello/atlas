@@ -6,18 +6,18 @@ import {
   resolveUrl,
   requiresAuth,
   invalidAccess,
-} from "@/services/http/policy";
+} from "@services/http/policy";
 
 import { env } from "@constants/env";
 
-export interface FetchClient {
-  base(path: string, options?: FetchOptions): Promise<Response>;
-  get(path: string, options?: FetchOptions): Promise<Response>;
-  post(path: string, data: unknown, options?: FetchOptions): Promise<Response>;
-}
-
 export interface FetchOptions extends RequestInit {
   isProtected?: boolean;
+}
+
+export interface FetchClient {
+  get(path: string, options?: FetchOptions): Promise<Response>;
+  base(path: string, options?: FetchOptions): Promise<Response>;
+  post(path: string, data: unknown, options?: FetchOptions): Promise<Response>;
 }
 
 interface AuthenticatedRequest {
@@ -40,43 +40,43 @@ const recoverResponse = async (
     body = await response.clone().json();
   } catch {}
 
-  if (invalidAccess(response.status, body)) {
-    const { url, options, lease } = request;
+  if (!invalidAccess(response.status, body)) {
+    return response;
+  }
 
-    try {
-      const replacement = await recover(authAccess, lease, options.signal);
+  const { url, options, lease } = request;
 
-      const replayable =
-        (options.method ?? "GET").toUpperCase() === "GET" &&
-        options.body == null &&
-        !new URL(url).pathname.match(/\/auth(?:\/|$)/);
+  try {
+    const replacement = await recover(authAccess, lease, options.signal);
 
-      if (replacement && replayable) {
-        options.signal?.throwIfAborted();
+    const replayable =
+      (options.method ?? "GET").toUpperCase() === "GET" &&
+      options.body == null &&
+      !new URL(url).pathname.match(/\/auth(?:\/|$)/);
 
-        if (authAccess.current(replacement)) {
-          const headers = new Headers(options.headers);
-
-          headers.set("Authorization", `Bearer ${replacement.token}`);
-
-          return globalThis.fetch(url, {
-            ...options,
-            headers,
-          });
-        } else {
-          return response;
-        }
-      } else {
-        return response;
-      }
-    } catch (error) {
-      if (options.signal?.aborted) {
-        throw error;
-      } else {
-        return response;
-      }
+    if (!replacement || !replayable) {
+      return response;
     }
-  } else {
+
+    options.signal?.throwIfAborted();
+
+    if (!authAccess.current(replacement)) {
+      return response;
+    }
+
+    const headers = new Headers(options.headers);
+
+    headers.set("Authorization", `Bearer ${replacement.token}`);
+
+    return globalThis.fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch (error) {
+    if (options.signal?.aborted) {
+      throw error;
+    }
+
     return response;
   }
 };
@@ -113,20 +113,20 @@ const base = async (
         options: settings,
         lease,
       });
-    } else {
-      throw new Error("Session superseded.");
-    }
-  } else {
-    if (isProtected === false) {
-      const headers = new Headers(settings.headers);
-
-      headers.delete("Authorization");
-
-      settings.headers = headers;
     }
 
-    return globalThis.fetch(url, settings);
+    throw new Error("Session superseded.");
   }
+
+  if (isProtected === false) {
+    const headers = new Headers(settings.headers);
+
+    headers.delete("Authorization");
+
+    settings.headers = headers;
+  }
+
+  return globalThis.fetch(url, settings);
 };
 
 const client: FetchClient = {

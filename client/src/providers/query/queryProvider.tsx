@@ -1,7 +1,4 @@
-"use client";
-
 import { useEffect, type ReactNode } from "react";
-
 import {
   QueryClient,
   environmentManager,
@@ -11,6 +8,13 @@ import {
 import { initializeAuth, onAuthBoundary } from "@services/auth/auth";
 
 let browser: QueryClient | undefined;
+
+export const bindAuthCache = (cache: QueryClient) => {
+  return onAuthBoundary(() => {
+    void cache.cancelQueries();
+    cache.clear();
+  });
+};
 
 const getClient = () => {
   if (environmentManager.isServer()) {
@@ -22,7 +26,7 @@ const getClient = () => {
 
     const cache = browser;
 
-    onAuthBoundary(() => cache.clear());
+    bindAuthCache(cache);
   }
 
   return browser;

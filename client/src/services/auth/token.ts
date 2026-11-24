@@ -57,9 +57,9 @@ const readRecord = (raw: string | null) => {
       iv,
       ciphertext,
     };
-  } else {
-    throw new Error();
   }
+
+  throw new Error();
 };
 
 const encodeToken = (token: string): Uint8Array<ArrayBuffer> => {
@@ -67,9 +67,9 @@ const encodeToken = (token: string): Uint8Array<ArrayBuffer> => {
 
   if (plaintext.length > 0 && plaintext.length <= 32768) {
     return plaintext;
-  } else {
-    throw new Error();
   }
+
+  throw new Error();
 };
 
 const decodeToken = (plaintext: ArrayBuffer): string => {
@@ -79,9 +79,9 @@ const decodeToken = (plaintext: ArrayBuffer): string => {
 
   if (token && token.length <= 32768) {
     return token;
-  } else {
-    throw new Error();
   }
+
+  throw new Error();
 };
 
 export const createTokenStorage = (
@@ -148,22 +148,22 @@ export const createTokenStorage = (
           const record = readRecord(raw);
           const key = await environment.keys.get();
 
-          if (key) {
-            const plaintext = await environment.crypto().subtle.decrypt(
-              {
-                name: "AES-GCM",
-                iv: record.iv,
-              },
-              key,
-              record.ciphertext,
-            );
-
-            const token = decodeToken(plaintext);
-
-            return current() ? token : undefined;
-          } else {
+          if (!key) {
             throw new Error();
           }
+
+          const plaintext = await environment.crypto().subtle.decrypt(
+            {
+              name: "AES-GCM",
+              iv: record.iv,
+            },
+            key,
+            record.ciphertext,
+          );
+
+          const token = decodeToken(plaintext);
+
+          return current() ? token : undefined;
         } catch {
           if (current()) {
             remove();
@@ -177,21 +177,19 @@ export const createTokenStorage = (
     save: (token, current) => {
       return serial(async () => {
         try {
-          if (current()) {
-            const record = await encrypt(token);
-
-            if (current()) {
-              environment
-                .storage()
-                .setItem(tokenRecord, JSON.stringify(record));
-
-              return true;
-            } else {
-              return false;
-            }
-          } else {
+          if (!current()) {
             return false;
           }
+
+          const record = await encrypt(token);
+
+          if (!current()) {
+            return false;
+          }
+
+          environment.storage().setItem(tokenRecord, JSON.stringify(record));
+
+          return true;
         } catch {
           if (current()) {
             remove();

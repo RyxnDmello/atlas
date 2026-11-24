@@ -8,7 +8,7 @@ export interface SseParser {
   finish(): SseRecord[];
 }
 
-export function createSseParser(): SseParser {
+export const createSseParser = (): SseParser => {
   const decoder = new TextDecoder("utf-8", {
     fatal: true,
   });
@@ -18,7 +18,7 @@ export function createSseParser(): SseParser {
   let data: string[] = [];
   let ended = false;
 
-  function consume(text: string): SseRecord[] {
+  const consume = (text: string): SseRecord[] => {
     buffer += text;
 
     const records: SseRecord[] = [];
@@ -29,11 +29,12 @@ export function createSseParser(): SseParser {
       buffer = buffer.slice(boundary + 1);
 
       if (line === "") {
-        if (event || data.length)
+        if (event || data.length) {
           records.push({
             event: event || "message",
             data: data.join("\n"),
           });
+        }
 
         event = "";
         data = [];
@@ -43,17 +44,24 @@ export function createSseParser(): SseParser {
         const value =
           colon === -1 ? "" : line.slice(colon + 1).replace(/^ /, "");
 
-        if (field === "event") event = value;
-        if (field === "data") data.push(value);
+        if (field === "event") {
+          event = value;
+        }
+
+        if (field === "data") {
+          data.push(value);
+        }
       }
     }
 
     return records;
-  }
+  };
 
   return {
-    push(bytes: Uint8Array) {
-      if (ended) throw new Error("Stream already ended.");
+    push: (bytes: Uint8Array) => {
+      if (ended) {
+        throw new Error("Stream already ended.");
+      }
 
       return consume(
         decoder.decode(bytes, {
@@ -62,16 +70,20 @@ export function createSseParser(): SseParser {
       );
     },
 
-    finish() {
-      if (ended) throw new Error("Stream already ended.");
+    finish: () => {
+      if (ended) {
+        throw new Error("Stream already ended.");
+      }
 
       ended = true;
+
       const records = consume(decoder.decode());
 
-      if (buffer || event || data.length)
+      if (buffer || event || data.length) {
         throw new Error("Incomplete SSE record.");
+      }
 
       return records;
     },
   };
-}
+};

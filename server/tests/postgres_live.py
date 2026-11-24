@@ -21,14 +21,13 @@ from sqlalchemy.orm import Session as OrmSession, sessionmaker
 from sqlalchemy import DateTime, Engine, MetaData, create_engine, inspect, text
 
 from app.core.constants import constants
-
 from app.db.postgres import Database, prepare, url
 
 from app.models.postgres import Base, User, Verification, Session
 
 
 def schema(engine: Engine, revision: str = "0002_drive") -> None:
-    """Assert unchanged identity at the explicit revision or current drive head."""
+    """Assert unchanged identity at the explicit revision or current folder/file schema head."""
     assert revision in {"0001_identity", "0002_drive"}
     inspector = inspect(engine)
     assert isinstance(inspector, PGInspector)

@@ -1,7 +1,6 @@
 import { expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import AskPanel from "@components/Ask/AskPanel";
 import CitationList from "@components/Citations/CitationList";
 
 import type { Citation } from "@schemas/ask/ask";
@@ -59,22 +58,4 @@ test("null metadata is omitted and empty citations produce no markup", () => {
 
   expect(html).not.toMatch(/Page:|Heading:|Section:/);
   expect(html).toContain("Exact excerpt");
-});
-
-test("AskPanel presents citations only for successful completed state", () => {
-  for (const status of ["idle", "streaming", "error", "success"] as const) {
-    const html = renderToStaticMarkup(
-      <AskPanel
-        disabled={false}
-        ask={{
-          status,
-          answer: "Synthetic answer",
-          citations,
-          submit: async () => {},
-        }}
-      />,
-    );
-
-    expect(html.includes("Sources</h2>")).toBe(status === "success");
-  }
 });

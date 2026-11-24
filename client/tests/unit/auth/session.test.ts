@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 
 import "./environment";
 
-import { AuthFailure } from "@/services/http/validate";
+import { AuthFailure } from "@services/http/validate";
 import { startAuth, finishLogin, finishLogout } from "@services/auth/auth";
 
 import { deferred, fixture, fixtureAccess, response, user } from "./fixtures";
@@ -191,9 +191,9 @@ test("rejected saved access refreshes once then validates the new access before 
 
         if (token === "old") {
           throw new AuthFailure(401, "INVALID_ACCESS_TOKEN");
-        } else {
-          return user;
         }
+
+        return user;
       },
     },
     {

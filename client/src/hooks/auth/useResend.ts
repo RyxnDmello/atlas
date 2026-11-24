@@ -1,15 +1,12 @@
-"use client";
-
 import { useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 
 import http from "@services/http/axios";
-
 import {
   AuthFailure,
   safeAuthError,
   validatedResponse,
-} from "@/services/http/validate";
+} from "@services/http/validate";
 
 import {
   resendSchema,
@@ -46,16 +43,16 @@ export default function useResend() {
     }
   };
 
-  const mutation = useMutation({
+  const { error, isPending, isSuccess, mutateAsync } = useMutation({
     gcTime: 0,
     retry: false,
     mutationFn: onResend,
   });
 
   return {
-    resendError: mutation.error,
-    isResendLoading: mutation.isPending,
-    isResendSuccess: mutation.isSuccess,
-    resend: mutation.mutateAsync,
+    resendError: error,
+    isResendLoading: isPending,
+    isResendSuccess: isSuccess,
+    resend: mutateAsync,
   };
 }

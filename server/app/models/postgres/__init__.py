@@ -1,4 +1,4 @@
-"""Register canonical identity and drive tables for Alembic metadata discovery."""
+"""Register canonical identity, folder and file tables for Alembic metadata discovery."""
 
 from app.models.postgres.user import User
 from app.models.postgres.base import Base

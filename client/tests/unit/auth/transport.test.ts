@@ -10,7 +10,7 @@ import "./environment";
 import http from "@services/http/axios";
 import { authAccess, type AuthAccess } from "@services/auth/auth";
 import fetchClient from "@services/http/fetch";
-import { protectedUrl, resolveUrl, trustedUrl } from "@/services/http/policy";
+import { protectedUrl, resolveUrl, trustedUrl } from "@services/http/policy";
 
 import { deferred, fixture, response } from "./fixtures";
 
@@ -149,9 +149,9 @@ const harness = (
             undefined,
             result,
           );
-        } else {
-          return result;
         }
+
+        return result;
       },
     }),
   );
@@ -310,9 +310,9 @@ test.each(["axios", "fetch"] as const)(
 
       if (request.url.endsWith("/late") && request.token !== "Bearer renewed") {
         return late.promise;
-      } else {
-        return request.token === "Bearer renewed" ? success : invalid;
       }
+
+      return request.token === "Bearer renewed" ? success : invalid;
     });
 
     const delayed = send("/late");
