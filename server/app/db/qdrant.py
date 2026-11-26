@@ -11,6 +11,7 @@ from qdrant_client.http.models import (
     Filter,
     Distance,
     MatchValue,
+    MatchAny,
     PointStruct,
     ScoredPoint,
     UpdateStatus,
@@ -23,9 +24,10 @@ from app.core.logging import logger
 from app.core.constants import constants
 
 from app.models.qdrant.chunk import Chunk
-from app.schemas.system import CollectionHealth
-
 from app.pipeline.embeddings.provider import EmbeddingProvider
+
+from app.schemas.system import CollectionHealth
+from app.schemas.scope import AuthorizedFileScope
 
 from app.errors.qdrant import QdrantCollectionError, QdrantConnectionError
 
@@ -205,6 +207,38 @@ def query(
             raise QdrantConnectionError(
                 "Unable to connect to Qdrant while retrieving chunks"
             ) from error
+
+        raise QdrantCollectionError(
+            "Unable to retrieve chunks from Qdrant") from error
+
+
+def query_scoped(
+    client: QdrantClient,
+    collection: str,
+    vector: list[float],
+    scope: AuthorizedFileScope,
+    top_k: int,
+) -> list[ScoredPoint]:
+    """Rank within the full authorized UUID set using one exact membership condition."""
+    identifiers = sorted(str(identifier) for identifier in scope.file_ids)
+    if not identifiers:
+        return []
+
+    try:
+        return client.query_points(
+            collection_name=collection, query=vector,
+            query_filter=Filter(must=[FieldCondition(
+                key="file_id", match=MatchAny(any=identifiers))]),
+            limit=top_k, with_payload=True, with_vectors=False,
+        ).points
+    except Exception as error:
+        logger.error("Qdrant scoped query failed: collection=%s files=%d reason=%s",
+                     collection, len(identifiers), type(error).__name__)
+        source = error.source if isinstance(
+            error, ResponseHandlingException) else error
+        if isinstance(source, (TransportError, ConnectionError, TimeoutError)):
+            raise QdrantConnectionError(
+                "Unable to connect to Qdrant while retrieving chunks") from error
 
         raise QdrantCollectionError(
             "Unable to retrieve chunks from Qdrant") from error

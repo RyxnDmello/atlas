@@ -38,7 +38,8 @@ GenerationErrorCode = Literal[
     "GENERATION_FAILED"
 ]
 FolderErrorCode = Literal[
-    "FOLDER_NOT_FOUND"
+    "FOLDER_NOT_FOUND",
+    "FOLDER_SCOPE_LIMIT_EXCEEDED",
 ]
 
 ErrorCode = CommonErrorCode | FileErrorCode | QdrantErrorCode | GenerationErrorCode | PostgresErrorCode | AuthErrorCode | FolderErrorCode
@@ -67,6 +68,7 @@ STATUS_BY_CODE: dict[ErrorCode, int] = {
     "VERIFICATION_NOT_REQUIRED": 409,
     "POSTGRES_OPERATION_FAILED": 500,
     "POSTGRES_CONNECTION_FAILED": 503,
+    "FOLDER_SCOPE_LIMIT_EXCEEDED": 409,
 }
 
 

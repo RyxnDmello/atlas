@@ -1,184 +1,141 @@
 # Atlas — Client Engineering Standards
 
-- Applies to `client/**`; inherits repository-wide rules from [root AGENTS.md](../AGENTS.md).
-- Defines the approved React/Vite/TanStack Router SPA destination for PLAN_04, preserving the historically verified Next.js/Bun/TypeScript auth foundation and FastAPI integration.
-- Server-only behavior belongs to [server/AGENTS.md](../server/AGENTS.md); detailed RAG contracts belong to the [RAG skill](../.agents/skills/rag/SKILL.md).
+Client-specific contract for the canonical React/Vite SPA; applies to `client/**`.
+
+- [Root AGENTS](../AGENTS.md) — inherited repository-wide policy.
+- [Server AGENTS](../server/AGENTS.md) — backend/API authority.
+- [RAG SKILL](../.agents/skills/rag/SKILL.md) — detailed pipeline contracts for cross-boundary RAG work.
+- Preserve verified Phase 2 behavior; report new implementation and verification only with evidence.
 
 ---
 
 ## 0. DOCUMENT ROLE & INSTRUCTION HIERARCHY
 
-- Applies to all work under `client/**`.
-- Inherits every repository-wide rule from [root AGENTS.md](../AGENTS.md); read the root file first.
-- This file is the authoritative frontend engineering contract for Atlas.
-- It specializes root policy for the approved Vite SPA. Amendment 01 implements this client; migration status is `IMPLEMENTED & VERIFIED` after approved Stage 02. Full Phase 2 drive workflows passed final Amendment 06 acceptance. PLAN_03 evidence remains historical; `client-legacy/` was removed with separate user approval after acceptance.
-- Backend-specific rules belong in [server/AGENTS.md](../server/AGENTS.md).
-- Detailed RAG implementation contracts belong in the [RAG skill](../.agents/skills/rag/SKILL.md); the client consumes verified public/backend contracts rather than redefining them.
+### Authority
 
-### Reading order
+Read the **numbered, linked files in order**. Then read the approved PLAN, current evidence and targeted source/tests.
 
-For normal client work:
+- Client
+  1. [Root AGENTS](../AGENTS.md)
+  2. [Client AGENTS](AGENTS.md)
+- Cross-Boundary Client + Server
+  1. [Root AGENTS](../AGENTS.md)
+  2. [Server AGENTS](../server/AGENTS.md)
+  3. [Client AGENTS](AGENTS.md)
+  4. [RAG SKILL](../.agents/skills/rag/SKILL.md)
+- Root instructions take precedence; this file owns frontend specialization only.
+- `server/AGENTS.md` owns backend behavior; the RAG skill owns retrieval/generation internals.
+- Read the latest relevant **CONTEXT.md** for implementation evidence; **MANUAL.md** for reproduction.
+- Inspect targeted source/tests rather than scanning the entire repository.
 
-```text
-root AGENTS.md
--> client/AGENTS.md
--> current PLAN
--> targeted source/tests
-```
+### Instruction Inheritance
 
-For cross-boundary work:
-
-```text
-root AGENTS.md
--> server/AGENTS.md
--> client/AGENTS.md
--> current PLAN
--> targeted server/client source/tests
-```
-
-Read backend/RAG instructions only when the client task actually crosses those boundaries.
-
-Do not read the entire repository by default.
+- Root `LOCKED` contracts remain binding across the client.
+- Public API/DTO changes require the approved server contract before client implementation.
+- Browser routes, caches, authentication state and encryption do not grant server authorization.
 
 ---
 
 ## 1. PURPOSE & ENGINEERING OBJECTIVES
 
-### Client objective
+### Client Objective
 
-- Preserve the verified Phase 1 Next.js upload/native POST-SSE work and verified Phase 2 Next.js authentication as historical baselines.
-- PLAN_04 Amendment 01: preserve the original client as `client-legacy/`, cleanly scaffold `client/` as a React + Vite + TanStack Router SPA, then migrate the necessary auth/HTTP/stream libraries and tests without changing their semantics.
-- Reproduce the PLAN_03 auth/browser acceptance before introducing new drive workflows.
-- Consume verified FastAPI contracts; browser navigation and encrypted local persistence are not authorization boundaries.
+Deliver authenticated Drive, File Ask, Folder Ask and later Projects workflows through the verified React/Vite SPA without redefining backend authority.
 
-### Phase 2 integration objectives
+**Product Features:**
 
-**Approved PLAN_04 destination (folder workspace `IMPLEMENTED & VERIFIED`; file lifecycle `IMPLEMENTED & VERIFIED`; file detail/Ask `IMPLEMENTED & VERIFIED`):**
+- **Drive — Verified**
+  - Root and nested folders, direct-child browsing, canonical file upload/edit/delete and metadata.
+  - Protected routes, session restoration, owner-safe cache and refresh behavior.
+- **File Ask — Verified Baseline; Planned Route & Citation Migration**
+  - Preserve the verified endpoint, request validation, exact-file retrieval, fallback and SSE lifecycle.
+  - PLAN_01 deliberately supersedes the five-field File Ask citation DTO with the unified eight-field DTO and request-local indexes.
+  - Move the browser destination from `/drive/file/:id` to `/drive/file/:id/chat`.
+  - Preserve old deep links through a deliberate redirect.
+- **Folder Ask — PHASE_03_PLAN_01**
+  - Show an Ask field at the bottom of `/drive/:id`.
+  - Submit the question to `/drive/:id/chat`; show it immediately and stream the answer.
+  - Consume `POST /folders/{folder_id}/ask` for direct owned, `ready` file scope only.
+  - Display Atlas-trusted source-file citations using the same unified schema as File Ask; no depth selector or file-subset selection.
+- **Projects — Later PHASE_03 PLANS**
+  - Separate top-level Projects section outside Drive; select Drive files/folders as references.
+  - Expose live membership and Project-scoped Ask only after verified backend contracts.
+  - Never imply references copy files or that removing a membership deletes a Drive source.
 
-```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'background': '#1e1e2e', 'primaryColor': '#45475a', 'primaryTextColor': '#cdd6f4', 'primaryBorderColor': '#89b4fa', 'lineColor': '#a6adc8', 'secondaryColor': '#313244', 'tertiaryColor': '#181825', 'fontFamily': 'Inter, sans-serif'}}}%%
-flowchart TD
-    Auth["Verified legacy login / verify / restore"] --> Migrate["Migrate to Vite + TanStack Router"]
-    Migrate --> Root["/drive root"]
-    Root --> Folder["/drive/:id direct children"]
-    Root --> File["/drive/file/:fileId"]
-    Folder --> File
-    Folder --> Mutate["Folder/file dialogs and canonical mutations"]
-    File --> Ask["Authenticated file-scoped native SSE + trusted citations"]
-    class Auth,Migrate verified;
-    class Root,Folder,Mutate caution;
-    class File,Ask caution;
-    classDef verified fill:#2e363c,stroke:#a6e3a1,stroke-width:1px,color:#cdd6f4;
-    classDef planned fill:#30323f,stroke:#b4befe,stroke-width:1px,color:#cdd6f4;
-    classDef caution fill:#38362e,stroke:#f9e2af,stroke-width:1px,color:#cdd6f4;
-```
+**Deferred:** Entire-drive Ask, configurable folder depths, persistent conversation history, multi-turn model memory, sharing, user-selected folder file subsets and speculative client infrastructure.
 
-Client goals:
+### Engineering Priorities
 
-- React + Vite with strict TypeScript, Bun-only tooling, Tailwind CSS, shadcn/ui and TanStack Router file-based routes;
-- static client assets served by a host supporting browser-history fallback; no persistent Next.js/TanStack Start server, BFF, client Docker service or backend proxy;
-- direct authenticated browser communication with FastAPI through existing shared Axios and native fetch clients;
-- Zustand only for canonical user/session state; TanStack Query for remote drive/folder/file data; local React state for dialogs, selection and streamed-answer UI;
-- root `/drive`, folder `/drive/:id`, file `/drive/file/:fileId`; `/dashboard` is retired, `/` redirects after auth resolution, and login/register/verify remain separate routes;
-- dialogs for create/edit/upload and warning confirmations for permanent file deletion; no folder delete/move, file move, preview/download, multi-file RAG or extra infrastructure;
-- preserve backend authorization, ownership, ready-state, citation provenance and session/refresh safety rules.
-
-Approval boundaries:
-
-- The Vite/TanStack Router migration and `GET /files/{file_id}` are `IMPLEMENTED & VERIFIED` under PLAN_04 Amendments 01 and 02 respectively; Amendment 03 folder workspace is `IMPLEMENTED & VERIFIED` after approved production-browser/two-owner Stage 02 acceptance and exact preservation.
-- Existing server endpoints remain authoritative; Amendment 02 independently verified the file-detail endpoint before Amendment 05 consumes it.
-- Do not introduce TanStack Start, a second router, duplicate data caches, extra persistent browser state, new infrastructure or another token owner without approval.
+- Preserve Bun, strict TypeScript, Vite, TanStack Router, React Hook Form/Zod, Tailwind/shadcn and existing verified HTTP/Ask infrastructure.
+- Keep `Zustand` as the sole authentication owner; `TanStack Query` owns canonical remote data; local state owns ephemeral questions/streams.
+- Use one authenticated Axios instance and the established native `fetch`/SSE transport.
+- Keep routes presentation/composition only; no client-side authorization or generated provenance.
+- Maintain abort and stale-publication protection on folder/file change, logout, account switch and navigation.
+- Implement only the current approved AMENDMENT and verification stage.
 
 ---
 
 ## 2. CURRENT STATE & DEVELOPMENT DESTINATION
 
-### Status vocabulary
+This is a current-state snapshot. Dated execution history belongs in PLAN **CONTEXT.md**.
 
-Use these labels exactly; do not infer verification from code existence or documentation.
+### Status Vocabulary
 
-| Status                    | Meaning                                                       | Applies when                                        |
-| ------------------------- | ------------------------------------------------------------- | --------------------------------------------------- |
-| `NOT YET BUILT`           | Required implementation is absent.                            | Work remains planned or unstarted.                  |
-| `IMPLEMENTED, UNVERIFIED` | Implementation exists, but required acceptance is incomplete. | Checks are missing, blocked, or failed.             |
-| `IMPLEMENTED & VERIFIED`  | Required implementation passed relevant acceptance checks.    | Executed, recorded verification supports the claim. |
+Use the root file's four statuses for every PHASE, PLAN, AMENDMENT and capability:
 
-- Assess PHASE, PLAN, and capability maturity independently.
-- A completed PLAN does not complete the enclosing PHASE.
-- Specifications and isolated checks alone do not prove complete acceptance.
-- Identify any required checks that have not run.
+| Status        | Definition                                                       | Required Evidence                     |
+| ------------- | ---------------------------------------------------------------- | ------------------------------------- |
+| `PENDING`     | Planned or approved; implementation not started.                 | Planning/approval; no code claim.     |
+| `BUILDING`    | Work is in progress; scoped requirements incomplete.             | Work underway and gaps identified.    |
+| `IMPLEMENTED` | Required code exists; full acceptance incomplete/failed/blocked. | Source evidence and unverified gates. |
+| `VERIFIED`    | Applicable acceptance passed and was recorded.                   | Executed tests/runtime evidence.      |
 
-### Phase and PLAN destination
+- Assess PHASE, PLAN and each Amendment independently; evidence does not roll up automatically.
+- Historical CONTEXT/MANUAL wording is preserved. Never claim tests reran because a document changed.
 
-| Scope                                             | Current maturity         |
-| ------------------------------------------------- | ------------------------ |
-| `PHASE_01`                                        | `IMPLEMENTED & VERIFIED` |
-| `PHASE_02`                                        | `IMPLEMENTED & VERIFIED` |
-| `PHASE_02_PLAN_01` — Identity & Authentication    | `IMPLEMENTED & VERIFIED` |
-| `PHASE_02_PLAN_02` — Authenticated Drive Backend  | `IMPLEMENTED & VERIFIED` |
-| `PHASE_02_PLAN_03` — Client Authentication        | `IMPLEMENTED & VERIFIED` |
-| `PHASE_02_PLAN_04` — Drive Dashboard & Acceptance | `IMPLEMENTED & VERIFIED` |
+### Phase Roadmap
 
-- **Completed PLAN:** `PHASE_02_PLAN_03 — Client Authentication`; Amendments 01 and 02 are verified; Amendment 03 registration/verification/resend UI is `IMPLEMENTED & VERIFIED`; Amendment 04 login/logout UI is `IMPLEMENTED & VERIFIED`; Amendment 05 protected navigation/minimal dashboard and PLAN_03 are `IMPLEMENTED & VERIFIED` after approved Stage 02 acceptance.
-- **Last inspected branch:** `phase-02/plan-04`; inspect Git again before each task.
-- PLAN_03 verified Next.js auth/session UX and a minimal protected `/dashboard` entry. PLAN_04 Amendment 01 implements the Vite client and minimal `/drive`, with `/dashboard` removed; approved Stage 02 verified browser equivalence. Amendment 03 root/nested folder browsing and create/edit dialogs are `IMPLEMENTED & VERIFIED`; Amendment 04 file lifecycle is `IMPLEMENTED & VERIFIED` after approved production-SPA/packaged-API/two-owner acceptance and exact cleanup; Amendment 05 file detail/Ask is `IMPLEMENTED & VERIFIED` after approved production-SPA/current-source native API/two-owner Stage 02 acceptance and exact cleanup. Generation was deterministic; no actual Gemini call or packaged-runtime verification is claimed.
-- The preserved Phase 1 upload UI is not compatible with the removed `/documents/upload` endpoint and is omitted from the SPA. Amendment 04 implements canonical authenticated `POST /files`, metadata edit and permanent-delete dialogs in existing root/nested listings; status is `IMPLEMENTED & VERIFIED` after explicitly approved Stage 02.
-- Preserve the verified auth/HTTP/SSE and citation utilities through migration; do not import the removed legacy upload route or unneeded Next.js scaffolding.
+| PHASE                                   | Client Boundary                                   | Status     |
+| --------------------------------------- | ------------------------------------------------- | ---------- |
+| PHASE_01 — MVP Core RAG                 | Historical single-file Next.js UI                 | `VERIFIED` |
+| PHASE_02 — Authenticated Personal Drive | Canonical Vite SPA, Drive and File Ask            | `VERIFIED` |
+| PHASE_03 — Folder & Project RAG         | New chat routes, Folder Ask and later Projects UI | `PENDING`  |
 
-### Server-first integration gate
+### Development Destination
 
-- Verified Phase 2 auth and drive contracts are available on the server. PLAN_04 Amendment 02 verifies consolidated folder reads and `GET /files/{file_id}`; Amendment 03 consumes only the folder GET/POST/PATCH contracts.
-- Client integration must follow those verified contracts; do not invent backend endpoints or auth semantics.
-- Browser route protection is UX, not server authorization.
+- **Active direction:** PHASE_03; **first milestone:** `PHASE_03_PLAN_01 — Single-Level Folder RAG` (`PENDING`).
+- **PLAN_01 client scope:** File chat route migration; Folder page Ask field; Folder chat destination; unified citation validation/rendering for File and Folder Ask; session-safe navigation.
+- **Future:** `PHASE_03_PLAN_02` Project domain APIs (server-owned), `PLAN_03` Project RAG (server-owned), `PLAN_04` Projects UI and PHASE acceptance—all `PENDING`.
+- **Baseline:** Phase 2 and PLANs 01–04 are `VERIFIED`; the Next.js client and `/dashboard` are retired.
+- **Remote reference:** `phase-02/plan-04` last inspected; recheck actual Git state. No branch/commit operations without approval.
 
-### Current client capability maturity
+### Integration Gate
 
-| Client capability                                        | Status                   |
-| -------------------------------------------------------- | ------------------------ |
-| Static Next.js + Bun Phase 1 client                      | `IMPLEMENTED & VERIFIED` |
-| Phase 2 register / verify / resend UI                    | `IMPLEMENTED & VERIFIED` |
-| Phase 2 login / logout UI                                | `IMPLEMENTED & VERIFIED` |
-| Auth hooks / encrypted persistence / refresh integration | `IMPLEMENTED & VERIFIED` |
-| Shared Zustand auth state and Axios/native fetch access  | `IMPLEMENTED & VERIFIED` |
-| Legacy Next.js protected dashboard entry                 | `IMPLEMENTED & VERIFIED` |
-| Vite + TanStack Router migration and `/drive` entry      | `IMPLEMENTED & VERIFIED` |
-| Drive root/folder navigation and folder dialogs          | `IMPLEMENTED & VERIFIED` |
-| File upload/metadata edit/permanent delete dialogs       | `IMPLEMENTED & VERIFIED` |
-| Selected-file detail and owner-scoped Ask UI             | `IMPLEMENTED & VERIFIED` |
-
-### Evidence references
-
-- Current migration evidence: [PLAN_04 CONTEXT](../prompts/PHASE_02/PLAN_04/PHASE_02_PLAN_04_CONTEXT.md) and [MANUAL](../prompts/PHASE_02/PLAN_04/PHASE_02_PLAN_04_MANUAL.md); Stage 01 local results and approved Stage 02 production-SPA/browser/live acceptance; migration verified, remaining PLAN_04 features pending.
-
-- Phase 1 client verification: [PLAN_05 CONTEXT](../prompts/PHASE_01/PLAN_05/PHASE_01_PLAN_05_CONTEXT.md) and [MANUAL](../prompts/PHASE_01/PLAN_05/PHASE_01_PLAN_05_MANUAL.md).
-- Phase 2 server contract evidence: [PLAN_01 CONTEXT](../prompts/PHASE_02/PLAN_01/PHASE_02_PLAN_01_CONTEXT.md), [PLAN_02 CONTEXT](../prompts/PHASE_02/PLAN_02/PHASE_02_PLAN_02_CONTEXT.md).
-- Phase 2 client evidence: [PLAN_03 CONTEXT](../prompts/PHASE_02/PLAN_03/PHASE_02_PLAN_03_CONTEXT.md) and [MANUAL](../prompts/PHASE_02/PLAN_03/PHASE_02_PLAN_03_MANUAL.md); preserve Amendment 01 history; Amendment 02 Stage 02 records current Chromium/live acceptance separately.
+- Backend contracts precede client integration; never invent Project or Folder Ask DTOs from UI assumptions.
+- PLAN_01 changes File Ask routing and deliberately migrates its citation schema/index mapping; preserve all other verified File Ask contracts.
+- Stage 01 implementation stops for review; real browser/backend or Docker work needs new Stage 02 approval.
 
 ---
 
 ## 3. COMPLETED HISTORY & VERIFIED BASELINES
 
-- Completed PHASES only; current Phase 2 maturity remains in Section 2.
-- Every capability below belongs to a verified historical baseline; repeat status labels are unnecessary.
-- Keep detailed Phase 1 verification and Amendment chronology in CONTEXT/MANUAL.
-- The historical Phase 1 upload UI does not establish current Phase 2 API compatibility.
+This section records completed, **`VERIFIED`** PHASES only. PHASE_03 remains in Section 2.
 
 ### PHASE_01 — MVP Core RAG
 
-**Objective:** Established the complete static browser workflow for uploading one file, retaining the exact backend file ID, consuming native POST-SSE answers, and rendering trusted completed citations.
+**Objective:** Upload a file and ask grounded questions in a historical static Next.js interface.
 
-#### Verified baseline
+#### Verified Baseline
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'background': '#1e1e2e', 'primaryColor': '#45475a', 'primaryTextColor': '#cdd6f4', 'primaryBorderColor': '#89b4fa', 'lineColor': '#a6adc8', 'secondaryColor': '#313244', 'tertiaryColor': '#181825', 'fontFamily': 'Inter, sans-serif'}}}%%
-flowchart LR
-    Upload["Upload one file"] --> ID["Retain returned file ID"]
-    ID --> Ask["Ask question"]
-    Ask --> SSE["Native POST SSE"]
-    SSE --> Answer["Render streamed answer"]
-    Answer --> Cite["Render trusted citations"]
+flowchart TD
+    Upload["Historical upload"] --> File["Returned file ID"]
+    File --> Ask["Native POST-SSE Ask"]
+    Ask --> Answer["Streamed text"]
+    Answer --> Cite["Completed trusted citations"]
     class Upload,Ask,Answer,Cite client;
-    class ID,SSE service;
+    class File service;
     classDef client fill:#2b3046,stroke:#89b4fa,stroke-width:1px,color:#cdd6f4;
     classDef service fill:#2c3642,stroke:#94e2d5,stroke-width:1px,color:#cdd6f4;
     classDef storage fill:#332e46,stroke:#cba6f7,stroke-width:1px,color:#cdd6f4;
@@ -188,36 +145,75 @@ flowchart LR
     classDef denied fill:#39303d,stroke:#f38ba8,stroke-width:1px,color:#cdd6f4;
 ```
 
-#### Verified maturity
+#### Verified Maturity
 
-| Capability                     | Delivered behavior                                      |
-| ------------------------------ | ------------------------------------------------------- |
-| Static Next.js foundation      | App Router static export via Bun/TypeScript.            |
-| Direct browser-to-FastAPI CORS | Direct API calls; backend retains trust authority.      |
-| Upload form/request            | Phase 1 browser upload; backend endpoint later removed. |
-| Returned-ID handoff            | Exact backend ID retained for subsequent ask.           |
-| Naming/aliases/Prettier        | Verified structure, aliases and format.                 |
-| Question submission            | Validated file-scoped question.                         |
-| Native POST-SSE consumption    | Incremental native `fetch` streaming.                   |
-| Incremental answer rendering   | Progressive answer display.                             |
-| Internal citation retention    | Citation markers withheld from answer text.             |
-| Trusted citation display       | Source metadata rendered after completion.              |
+| Capability       | Delivered Behavior                                                                 |
+| ---------------- | ---------------------------------------------------------------------------------- |
+| Static client    | Next.js/Bun/TypeScript build and browser workflow (historical).                    |
+| Upload           | Returned backend file UUID retained for exact-file Ask; endpoint later superseded. |
+| Stream           | Native `fetch`/`ReadableStream`, incremental UTF-8/SSE parsing.                    |
+| Citation display | Render Atlas-trusted citations only after valid completion.                        |
 
-#### Completion boundary
+#### Completion Boundary
 
-Phase 1 client remains:
-
-- single-file;
-- unauthenticated;
-- without folders/drive navigation;
-- without metadata-management UI;
-- without client persistence beyond the verified Phase 1 transient state;
-- dependent on FastAPI as the authoritative backend.
+- Single file; no login, folders, canonical Drive metadata or multi-file retrieval.
+- Historical upload/Next.js code is not an active integration contract; `client-legacy/` was retired with approval.
 
 #### Evidence
 
 - [PLAN_05 CONTEXT](../prompts/PHASE_01/PLAN_05/PHASE_01_PLAN_05_CONTEXT.md)
 - [PLAN_05 MANUAL](../prompts/PHASE_01/PLAN_05/PHASE_01_PLAN_05_MANUAL.md)
+
+### PHASE_02 — Authenticated Personal Drive
+
+**Objective:** Deliver owner-scoped Drive navigation, file management, and selected-file Ask through the current Vite SPA.
+
+#### Verified Baseline
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'background': '#1e1e2e', 'primaryColor': '#45475a', 'primaryTextColor': '#cdd6f4', 'primaryBorderColor': '#89b4fa', 'lineColor': '#a6adc8', 'secondaryColor': '#313244', 'tertiaryColor': '#181825', 'fontFamily': 'Inter, sans-serif'}}}%%
+flowchart TD
+    Auth["Verified auth/session"] --> SPA["React / Vite / TanStack Router"]
+    SPA --> Drive["/drive root and folders"]
+    Drive --> Lifecycle["Canonical file/folder workflows"]
+    Drive --> File["/drive/file/:id"]
+    File --> Ask["Ready-file native SSE + citations"]
+    class Auth,Lifecycle,Ask verified;
+    class SPA,Drive,File client;
+    classDef client fill:#2b3046,stroke:#89b4fa,stroke-width:1px,color:#cdd6f4;
+    classDef service fill:#2c3642,stroke:#94e2d5,stroke-width:1px,color:#cdd6f4;
+    classDef storage fill:#332e46,stroke:#cba6f7,stroke-width:1px,color:#cdd6f4;
+    classDef verified fill:#2e363c,stroke:#a6e3a1,stroke-width:1px,color:#cdd6f4;
+    classDef planned fill:#30323f,stroke:#b4befe,stroke-width:1px,color:#cdd6f4;
+    classDef caution fill:#38362e,stroke:#f9e2af,stroke-width:1px,color:#cdd6f4;
+    classDef denied fill:#39303d,stroke:#f38ba8,stroke-width:1px,color:#cdd6f4;
+```
+
+#### Verified Maturity
+
+| PLAN      | Delivered Behavior                                                               |
+| --------- | -------------------------------------------------------------------------------- |
+| `PLAN_01` | PostgreSQL identity, login, verification, refresh and logout foundation.         |
+| `PLAN_02` | Canonical Drive ownership, file lifecycle and ready-gated file Ask backend.      |
+| `PLAN_03` | Historical Next.js auth workflows and protected navigation; later retired.       |
+| `PLAN_04` | Current Vite SPA, folder/file workflows, selected-file Ask and Phase acceptance. |
+
+- **Recorded final acceptance:** 424 client tests, 329 packaged backend tests, 222 production-browser checks; 17 PLAN_04 and 15 PHASE_02 criteria reconciled.
+- **Provider qualification:** Final Phase 2 Ask acceptance used deterministic generation, not a fresh Gemini call.
+- **Preservation qualification:** Builder cache declined 111 → 73 records; 42 original IDs missing, cause unproven, literal comparison FAILED and user-accepted as an exception—not a pass. Canonical datastore cleanup was verified.
+
+#### Completion Boundary
+
+- `VERIFIED`: authentication, direct-child browsing, canonical file lifecycle and single-file Ask.
+- Excluded then: Folder/Project RAG and the new `/chat` routes; those belong to planned PHASE_03.
+- Historical `/dashboard` and the Next.js client are retired; preserve their evidence, not their runtime.
+
+#### Evidence
+
+| PLAN      | Records                                                                                                                               |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `PLAN_03` | [CONTEXT](../prompts/PHASE_02/PLAN_03/PHASE_02_PLAN_03_CONTEXT.md) · [MANUAL](../prompts/PHASE_02/PLAN_03/PHASE_02_PLAN_03_MANUAL.md) |
+| `PLAN_04` | [CONTEXT](../prompts/PHASE_02/PLAN_04/PHASE_02_PLAN_04_CONTEXT.md) · [MANUAL](../prompts/PHASE_02/PLAN_04/PHASE_02_PLAN_04_MANUAL.md) |
 
 ---
 
@@ -225,151 +221,114 @@ Phase 1 client remains:
 
 ### Stack
 
-**Approved PLAN_04 target (NOT YET BUILT before migration):**
+| Area            | Verified Selection                                                      |
+| --------------- | ----------------------------------------------------------------------- |
+| SPA             | React, Vite, TanStack Router file-based routing, strict TypeScript      |
+| Toolchain       | Bun, `bun.lock`, Prettier, current lint/typecheck/test/build scripts    |
+| Styling & Forms | Tailwind, shadcn/ui, React Hook Form, Zod                               |
+| Remote Data     | TanStack Query v5; no parallel canonical route cache                    |
+| Auth Authority  | Zustand user/session state and existing auth coordination               |
+| Ordinary HTTP   | Shared configured Axios instance                                        |
+| Streaming       | Native `fetch` + `ReadableStream` + existing SSE parser                 |
+| Hosting         | Static `dist/` SPA with correct history fallback; direct FastAPI origin |
 
-- Framework/build: React + Vite, client-rendered SPA.
-- Router: TanStack Router with Vite file-based route generation and typed parameters/navigation; do not introduce TanStack Start or React Router as a parallel router.
-- Language: strict TypeScript only (`strict: true`, `allowJs: false`).
-- Runtime/package manager/script runner: Bun only, text `bun.lock`.
-- Deployment: static Vite `dist/` with correct SPA history fallback for deep links.
-- Styling: Tailwind CSS + shadcn/ui.
-- Ordinary HTTP: the existing configured Axios instance.
-- Remote drive data: TanStack Query v5 (no duplicate router-loader cache of canonical drive data).
-- Streamed `/ask`: native browser `fetch()` + `ReadableStream` and existing SSE parser.
-- Forms: React Hook Form + Zod; modal-driven create/edit/upload/delete presentation.
-- Formatting: Prettier with existing manual readability conventions.
-- Zustand: solely authenticated user, JWT and safe auth/session status; no drive/file/folder application data in Zustand.
+### Runtime & Trust Boundaries
 
-The verified legacy Next.js App Router/static-export implementation is historical. Its temporary `client-legacy/` reference was retained through verified migration acceptance, then removed with separate user approval. PLAN_03 and migration evidence remain in their CONTEXT/MANUAL records.
+- No Next.js server, TanStack Start, SSR, BFF, API proxy or frontend Docker service.
+- `VITE_ATLAS_API_BASE_URL` is public build-time configuration; changing it requires rebuilding `dist/`.
+- Browser routes/history fallback must work for nested UUID chat paths without masking missing assets as HTML success.
+- Auth restoration gates private reads; account/route/session changes abort and retire requests before publishing stale data.
+- FastAPI owns credential, owner, `ready` status, retrieval scope and trusted citation decisions.
 
-### Runtime model
+### Verified Client Ownership
 
-- The browser talks directly to FastAPI over the configured API origin. No Next.js runtime, TanStack Start, Vite API proxy, Route Handler, Server Action or BFF is part of the approved application.
-- Static hosting must fall back to the SPA entry document for navigation to `/drive/<uuid>` and `/drive/file/<uuid>`, without turning missing assets or backend/API failures into successful HTML responses.
-- Local development and preview default to `http://localhost:3000`; configurable ports remain subject to the existing exact FastAPI CORS allow-list. See the environment/build rules for the separate settings.
-- Public `VITE_ATLAS_API_BASE_URL` is build-time configuration; changing a deployed API base requires rebuilding the static artifact.
-- Route guards hide protected UI until session restoration/validation finishes. FastAPI remains the sole authentication/authorization authority.
-- Do not fetch private canonical data during auth restoration or reuse stale private results after logout/account changes.
+- **Router:** typed navigation, parameters and thin page composition.
+- **TanStack Query:** canonical root/folder/file reads and mutation invalidation; memory-only freshness.
+- **Zustand:** authenticated identity/token state only.
+- **Ask session:** route-local question/answer lifecycle, POST-SSE transport, source rendering and abort cleanup.
+- **Schemas:** Zod validates forms, API response bodies and SSE event payloads before state mutation.
 
-### Tooling
-
-- Bun owns scaffolding, install, package execution, dev, build, formatting, lint, typecheck and tests.
-- `bun.lock` is the only package-manager lockfile; do not produce `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock` or `bun.lockb`.
-- Prefer `bun create`, `bunx --bun`, `bun add`, `bun install` and `bun run`.
-- Use the official compatible Vite React/TypeScript scaffold; configure TanStack Router's Vite plugin before the React plugin per the installed versions.
-- Retain generated typed route-tree source as a version-controlled project artifact when required by the router workflow; do not manually edit it. Do not stage or commit without explicit authorization. Exclude generated routes from handwritten formatting/lint transformations as appropriate.
-- Record actual resolved versions and compatibility; do not claim a version is installed before scaffolding.
-
-### Verified Phase 1 composition
-
-**Historical legacy Next.js baseline only** (do not recreate the deprecated upload path):
+### PHASE_03 Planned Client Flow
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'background': '#1e1e2e', 'primaryColor': '#45475a', 'primaryTextColor': '#cdd6f4', 'primaryBorderColor': '#89b4fa', 'lineColor': '#a6adc8', 'secondaryColor': '#313244', 'tertiaryColor': '#181825', 'fontFamily': 'Inter, sans-serif'}}}%%
 flowchart TD
-    Page["Legacy Next page composition"] --> Rag["RagWorkspace"]
-    Rag --> UploadPanel["UploadPanel"]
-    Rag --> AskPanel["AskPanel"]
-    UploadPanel --> UploadHook["useUpload"]
-    AskPanel --> AskHook["useAsk"]
-    AskPanel --> Sources["CitationList"]
-    UploadHook --> Axios["Axios + TanStack Query"]
-    AskHook --> Fetch["native fetch + ReadableStream"]
-    Axios --> API["Historical FastAPI API"]
-    Fetch --> API
+    Drive["Drive folder /drive/:id"] --> Composer["Ask field at bottom"]
+    Composer --> FolderChat["/drive/:id/chat"]
+    FolderChat --> FolderSSE["Folder Ask POST-SSE"]
+    FileLink["Select file"] --> FileChat["/drive/file/:id/chat"]
+    OldLink["Old /drive/file/:id"] --> Redirect["History-replace redirect"]
+    Redirect --> FileChat
+    FileChat --> FileSSE["Existing file Ask POST-SSE"]
+    FolderSSE --> Cite["Unified eight-field citations"]
+    FileSSE --> Cite
+    class Drive,FileLink,OldLink client;
+    class Composer,FolderChat,FileChat,Redirect,FolderSSE,Cite planned;
+    class FileSSE verified;
+    classDef client fill:#2b3046,stroke:#89b4fa,stroke-width:1px,color:#cdd6f4;
+    classDef service fill:#2c3642,stroke:#94e2d5,stroke-width:1px,color:#cdd6f4;
+    classDef storage fill:#332e46,stroke:#cba6f7,stroke-width:1px,color:#cdd6f4;
+    classDef verified fill:#2e363c,stroke:#a6e3a1,stroke-width:1px,color:#cdd6f4;
+    classDef planned fill:#30323f,stroke:#b4befe,stroke-width:1px,color:#cdd6f4;
+    classDef caution fill:#38362e,stroke:#f9e2af,stroke-width:1px,color:#cdd6f4;
+    classDef denied fill:#39303d,stroke:#f38ba8,stroke-width:1px,color:#cdd6f4;
 ```
 
-- `RagWorkspace` and historical `useUpload` depend on the superseded Phase 1 upload route. Do not copy or remount them wholesale as current Phase 2 functionality.
-- Preserve and migrate useful `useAsk`, ask session, stream framing/protocol, response schemas and trusted `CitationList` behavior; any retained file-upload UI must be rebuilt for authenticated `POST /files`.
-- Citation text, excerpts, order, nullable metadata and final-success gating remain server-derived; do not promote model-authored citation markers to trusted output.
-
-### Phase 2 client boundary and planned drive integration
-
-- PLAN_03 legacy `AuthGate`, `DashboardPanel`, auth operation hooks and shared transports are verified in Next.js; migrate their _behavior_, not Next routing imports or unused page composition.
-- The existing QueryProvider/bootstrap ownership and current Zustand auth authority must remain single-owner through migration. Do not create a second bootstrap or token coordinator.
-- Auth routes `/register`, `/verify`, `/login` and entry `/` must preserve recorded PLAN_03 restoration, refresh, logout, `credential_action` handoff and navigation error behavior.
-- Replace `/dashboard` with `/drive`; use TanStack Router file-based `/drive`, `/drive/$id`, `/drive/file/$id`. Validate UUID parameters before API calls; IDs never prove ownership.
-- The folder/file page structure is independent: the file page consumes the separately approved owner-scoped `GET /files/{file_id}` after backend verification and enables Ask only for ready files.
-- Router owns navigation/typed params/layout, TanStack Query owns canonical remote drive state, and component/hook state owns ephemeral forms/modals and streamed answers. Avoid shadow copies of remote records in Zustand or router context.
-- Amendment 03 supersedes owner/session-in-key recommendations for folder listings ONLY: use exactly `['drive', 'folder', 'root']` and `['drive', 'folder', folderUUID]`. Account isolation remains LOCKED through auth-boundary cancellation/cache retirement, usable-session gating and lease/user/abort checks before result publication.
-- Amendment 05 file metadata uses exactly `['drive', 'file', fileUUID]` with `staleTime: 60_000`, memory-only. The same auth lease/abort/publication and QueryProvider retirement rules apply; Ask remains ephemeral route-local state.
-- On successful drive mutation invalidate drive-related queries and refetch the active page, not a hard browser refresh. Inactive pages refetch when revisited; no full QueryClient clear for ordinary mutations.
-- Use in-memory TanStack Query caching with an initial 60-second freshness target; this does **not** survive full browser reload. Persistent drive cache needs separate approval.
-- Account logout/switch must cancel/retire outstanding private queries and streams, prevent stale results from reappearing and clear auth-owned private cache through the existing cleanup boundary.
-- Existing authenticated Axios and native fetch share session authority and safe replay rules. Only one eligible bodyless GET may be retried after invalid-access refresh; no automatic mutation, multipart or POST-SSE replay.
+- **Folder Ask handoff:** show submitted question immediately in the destination; send the request from the chat page, not the source folder page.
+- **No implicit replay:** direct chat load, reload, Back/Forward or auth restoration must not automatically resubmit a consumed question.
+- **Chat-style UI:** visual sequence of questions/answers; no persistent conversation table or model memory is approved.
+- **Shared sources:** render trusted file identity/name and excerpt for both Ask scopes only after validated completion; never trust model-authored metadata.
+- **Pending implementation:** no new route, schema, transport, or API is represented as verified here.
 
 ---
 
 ## 5. REPOSITORY STRUCTURE & OWNERSHIP
 
-After the approved PLAN_04 Amendment 01 migration, **only `client/` is the active SPA**. The directory below is illustrative; create domain subfolders when work actually owns code, not for symmetry. The temporary `client-legacy/` source reference was retired with separate approval after acceptance.
+### Verified Client Structure
 
 ```text
 client/
 ├── AGENTS.md
-├── index.html
-├── public/
 ├── src/
-│   ├── main.tsx                         # Vite browser entry and providers
-│   ├── routes/                          # TanStack Router file-based route definitions
+│   ├── main.tsx
+│   ├── routes/
 │   │   ├── __root.tsx
-│   │   ├── index.tsx                     # auth-aware entry redirect
-│   │   ├── login.tsx
-│   │   ├── register.tsx
-│   │   ├── verify.tsx
-│   │   └── drive/
-│   │       ├── route.tsx                 # protected drive layout
-│   │       ├── index.tsx                 # root direct children
-│   │       ├── $id.tsx             # selected folder direct children
-│   │       └── file/
-│   │           └── $id.tsx           # selected file metadata + Ask
-│   ├── routeTree.gen.ts                 # generated typed router tree; never hand-edit
-│   ├── components/
-│   │   ├── ui/                           # shadcn generated primitives
-│   │   ├── Common/
-│   │   ├── Drive/
-│   │   ├── Folder/
-│   │   ├── File/
-│   │   ├── Ask/
-│   │   └── Citations/
-│   ├── hooks/
-│   │   ├── auth/
 │   │   ├── drive/
-│   │   ├── folder/
-│   │   ├── file/
-│   │   └── ask/
-│   ├── services/
-│   │   ├── auth/                         # migrate verified session/token/key behavior
-│   │   ├── http/                         # shared configured Axios + native fetch
-│   │   └── ask/                          # native SSE request-session ownership
-│   ├── schemas/                          # auth, drive, file, folder, env, SSE/Zod
-│   ├── types/                            # only types not already inferred from Zod
-│   ├── providers/query/
-│   ├── constants/
-│   ├── stores/auth.ts                    # sole Zustand auth authority
-│   ├── utils/stream/
-│   └── lib/utils.ts                      # shadcn cn() only
-├── tests/                                # focused domain + browser integration coverage
+│   │   │   ├── route.tsx
+│   │   │   ├── index.tsx
+│   │   │   ├── $id.tsx                 # current folder page
+│   │   │   └── file/$id.tsx            # current file detail + Ask
+│   ├── routeTree.gen.ts               # generated; never hand-edit
+│   ├── components/{Drive,Folder,File,Ask,Citations,Common,ui}/
+│   ├── hooks/{auth,drive,folder,file,ask}/
+│   ├── services/{auth,http,ask}/
+│   ├── schemas/
+│   ├── stores/auth.ts
+│   └── utils/stream/
+├── tests/
 ├── vite.config.ts
-├── tsconfig.json
 ├── package.json
-├── bun.lock
-└── components.json
+└── bun.lock
 ```
 
-- `src/routes/` contains route registration, typed parameter access, thin layouts and page composition only; no transport, auth cryptography, database access, RAG parser or business logic.
-- `src/main.tsx` initializes app providers and the router; avoid hidden duplicate session initialization.
-- Drive directory routes use an Outlet-only `drive/route.tsx` parent with `drive/index.tsx`, `drive/$id.tsx` and `drive/file/$id.tsx`; canonical `/drive` links remain unchanged. Directory routing is `IMPLEMENTED & VERIFIED` after approved Amendment 06 final packaged/static-browser acceptance; deterministic generation and the explicitly accepted historical cache exception are recorded in PLAN_04 CONTEXT/MANUAL.
-- Keep root, folder and file pages separate. `/dashboard` is retired; do not maintain dead routes or the superseded legacy RAG workspace in the new application.
-- The TanStack Router Vite plugin owns route-tree generation. Preserve its required filenames even when they differ from Atlas user-controlled filename conventions.
-- `components/ui/` remains shadcn-only; domain presentation belongs to `components/<Domain>/` with PascalCase component filenames.
-- `hooks/<domain>/` owns React lifecycle, local state and direct TanStack Query composition; do not create a generic Query adapter.
-- HTTP and auth services retain their current verified ownership. Extract transport logic only when it has a single meaningful responsibility; no redundant pass-through services.
-- Use Zod schemas for untrusted network and form data; prefer inferred types over duplicated DTO declarations.
-- `utils/` contains pure helpers without React/network state. `lib/utils.ts` remains the shadcn utility boundary.
-- Keep tests under `tests/`, grouped by behavior/domain; no scattered `__tests__` trees.
-- Avoid unused barrel exports, empty folder scaffolds and generic `helpers.ts`/`misc.ts` modules.
-- During migration, inspect and preserve tracked, untracked and ignored user files before `client/` -> `client-legacy/`. Never overwrite the destination or remove legacy data without separate approval. The post-acceptance removal was separately approved and completed; do not recreate the legacy directory. Do not transfer `.next`, `out`, `node_modules`, old env secrets or other generated artifacts as new source.
-- The legacy `AGENTS.md` is historical; this successor `client/AGENTS.md` governs the new SPA after the migration cutover, not the original Next.js implementation.
+### Planned Route Ownership
+
+| Browser Route          | Function                                                | State                                                                      |
+| ---------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `/drive`               | Logical root and direct children                        | `VERIFIED`                                                                 |
+| `/drive/:id`           | Folder browsing; new Ask composer at bottom             | Existing page `VERIFIED`; composer `PENDING`                               |
+| `/drive/:id/chat`      | Folder chat destination and stream                      | `PENDING`                                                                  |
+| `/drive/file/:id/chat` | File chat destination; unified citation migration       | Route and citation migration `PENDING`; prior File Ask baseline `VERIFIED` |
+| `/drive/file/:id`      | Compatibility history-replace redirect to new file chat | Redirect `PENDING`; existing route `VERIFIED`                              |
+
+- Keep TanStack Router filename conventions; do not invent the exact file tree before inspecting the installed router plugin.
+- `src/routes/` owns route declarations and page composition, not HTTP/auth/retrieval logic.
+- `components/ui/` remains shadcn-generated; domain-specific presentation belongs in `components/<Domain>/`.
+- `hooks/<domain>/` owns React lifecycle; `services/ask/` owns native SSE request-session behavior.
+- `services/auth/` and `stores/auth.ts` preserve the verified single session/token owner.
+- `schemas/` owns Zod trust-boundary validation; `utils/stream/` pure SSE processing.
+- Do not recreate retired `client-legacy/`, Next.js routes or `/dashboard`.
+- Future Projects UI folders/routes belong to a later approved PLAN; do not scaffold them during PLAN_01.
 
 ---
 
@@ -380,15 +339,15 @@ client/
 Atlas component domain folders and reusable component files use PascalCase:
 
 ```text
-components/Upload/UploadPanel.tsx
+components/Drive/DriveWorkspace.tsx
 components/Ask/AskPanel.tsx
-components/Rag/RagWorkspace.tsx
+components/File/FileWorkspace.tsx
 ```
 
 Exceptions:
 
 - `components/ui/` retains shadcn-generated lowercase naming.
-- TanStack Router/tool-required filenames retain their required conventions, including `__root.tsx`, `index.tsx`, `route.tsx`, `$id.tsx`, `$id.tsx`, `routeTree.gen.ts`, `vite.config.ts` and the selected ESLint config. These are exceptions to handwritten naming rules.
+- TanStack Router/tool-required filenames retain their required conventions, including `__root.tsx`, `index.tsx`, `route.tsx`, `$id.tsx`, `routeTree.gen.ts`, `vite.config.ts` and the selected ESLint config. These are exceptions to handwritten naming rules.
 
 ### Hooks
 
@@ -400,11 +359,11 @@ Exceptions:
 Examples:
 
 ```text
-hooks/upload/useUpload.ts
+hooks/folder/useFolder.ts
 hooks/ask/useAsk.ts
 ```
 
-### Other files
+### Other Files
 
 - User-controlled multiword filenames/directories use lowerCamelCase.
 - Single-word names may remain lowercase.
@@ -414,7 +373,7 @@ hooks/ask/useAsk.ts
 - Export component/type symbols with PascalCase.
 - Export variables/functions with camelCase.
 
-### Source-root aliases
+### Source-Root Aliases
 
 Current aliases:
 
@@ -474,7 +433,7 @@ Preserve generated shadcn primitive export conventions.
 - Define arrow functions before any module-level expression that reads them; do not rely on function hoisting.
 - Define action implementations above hook return objects; return named function references without inline implementations.
 
-### Object literals
+### Object Literals
 
 Write nonempty object literals across multiple lines, one property per line, including:
 
@@ -494,7 +453,7 @@ Write nonempty object literals across multiple lines, one property per line, inc
 - Use one blank line between groups.
 - No blank line within one import group.
 
-### Code readability and control flow
+### Code Readability & Control Flow
 
 - Domain literal unions MUST have named type aliases beside their owning code, such as `AuthStateType`; do not repeat inline status/action unions across fields or return types.
 - MUST leave one blank line between logical steps and adjacent function definitions.
@@ -507,22 +466,22 @@ Write nonempty object literals across multiple lines, one property per line, inc
 - Prettier formatting MUST NOT replace these manual readability requirements.
 - Apply these conventions to affected handwritten tests as well as production code; keep generated primitives and unrelated files outside a cosmetic sweep.
 
-### React readability
+### React Readability
 
 - Leave one blank line between logical JSX sections where it improves readability.
 - Do not scatter inline comments explaining individual lines.
 
-### Documentation and ownership
+### Documentation & Ownership
 
 - Inherit the root PHASE / PLAN / AMENDMENT, CONTEXT and MANUAL model.
 - Codex records actual code changes and executed tests; do not pre-create client Phase 2 evidence.
-- Preserve verified naming, aliases and formatting unless the approved PLAN supersedes them. The Next.js `@app/*` alias is superseded by the new router ownership; avoid old imports in the new client.
+- Preserve verified naming, aliases and formatting unless an approved PLAN supersedes them. The historical Next.js `@app/*` alias is retired.
 
 ---
 
 ## 7. TECHNICAL CONTRACTS & RUNTIME BEHAVIOR
 
-### Ordinary HTTP, authentication and SSE
+### Ordinary HTTP, Authentication & SSE
 
 #### Ordinary HTTP
 
@@ -532,7 +491,7 @@ Write nonempty object literals across multiple lines, one property per line, inc
 - TanStack Query owns approved query/mutation server-state orchestration.
 - Do not use TanStack Query as a substitute for local ephemeral UI state.
 
-#### Shared HTTP infrastructure
+#### Shared HTTP Infrastructure
 
 - `services/http/axios.ts` MUST export one actual configured Axios instance; no custom Axios facade or public client factory.
 - `services/http/fetch.ts` exports one configured native fetch client with base/get/post; preserve raw responses and streams.
@@ -551,9 +510,9 @@ Write nonempty object literals across multiple lines, one property per line, inc
 - Refresh credentials remain in the approved HttpOnly-cookie path and must not be copied into JavaScript-accessible storage.
 - Do not blindly replay arbitrary failed mutating requests after refresh; request replay semantics require an explicit safe contract.
 
-#### Streamed ask
+#### Streamed Ask
 
-- Use native browser `fetch()` for `POST /files/{file_id}/ask`.
+- Use native browser `fetch()` for verified `POST /files/{file_id}/ask` and planned `POST /folders/{folder_id}/ask` once approved and implemented.
 - Do not force Axios around the SSE stream.
 - Do not wrap the live SSE stream in TanStack Query.
 - Do not use EventSource because the endpoint is POST.
@@ -567,7 +526,7 @@ Write nonempty object literals across multiple lines, one property per line, inc
 - No user-facing Ask cancellation feature unless an approved later PLAN adds one; mutation-dialog Cancel buttons are a separate approved UI behavior.
 - No retry/reconnect/resume/Last-Event-ID semantics unless explicitly approved.
 
-### Forms, state and UI contracts
+### Forms, State & UI Contracts
 
 - Use React Hook Form for forms.
 - Use Zod for form validation.
@@ -585,9 +544,8 @@ Write nonempty object literals across multiple lines, one property per line, inc
 - Do not generalize the access-token exception into arbitrary `localStorage`/`sessionStorage`/IndexedDB persistence without approval.
 - If the persisted access token cannot be safely recovered/used, discard it and rely on the approved refresh-cookie flow rather than bypassing authentication checks.
 - Prevent duplicate mutating/streaming submissions while the same operation is active.
-- Preserve the verified ask abort/reset behavior when the selected active file changes.
+- Preserve the verified ask abort/reset behavior when the selected active file changes; extend the same isolation to folder chat, route navigation, and one-time question handoff.
 - Browser route/auth state never establishes server ownership or authorization.
-
 - Use Tailwind CSS + shadcn/ui.
 - Prefer default shadcn behavior unless the current PLAN requires a specific product interaction.
 - Keep presentation functional rather than product-polished.
@@ -596,9 +554,9 @@ Write nonempty object literals across multiple lines, one property per line, inc
 - Avoid handwritten `aria-*` attributes unless needed for functionality/accessibility; prefer native labels and visible status/error text.
 - Do not add Markdown renderers, animation libraries, or other presentation dependencies without an approved need.
 
-### Environment, build and SPA deployment
+### Environment, Build & SPA Deployment
 
-- `VITE_ATLAS_API_BASE_URL` is browser-visible build-time configuration. It supersedes `NEXT_PUBLIC_ATLAS_API_BASE_URL` in the new application; it is **not** an implemented migration until the new client exists.
+- `VITE_ATLAS_API_BASE_URL` is browser-visible build-time configuration in the verified Vite SPA. Historical `NEXT_PUBLIC_ATLAS_API_BASE_URL` is retired.
 - Never place secrets in `VITE_*` or any other browser-exposed build variable.
 - Reuse the existing strict API-base validation: absolute supported HTTP(S) URL, no credentials/query/fragment, normalized consistently for both Axios and fetch.
 - The validated public API base is read once through the approved environment/configuration boundary and consumed as `env.API_BASE_URL`.
@@ -609,15 +567,47 @@ Write nonempty object literals across multiple lines, one property per line, inc
 - Client local env files remain ignored; `.env.example` contains only safe placeholders. Do not copy legacy private `.env.local` values into tracked source or logs.
 - Do not add SSR, TanStack Start, server loaders/functions, a client Docker service, Vite backend proxy or another application runtime without approval.
 
-### Authentication transport boundary
+### PHASE_03 Planned Folder & File Chat Contracts
 
-- Amendment 02 verifies the foundation below in Chromium against the existing backend; Amendment 03 verifies registration/verification/resend UI in Chromium against the existing backend. Amendment 04 login/logout UI is `IMPLEMENTED & VERIFIED`; Amendment 05 protected navigation/minimal dashboard is `IMPLEMENTED & VERIFIED` after approved Stage 02 acceptance.
+**Status: `PENDING` — do not claim these routes or Folder Ask are implemented.**
+
+- **File route:** `/drive/file/:id/chat`; redirect old `/drive/file/:id` with history replacement. Preserve File Ask endpoint, default `top_k=5`, range `1–20`, fallback and SSE lifecycle; migrate its citation DTO and source indexes deliberately.
+- **Folder page:** keep `/drive/:id` and its CRUD/listing; place Ask composer at the bottom. Submitting navigates to `/drive/:id/chat` with a one-time ephemeral question handoff.
+- **Folder chat:** display submitted question before SSE begins. Native POST to `POST /folders/{folder_id}/ask`; no file-list/owner/depth parameters supplied by the browser.
+- **Question handoff:** ephemeral, one-time and scoped to the authenticated folder/session. No replay on reload, direct deep link, Back/Forward or auth restoration; no URL/query or durable storage of question text. Direct chat links open an empty composer. The destination initiates exactly one request per explicit submission.
+- **Answer display:** provisional clean streamed text; one shared citation schema for File and Folder Ask; commit successful answers/citations only after a valid `citations`/`done` sequence. Explicit sanitized errors never become successful fallback.
+- **Auth/route safety:** reuse current session-version/abort/retire rules for both Ask scopes; never publish late answers or citations to a different file, folder, or account.
+- **Deletion consistency:** the backend authorizes each Ask at request start; an already-authorized response may finish after source deletion begins. Do not promise immediate stream revocation; normal route/session abort rules still apply.
+- **Not approved:** persistent threads, chat database, multi-turn model context, global browser RAG state, third-party SSE client or new frontend transport architecture.
+- **Compatibility:** preserve File Ask endpoint, request validation, fallback and SSE lifecycle, current auth/token behavior and canonical file detail data. The approved citation migration is the explicit public response exception.
+
+### Unified Citation Validation & Display
+
+**Contract: `LOCKED`; implementation: `PENDING`.** See the [RAG SKILL](../.agents/skills/rag/SKILL.md) for the authoritative schema and mapping rules.
+
+- Use one shared runtime-validated citation schema for File, Folder and later Project Ask: `index`, `file_id`, `file_name`, `chunk_index`, `page`, `heading`, `section`, `excerpt`.
+- `index` is a non-negative request-local source reference, not the original chunk position; `chunk_index` is the non-negative per-file chunk position.
+- Validate canonical UUID, source name, nullable page integer/heading/section strings and excerpt; use trusted server-returned metadata only. Equal chunk indexes in different files are valid.
+- Display the request-time file name and trusted excerpt; never substitute a current route name or model-generated provenance.
+- Coordinate the server and client migration, schema validation, parser and rendering regressions. The historical five-field File Ask citation schema is `SUPERSEDED` for PLAN_01, not a second public schema to maintain.
+
+### Folder Fallback & Resource Errors
+
+- Preserve the exact File Ask fallback: `I don't have enough information in this file to answer that.`
+- Folder Ask fallback: `I don't have enough information in this folder to answer that.`
+- Successful fallback includes empty citations and terminal `done`; authorization, dependency and oversized-scope errors remain errors.
+- Render structured pre-stream scope-limit failures using the approved server contract; do not silently narrow the scope, retry or present fallback. Final numerical limits remain `PROVISIONAL`.
+- User-selected folder file subsets remain deferred; do not scaffold selection UI during PLAN_01.
+
+### Authentication Transport Boundary
+
+- Verified Phase 2 auth/session foundation: registration, verification/resend, login/logout, restoration, cookie rotation and account-safe navigation. Historical PLAN_03/PLAN_04 browser evidence remains in CONTEXT/MANUAL.
 - AES-GCM/IndexedDB storage retains version-1 compatibility; logout deletes only auth ciphertext and its auth-owned IndexedDB key, and explicit login/verify generates a key when absent.
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'background': '#1e1e2e', 'primaryColor': '#45475a', 'primaryTextColor': '#cdd6f4', 'primaryBorderColor': '#89b4fa', 'lineColor': '#a6adc8', 'secondaryColor': '#313244', 'tertiaryColor': '#181825', 'fontFamily': 'Inter, sans-serif'}}}%%
 flowchart TD
-    UI["Registration / verification UI: IMPLEMENTED & VERIFIED"] --> Hooks["Per-endpoint API hooks"]
+    UI["Registration / verification UI: VERIFIED"] --> Hooks["Per-endpoint API hooks"]
     Hooks --> Session["Zustand auth store"]
     Session --> Axios["Configured Axios"]
     Session --> Fetch["Native fetch / SSE"]
@@ -641,14 +631,14 @@ flowchart TD
 
 ## 8. SECURITY & TRUST BOUNDARIES
 
-### Browser trust boundaries
+### Browser Trust Boundaries
 
 - All browser input and network payloads are untrusted; use Zod validation at relevant HTTP/SSE boundaries.
 - A protected client route is a navigation/UX mechanism; FastAPI performs all authentication and authorization.
 - Never infer owner access from local state, selected IDs or encryption.
 - Treat model-authored provenance as untrusted; render only Atlas-validated citations.
 
-### Credentials and persistence
+### Credentials & Persistence
 
 - Refresh tokens must remain in the server-controlled HttpOnly cookie.
 - Approved access-token exception: active JWT in memory and reversibly encrypted access token in `localStorage`.
@@ -659,7 +649,7 @@ flowchart TD
 - If saved token material is unusable, discard it and restore through the approved refresh-cookie flow.
 - Do not silently replay arbitrary mutating or streaming requests after authentication failure.
 
-### Static deployment and exposure
+### Static Deployment & Exposure
 
 - `VITE_*` is browser-visible in the approved SPA and MUST NOT contain secrets. Next.js `NEXT_PUBLIC_*` behavior is historical only; the legacy directory has been retired.
 - Keep API origin and credential/CORS behavior compatible with the verified FastAPI deployment configuration.
@@ -669,52 +659,38 @@ flowchart TD
 
 ## 9. SCOPE & ARCHITECTURE GOVERNANCE
 
-### Always do
+### Always Do
 
-- Read root `AGENTS.md` before this file.
-- Reuse current client architecture and naming.
-- Keep components presentation-focused.
-- Keep hooks lifecycle-focused.
-- Keep pure parser/utilities free of React/network ownership.
-- Validate untrusted network boundaries.
-- Preserve exact backend IDs/provenance rather than deriving replacements.
-- Keep Vite SPA production build and deep-link history-fallback deployment viable.
-- For cross-boundary Phase 2 work, consume only an implemented/verified server contract unless the PLAN explicitly defines a coordinated exception.
-- Derive no ownership decision from client-selected IDs; send resource identifiers and let FastAPI authorize them.
+- Inherit root approval, evidence, status, and task-boundary rules.
+- Preserve Vite SPA, Bun/TypeScript, auth single-owner, Zod validation, and native SSE ownership.
+- Consume approved server contracts; maintain session-safe request and UI publication boundaries.
+- Keep generated router artifacts tool-owned and untouched by hand.
 
-### Ask first
+### Requires Approval
 
-- new frontend dependency;
-- new state library;
-- new form library;
-- new network library;
-- new component library;
-- new testing framework;
-- public API shape change;
-- Vite/TanStack Router/SPAs hosting-runtime boundary or additional router/data-cache architecture;
-- changes to the approved persistence strategy;
-- changes to the approved auth/token architecture.
+- New frontend framework/router/state, HTTP/SSE, persistence, or styling dependencies.
+- Public API assumptions, citation DTO or fallback changes beyond the approved server contract.
+- Persistent chat history, query persistence, model memory, or automatic request replay.
+- Changes to token/key/session lifecycle, stale-data isolation, or cache authority.
+- Future Projects UI before its owning PLAN and AMENDMENT.
+- New client runtime, Docker service, API proxy, SSR, or changed static-hosting contract.
 
-### Never do
+### Prohibited
 
-- add Node/npm/npx/pnpm/Yarn as required runtime/package-manager workflow;
-- add a Next BFF/proxy without an explicit architecture change;
-- add a client Docker service without an explicit architecture change;
-- add global state merely for convenience;
-- persist refresh tokens, passwords, OTPs, or auth secrets in JavaScript-accessible storage;
-- treat reversible client-side token encryption as an authorization or XSS security boundary;
-- bypass runtime validation with casts;
-- treat model-authored provenance as trusted citation metadata;
-- invent backend ownership/auth behavior or pre-implement speculative API contracts;
-- add speculative future folders/aliases/abstractions beyond the current PLAN;
-- place business logic in `components/ui/` or `lib/utils.ts`.
+- Adding Node/npm/pnpm/Yarn as required package-manager workflows; Bun is canonical.
+- Treating client-supplied scope/owner IDs as permission to retrieve content.
+- Storing refresh tokens, passwords, OTPs, secrets or auth keys in JavaScript-readable storage.
+- Rendering model-authored source identity as trusted citation provenance.
+- Resubmitting a chat question on refresh/history navigation without an explicit user action.
+- Creating parallel session/token/cache controllers or speculative Project routes.
+- Modifying backend or RAG contracts from a client-only task without approval.
 
-### Decision vocabulary
+### Decision States
 
-- `LOCKED`: cannot change without approval.
-- `PROVISIONAL`: a recommended but unconfirmed direction.
-- `OPEN`: a material decision reserved for the user.
-- `SUPERSEDED`: changed by a later approved decision.
+- `LOCKED`: approved architecture; changes require human authorization.
+- `PROVISIONAL`: candidate, not a Codex implementation directive.
+- `OPEN`: material decision awaiting approval.
+- `SUPERSEDED`: earlier approved decision replaced; history remains.
 
 ---
 
@@ -725,76 +701,64 @@ flowchart TD
 - Do not commit, push, branch-switch/create, rewrite history, reset or discard uncommitted changes without explicit authorization.
 - Preserve tracked `bun.lock`; no npm/pnpm/Yarn lockfiles or ad hoc package-manager migration.
 - Avoid unapproved backend edits, database resets, Qdrant cleanup or Docker volume changes during client acceptance.
-- Do not assume the planned `phase-02/plan-04` branch exists locally; inspect the actual checked-out branch before implementation.
+- Do not assume any PLAN branch exists locally; inspect the actual checked-out branch before implementation.
 - Run `git diff --check` and report affected files before completing an AMENDMENT.
 
 ---
 
 ## 11. VERIFICATION & ACCEPTANCE
 
-Verification follows the root risk model.
+Inherit root verification and Stage 01/02 approval boundaries.
 
-For normal client implementation, use the current Bun scripts:
+### Local Client Checks
 
-```bash
-bun install --frozen-lockfile
-bun run format
-bun run format:check
-bun run lint
-bun run typecheck
-bun run test
-bun run build
-```
+- From `client/`, use `bun install --frozen-lockfile`, `bun run format:check`, `bun run lint`, `bun run typecheck`, `bun run test`, and `bun run build` as relevant.
+- `bun run format` writes files; perform only inside the authorized change scope and review its diff.
+- Focus on changed route, session, Ask/SSE, citation and auth-boundary tests; rerun the complete relevant regression suite.
+- Never claim a check passed unless it ran; unit tests must not spend Gemini quota.
 
-Rules:
+### PHASE_03_PLAN_01 Acceptance Boundaries
 
-- Do not claim a check passed unless it actually ran.
-- Keep `bun.lock` as the only package-manager lockfile.
-- Unit tests must not make real Gemini calls.
-- Use the narrowest existing test seam; do not add a test library merely for convenience.
-- Browser acceptance may use the existing verified backend/Qdrant runtime when the task requires real integration.
-- After migration, production-SPA acceptance must exercise Vite `dist/` and a real history-fallback static host, including `/drive`, `/drive/<uuid>` and `/drive/file/<uuid>` direct load, reload and back/forward behavior. Never claim Vite preview alone establishes production hosting behavior.
-- Client-only changes do not require backend Docker rebuild unless they change backend/deployment-sensitive inputs.
-- Preserve persistent Qdrant data; do not delete/reset backend state for client verification.
-- Run `git diff --check` from the repository root before completion.
+- **Routes:** direct deep links, reload, back/forward, old-file-route redirect and valid/malformed UUIDs under built `dist/` history-fallback hosting.
+- **Folder handoff:** user question appears before streaming; one-time submission; no duplicate/replayed POST after reload or route replacement.
+- **SSE:** fragmented deltas, error/malformed events, clean provisional text, final citation validation and abort cleanup.
+- **Privacy:** logout, account switch, stale folder/file ID, pending auth restoration and late stream/network responses cannot publish another scope's content.
+- **Provenance:** verify one eight-field citation schema/rendering path for File and Folder Ask, request-local indexes, distinct files with equal `chunk_index`, trusted source names/excerpts and deliberate legacy schema supersession.
+- **Fallback/errors:** verify both exact fallback sentences with empty citations and successful terminal completion; oversized scope and dependency failures must remain explicit errors.
+- **Real browser acceptance:** requires separately approved Stage 02 and the actual built SPA; Vite dev/preview alone is insufficient.
+- **Resources:** preserve existing PostgreSQL/Qdrant/other services; no incidental Docker rebuild or destructive cleanup.
+
+### Evidence
+
+- Stage 01 ends after actual local commands/results and a review STOP.
+- Stage 02 needs fresh approval for production browser/live backend/provider/other effects.
+- Codex records results, failures and reproducible procedures in the current PLAN's CONTEXT/MANUAL.
+- `git diff --check` and exact changed-path review precede completion.
 
 ---
 
 ## 12. STANDARD ENGINEERING WORKFLOW
 
-### PLAN_04 Amendment 01 — controlled migration checkpoints
+### Before Implementation
 
-Complete this one cohesive migration Amendment through explicit internal checkpoints. Do not build drive CRUD or change FastAPI behavior during migration.
+1. Read root AGENTS, this file, the approved PLAN/AMENDMENT and targeted client tests/source.
+2. For cross-boundary Ask changes, read server AGENTS and the RAG skill when pipeline contracts matter.
+3. Inspect branch/status/diffs and established router/Ask/auth conventions; do not switch branches automatically.
+4. Confirm backend API/DTO/error/SSE contract and unresolved material decisions before editing.
 
-1. **Checkpoint 0 — Legacy baseline:** inspect checked-out branch, full working tree (including ignored/untracked client inputs), dependency and route inventory. Record the existing Next.js `bun install --frozen-lockfile`, focused/full tests, formatting check, lint, strict typecheck, build, and relevant browser/PLAN_03 evidence. If any check is blocked, record the limitation rather than inventing parity.
-2. **Checkpoint 1 — Safe rename and scaffold:** preserve the original `client/` as `client-legacy/` without overwriting an existing destination, discarding user files, switching branches, or committing. Scaffold a clean Bun/Vite React strict-TypeScript `client/`; add only the approved compatible TanStack Router, Tailwind/shadcn and existing application dependencies. Validate scripts, aliases, environment configuration, generated route tree and consistent formatting.
-3. **Checkpoint 2 — Foundation migration:** selectively migrate verified auth schemas, Zustand store, non-React token/key lifecycle, HTTP transport, TanStack Query provider, SSE framing/citations and relevant tests. Remove Next-specific imports/configuration from new code; do not copy the old removed upload route, old generated output, ignored credentials or unnecessary packages.
-4. **Checkpoint 3 — Route composition:** implement the equivalent anonymous auth routes, protected `/drive` entry and session-aware `/` redirect using TanStack Router, without building folder/file CRUD yet. Preserve `credential_action`, encrypted restoration, refresh single-flight, cookie ordering, terminal/uncertain logout behavior, safe GET replay and account-change privacy.
-5. **Checkpoint 4 — Acceptance:** verify frozen install, format, lint, strict typecheck, full/focused tests and Vite `dist/` build. After separate explicit Stage 02 approval, execute actual production-built SPA browser tests against the verified FastAPI auth runtime, including direct route/reload/history and account/session equivalence; compare datastore and resource snapshots where live fixtures are involved. Keep `client-legacy/` intact for review.
+### During Implementation
 
-These checkpoints record the completed migration sequence. The legacy directory was retained through acceptance and subsequently removed with separate user approval; do not repeat the rename or scaffold.
+- Implement one focused AMENDMENT; preserve verified File Ask behavior except the approved citation migration; retain session/cache ownership.
+- Separate presentation, router composition, React hooks, network transport and pure parsers.
+- Avoid new dependencies, codebase-wide cosmetic sweeps and speculative Projects code.
+- In PLAN_01, the approved sequence includes the File Ask chat-route migration inside Folder Ask API work, followed by Folder composer/chat integration; do not preassign actual Amendment IDs in the PLAN specification.
+- Historical Next.js/Vite migration is `VERIFIED`; never repeat it or recreate `client-legacy/`.
 
-At Stage 01 completion, record changes and local checks in Codex-owned CONTEXT/MANUAL and stop for review. Stage 02 browser/live/Docker/datastore activity requires fresh explicit authorization. A generated app or passing build alone is `IMPLEMENTED, UNVERIFIED`, not migration acceptance.
+### Verification & Completion
 
-### Before implementation
-
-- Read root AGENTS, this file, current approved PLAN and targeted client source/tests.
-- Confirm verified backend endpoint/DTO/error behavior only where it affects the current task.
-- Inspect existing component, hook, schema, service and test conventions; do not preload the whole repository.
-- Resolve material auth/token storage and session-lifecycle decisions with the user before Codex implements them.
-
-### During implementation
-
-- Keep one AMENDMENT focused and preserve Bun, the approved Vite SPA deployment model, the existing SSE parser, and auth/state ownership. Amendment 01 must include staged legacy baseline, safe rename/scaffold, targeted migration and authenticated browser-equivalence checkpoints.
-- Separate browser presentation, React lifecycle, HTTP transport and pure parsing.
-- Preserve the user's unrelated work and reuse existing dependencies.
-
-### Verification and completion
-
-- Run task-relevant Bun tests, formatting, lint, typecheck and build.
-- Exercise deployed Vite `dist/` under a history-fallback host when browser/deep-link behavior is in scope; before migration the historical Next `out/` baseline is evidence only.
-- Verify cookie/CORS/auth/browser behavior with approved test accounts only when in scope.
-- Record commands and actual results in Codex-owned CONTEXT/MANUAL; report unverified work precisely.
+- Stage 01: actual targeted/full Bun checks, static/build verification and diff review; update CONTEXT/MANUAL; STOP.
+- Stage 02: only with fresh approval, real production SPA/history host, browser, two-owner/session and integration evidence.
+- Record every failure and unrun check; `IMPLEMENTED` is not `VERIFIED`.
 
 ---
 
@@ -802,7 +766,7 @@ At Stage 01 completion, record changes and local checks in Codex-owned CONTEXT/M
 
 The user has configured three custom Codex CLI MCPs. Use only when necessary; first confirm they are available in the active session. Follow [root MCP safety and evidence rules](../AGENTS.md).
 
-| MCP               | Client relevance                                                             | Use only when                                                               |
+| MCP               | Client Relevance                                                             | Use Only When                                                               |
 | ----------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | `context7`        | Version-specific Vite, TanStack Router, React, Bun, Axios/browser contracts. | Installed source/docs do not resolve a material API uncertainty.            |
 | `playwright`      | Reproducible SPA auth, forms, deep-link and native-SSE browser checks.       | User-approved browser acceptance cannot be established by unit tests alone. |

@@ -1,21 +1,22 @@
 from uuid import UUID
 from datetime import datetime, timezone
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
+from sqlalchemy import and_, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.runtime import postgres
 
 from app.schemas.files.response import FileResponse
 from app.schemas.folders.response import FolderResponse
+from app.schemas.scope import AuthorizedFileScope, FileSource
 from app.schemas.folders.listing import FolderListingResponse
 from app.schemas.folders.requests import FolderCreate, FolderPatch
 
 from app.models.postgres import File, Folder
 
-from app.errors.folder import FolderNotFoundError
 from app.errors.postgres import PostgresOperationError
+from app.errors.folder import FolderNotFoundError, FolderScopeLimitError
 
 
 def owned(session: Session, folder_id: UUID, owner_id: UUID) -> Folder:
@@ -26,6 +27,43 @@ def owned(session: Session, folder_id: UUID, owner_id: UUID) -> Folder:
         raise FolderNotFoundError()
 
     return folder
+
+
+def resolve(owner_id: UUID, folder_id: UUID, *, max_files: int) -> AuthorizedFileScope:
+    """Authorize a direct ready-file snapshot in one bounded, unlocked SQL read."""
+    if not isinstance(owner_id, UUID) or not isinstance(folder_id, UUID):
+        raise TypeError("Owner and folder must be UUIDs")
+    if not isinstance(max_files, int) or isinstance(max_files, bool):
+        raise TypeError("File ceiling must be an integer")
+    if max_files <= 0:
+        raise ValueError("File ceiling must be positive")
+
+    try:
+        with postgres().session() as session:
+            rows = session.execute(
+                select(Folder.id, File.id, File.name)
+                .select_from(Folder)
+                .outerjoin(File, and_(File.folder_id == Folder.id,
+                                      File.owner_id == owner_id,
+                                      File.status == "ready"))
+                .where(Folder.id == folder_id, Folder.owner_id == owner_id)
+                .order_by(File.id)
+                .limit(max_files + 1)
+                .execution_options(autoflush=False)
+            ).all()
+            if not rows:
+                raise FolderNotFoundError()
+            if len(rows) > max_files:
+                raise FolderScopeLimitError()
+
+            result = AuthorizedFileScope(tuple(
+                FileSource(file_id, name) for _, file_id, name in rows
+                if file_id is not None
+            ))
+    except SQLAlchemyError:
+        raise PostgresOperationError() from None
+
+    return result
 
 
 def listing(owner_id: UUID, folder_id: UUID | None = None) -> FolderListingResponse:

@@ -1,172 +1,144 @@
 # Atlas — Server Engineering Standards
 
-- Applies to `server/**`; inherits repository-wide rules from [root AGENTS.md](../AGENTS.md).
-- Owns FastAPI/Python, canonical PostgreSQL state, authorized Qdrant retrieval, Docker/runtime and backend verification.
-- Detailed RAG pipeline mechanics remain in [.agents/skills/rag/SKILL.md](../.agents/skills/rag/SKILL.md).
+Server-specific contract for FastAPI, canonical PostgreSQL state, authorized retrieval and backend lifecycle; applies to `server/**`.
+
+- [Root AGENTS](../AGENTS.md) — inherited repository-wide policy.
+- [Client AGENTS](../client/AGENTS.md) — browser/API consumer boundary.
+- [RAG SKILL](../.agents/skills/rag/SKILL.md) — authoritative pipeline mechanics and trusted citations.
+- Preserve verified Phase 2 behavior; report new implementation and verification only with evidence.
 
 ---
 
 ## 0. DOCUMENT ROLE & INSTRUCTION HIERARCHY
 
-- Applies to all work under `server/**`.
-- Inherits every repository-wide rule from [root AGENTS.md](../AGENTS.md); read the root file first.
-- This file is the authoritative backend engineering contract for Atlas.
-- It specializes root policy for FastAPI, Python, backend runtime, PostgreSQL, Qdrant integration, configuration, errors, Docker/Compose, and backend verification.
-- Detailed extraction/chunking/embedding/retrieval/generation/citation contracts remain owned by the [RAG skill](../.agents/skills/rag/SKILL.md).
-- Do not duplicate or silently override the RAG skill here.
+### Authority
 
-### Reading order
+Read the **numbered, linked files in order**. Then read the approved PLAN, current evidence and targeted source/tests.
 
-For normal server work:
+- Server
+  1. [Root AGENTS](../AGENTS.md)
+  2. [Server AGENTS](AGENTS.md)
+- Server + RAG
+  1. [Root AGENTS](../AGENTS.md)
+  2. [Server AGENTS](AGENTS.md)
+  3. [RAG SKILL](../.agents/skills/rag/SKILL.md)
+- Cross-Boundary
+  1. [Root AGENTS](../AGENTS.md)
+  2. [Server AGENTS](AGENTS.md)
+  3. [Client AGENTS](../client/AGENTS.md)
+  4. [RAG SKILL](../.agents/skills/rag/SKILL.md)
+- Root instructions take precedence; this file specializes server domain/API/runtime contracts.
+- The RAG skill—not this file—owns chunking, embeddings, Qdrant payload shapes, retrieval algorithms, grounding and citations.
+- Read latest relevant **CONTEXT.md** evidence and **MANUAL.md** reproduction steps; avoid repo-wide scans.
 
-```text
-root AGENTS.md
--> server/AGENTS.md
--> current PLAN
--> targeted source/tests
-```
+### Instruction Inheritance
 
-For RAG-owned work:
-
-```text
-root AGENTS.md
--> server/AGENTS.md
--> .agents/skills/rag/SKILL.md
--> current PLAN
--> targeted source/tests
-```
-
-Read CONTEXT current-state/latest relevant entries when implementation evidence is required. Use MANUAL for current reproducibility/acceptance commands.
-
-Do not read the entire repository by default.
+- Keep FastAPI authentication/authorization, owner scopes and canonical state server-side.
+- Public route and DTO changes require an approved PLAN/AMENDMENT; browser behavior cannot define backend trust.
+- Do not silently replace inherited `LOCKED` contracts with future planning assumptions.
 
 ---
 
 ## 1. PURPOSE & ENGINEERING OBJECTIVES
 
-### Server objective
+### Server Objective
 
-- Own the verified RAG ingestion, retrieval, generation, streaming and trusted-citation pipeline.
-- Own Phase 2 canonical identity, sessions, folders, files and authorization.
-- Preserve the approved server/client boundaries; do not implement browser UI in the backend.
+Deliver secure canonical Drive services and a trusted RAG retrieval/generation pipeline, extending the verified single-file boundary into Folder and later Project Ask only through approved scope resolution.
 
-### Engineering priorities
+**Backend Features:**
 
-- preserve the verified Phase 1 RAG contracts unless a current PLAN deliberately supersedes one;
-- introduce PostgreSQL as canonical application state for users, verifications, sessions, folders, and files;
-- keep authentication, authorization, ownership, retrieval scope, and trust enforcement server-side;
-- support recursively nested folders and canonical file metadata without introducing multi-scope RAG;
-- treat original upload bytes as transient ingestion input only in Phase 2;
-- expose stable public API contracts before the client integrates them;
-- maintain explicit resource lifecycle, error, configuration, and verification boundaries;
-- avoid speculative infrastructure outside the approved phase.
+- **Canonical Drive — Verified**
+  - PostgreSQL users, verifications, sessions, owned folders/files, metadata and `processing`/`ready`/`deleting` states.
+  - Transient original upload bytes; Qdrant is a derived vector index.
+- **File Ask — Verified Baseline; Planned Citation Migration**
+  - Preserve `POST /files/{file_id}/ask`, request validation, exact authorized ready-file retrieval, fallback and native SSE.
+  - PLAN_01 deliberately supersedes the historical five-field citation DTO and file-local source indexes with one unified eight-field DTO and request-local indexes.
+- **Folder Ask — PHASE_03_PLAN_01**
+  - `POST /folders/{folder_id}/ask`; include only immediate, owned, `ready` child files.
+  - Reuse a server-authorized multi-file retrieval operation, unique request-local source markers and trusted file-attributed citations.
+  - No folder depth, recursion or new PostgreSQL migration expected in PLAN_01.
+- **Projects — Later PHASE_03 PLANS**
+  - Independent owner-scoped PostgreSQL Projects; reference canonical file/folder UUIDs, never source copies.
+  - Live recursive expansion of selected folders, file deduplication and current canonical metadata.
+  - Database-enforced membership cleanup on final canonical deletion; Project deletion preserves Drive sources.
 
-### Explicit exclusions
+**Deferred:** Entire-drive Ask, configurable folder depths, user-selected folder file subsets, sharing, original-file persistence, folder movement/deletion, new providers and unmeasured hybrid/reranking.
 
-- multi-file/folder/tree/drive retrieval;
-- persistent original-file storage;
-- folder deletion/movement, file movement, trash/recovery;
-- email delivery and password-reset/forgot-password product flows;
-- Redis, background queues/workers, or new storage services.
+### Engineering Priorities
+
+- PostgreSQL owns identity, scope, ownership and `ready` eligibility; Qdrant only ranks authorized source chunks.
+- Filter permitted IDs **before vector ranking**; validate every returned chunk's canonical membership.
+- Keep routers thin, domain orchestration in `pipeline/`, data models in `models/`, transport schemas in `schemas/` and reusable runtime in `core/`/`db/`.
+- Preserve file ingestion/deletion compensation, explicit errors, streaming lifecycle and existing authentication/session behavior.
+- Follow the RAG skill for detailed provider and provenance contracts; no new library or schema by default.
+- Implement only explicitly approved AMENDMENTS and verification stages.
 
 ---
 
 ## 2. CURRENT STATE & DEVELOPMENT DESTINATION
 
-### Status vocabulary
+This is a current-state snapshot. Dated implementation evidence belongs in PLAN **CONTEXT.md**.
 
-Use these labels exactly; do not infer verification from code existence or documentation.
+### Status Vocabulary
 
-| Status                    | Meaning                                                       | Applies when                                        |
-| ------------------------- | ------------------------------------------------------------- | --------------------------------------------------- |
-| `NOT YET BUILT`           | Required implementation is absent.                            | Work remains planned or unstarted.                  |
-| `IMPLEMENTED, UNVERIFIED` | Implementation exists, but required acceptance is incomplete. | Checks are missing, blocked, or failed.             |
-| `IMPLEMENTED & VERIFIED`  | Required implementation passed relevant acceptance checks.    | Executed, recorded verification supports the claim. |
+Use exactly the root file's four statuses for PHASES, PLANS, AMENDMENTS and capabilities:
 
-- Assess PHASE, PLAN, and capability maturity independently.
-- A completed PLAN does not complete the enclosing PHASE.
-- Specifications and isolated checks alone do not prove complete acceptance.
-- Identify any required checks that have not run.
+| Status        | Definition                                                       | Required Evidence                       |
+| ------------- | ---------------------------------------------------------------- | --------------------------------------- |
+| `PENDING`     | Planned or approved; implementation pending.                     | Approval/specification; no code claim.  |
+| `BUILDING`    | Implementation underway; scope remains incomplete.               | Work in progress and open requirements. |
+| `IMPLEMENTED` | Required code exists; full acceptance incomplete/failed/blocked. | Source evidence and remaining checks.   |
+| `VERIFIED`    | Applicable acceptance passed and is recorded.                    | Executed tests/runtime evidence.        |
 
-### Phase and PLAN destination
+- Status is scope-specific; a verified PLAN does not verify the containing PHASE automatically.
+- Historical CONTEXT/MANUAL retain original wording; do not reclassify known failures as passes.
 
-| Scope                                             | Current maturity         |
-| ------------------------------------------------- | ------------------------ |
-| `PHASE_01`                                        | `IMPLEMENTED & VERIFIED` |
-| `PHASE_02`                                        | `IMPLEMENTED & VERIFIED` |
-| `PHASE_02_PLAN_01` — Identity & Authentication    | `IMPLEMENTED & VERIFIED` |
-| `PHASE_02_PLAN_02` — Authenticated Drive Backend  | `IMPLEMENTED & VERIFIED` |
-| `PHASE_02_PLAN_03` — Client Authentication        | `IMPLEMENTED & VERIFIED` |
-| `PHASE_02_PLAN_04` — Drive Dashboard & Acceptance | `IMPLEMENTED & VERIFIED` |
+### Phase Roadmap
 
-- **Backend completion:** PLAN_01 and PLAN_02 passed recorded acceptance.
-- **Client milestone:** PLAN_03 is the historical Next.js authentication baseline; PLAN_04 Amendment 01 Vite/TanStack Router migration is `IMPLEMENTED & VERIFIED`. Folder browsing and file lifecycle UI are `IMPLEMENTED & VERIFIED`; selected-file detail/Ask and final PLAN_04/PHASE_02 acceptance are `IMPLEMENTED & VERIFIED` after approved Amendment 06 exact-image/static-browser/two-owner acceptance with deterministic generation. The accepted historical cache exception remains documented.
-- **PLAN_04 Amendment 02:** folder/file API consolidation is `IMPLEMENTED & VERIFIED` after approved matching-source native HTTP/PostgreSQL/Qdrant acceptance and exact fixture/resource preservation. Amendment 04 subsequently rebuilt the API with retained runtime/models and current source; packaged-source identity, live ingestion and two-owner file lifecycle acceptance passed. The canonical cold build encountered an external model-download timeout; CONTEXT records that deviation without claiming a fresh dependency/model rebuild.
-- **Last verified branch reference:** `phase-02/plan-04`.
-- **Successor PLAN/branch:** unassigned; inspect local Git state and preserve the current checkout.
-- Server-only changes are not automatically required by client planning.
+| PHASE                                   | Backend Boundary                                        | Status     |
+| --------------------------------------- | ------------------------------------------------------- | ---------- |
+| PHASE_01 — MVP Core RAG                 | Ingestion, exact-file retrieval, grounded SSE/citations | `VERIFIED` |
+| PHASE_02 — Authenticated Personal Drive | PostgreSQL auth, Drive, ready-gated File Ask            | `VERIFIED` |
+| PHASE_03 — Folder & Project RAG         | Scoped multi-file Folder Ask and live Project Ask       | `BUILDING` |
 
-### Current server capability maturity
+### Development Destination
 
-| Backend capability                                        | Status                   |
-| --------------------------------------------------------- | ------------------------ |
-| PostgreSQL identity, credential primitives and migrations | `IMPLEMENTED & VERIFIED` |
-| Register, verify/resend and login                         | `IMPLEMENTED & VERIFIED` |
-| Sessions, refresh rotation and logout                     | `IMPLEMENTED & VERIFIED` |
-| Credentialed cookie CORS and `GET /auth`                  | `IMPLEMENTED & VERIFIED` |
-| Canonical folders/files and historical direct-child APIs  | `IMPLEMENTED & VERIFIED` |
-| Authenticated upload and file mutation/deletion           | `IMPLEMENTED & VERIFIED` |
-| PostgreSQL owner/ready-state gate before file-scoped RAG  | `IMPLEMENTED & VERIFIED` |
-| Next.js browser auth and minimal dashboard entry          | `IMPLEMENTED & VERIFIED` |
-| Consolidated folder GET APIs                              | `IMPLEMENTED & VERIFIED` |
-| Owner-scoped file detail `GET /files/{file_id}`           | `IMPLEMENTED & VERIFIED` |
+- **Active direction:** `PHASE_03`; **first milestone:** `PHASE_03_PLAN_01 — Single-Level Folder RAG` (`BUILDING`).
+- **Current boundary:** Amendment 01's internal bounded direct-folder resolver and Amendment 02's internal multi-file retrieval/evaluation are `VERIFIED` through applicable local, packaged, separately approved real-store/model/capacity and exact cleanup/preservation evidence; see [CONTEXT](../prompts/PHASE_03/PLAN_01/PHASE_03_PLAN_01_CONTEXT.md). PLAN_01/PHASE_03 remain `BUILDING`; final numeric policy, public Folder Ask and citation changes remain pending.
+- **PLAN_01 server scope:** owner-checked direct ready-file resolver; bounded internal multi-file retrieval; unified File/Folder citations; `POST /folders/{folder_id}/ask` native SSE.
+- **Future:** `PLAN_02` Project entities/live membership; `PLAN_03` recursive Project RAG; `PLAN_04` browser/PHASE acceptance—all `PENDING`.
+- **Baseline:** PHASE_02 PLANs 01–04 are `VERIFIED`. File Ask remains verified under its historical contract; only its approved citation/index migration and client routing are superseded in PLAN_01.
+- **Remote reference:** `phase-02/plan-04` last inspected; inspect actual local Git state before implementation and do not switch branches without approval.
 
-### Verified Phase 2 evidence
+### Integration Gate
 
-- PLAN_01 Amendments 01–07: identity, verification, login, single-use refresh, logout, Bearer user resolution and `GET /auth`.
-- PLAN_01: packaged regression, real PostgreSQL, live HTTP/cookie/CORS, rollback/concurrency and security/preservation acceptance.
-- PLAN_02 Amendment 01: canonical folders/files and Alembic `0002_drive`.
-- PLAN_02 Amendment 02: owner-scoped folder APIs and direct-child browsing.
-- PLAN_02 Amendment 03: canonical `POST /files`, transient ingestion, PostgreSQL/Qdrant compensation.
-- PLAN_02 Amendment 04: file mutation, retryable permanent deletion and Qdrant isolation.
-- PLAN_02 Amendment 05: owner/ready authorization before internal retrieval and native Ask/SSE (the public query transport was later superseded).
-- PLAN_02 Amendment 06: integrated real PostgreSQL/Qdrant/HTTP acceptance, including 159 passing evidence rows.
-- These are **recorded acceptance results**, not tests rerun for this documentation revision.
-
-### Evidence references
-
-- [PLAN_01 CONTEXT](../prompts/PHASE_02/PLAN_01/PHASE_02_PLAN_01_CONTEXT.md)
-- [PLAN_01 MANUAL](../prompts/PHASE_02/PLAN_01/PHASE_02_PLAN_01_MANUAL.md)
-- [PLAN_02 CONTEXT](../prompts/PHASE_02/PLAN_02/PHASE_02_PLAN_02_CONTEXT.md)
-- [PLAN_02 MANUAL](../prompts/PHASE_02/PLAN_02/PHASE_02_PLAN_02_MANUAL.md)
+- Server contract and deterministic authorization tests precede client integration.
+- The detailed RAG SKILL and existing File Ask contracts remain binding unless a narrowly approved extension supersedes them.
+- Stage 01 local implementation/checks must STOP for review; Stage 02 live/side-effectful verification needs fresh approval.
 
 ---
 
 ## 3. COMPLETED HISTORY & VERIFIED BASELINES
 
-- Completed PHASES only; current Phase 2 evidence remains in Section 2.
-- Every listed capability is a verified historical baseline; avoid redundant status fields.
-- Detailed Amendment chronology remains in CONTEXT.
-- Historical Phase 1 routes can be superseded without erasing historical evidence.
+This section records completed, **`VERIFIED`** PHASES only. PHASE_03 belongs in Section 2 until independently verified.
 
 ### PHASE_01 — MVP Core RAG
 
-**Objective:** Established the complete single-file backend RAG path from upload and extraction through retrieval, grounded generation, native SSE, trusted citations, and browser-facing CORS support.
+**Objective:** Implement source-preserving ingestion, exact-file dense retrieval and grounded, streaming answers with trusted citations.
 
-#### Verified baseline
+#### Verified Baseline
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'background': '#1e1e2e', 'primaryColor': '#45475a', 'primaryTextColor': '#cdd6f4', 'primaryBorderColor': '#89b4fa', 'lineColor': '#a6adc8', 'secondaryColor': '#313244', 'tertiaryColor': '#181825', 'fontFamily': 'Inter, sans-serif'}}}%%
-flowchart LR
-    Upload["Upload"] --> Chunk["Docling parse / chunk"]
-    Chunk --> Embed["BGE-M3 embedding"]
-    Embed --> Qdrant[("Qdrant")]
-    Qdrant --> Retrieve["Exact file-scoped retrieval"]
-    Retrieve --> Gemini["Grounded Gemini generation"]
-    Gemini --> SSE["Native SSE"]
-    SSE --> Cite["Trusted citations"]
+flowchart TD
+    Upload["Upload bytes"] --> Parse["Docling / OCR / chunk"]
+    Parse --> Embed["BGE-M3 1024-dim dense"]
+    Embed --> Qdrant[("Qdrant cosine index")]
+    Qdrant --> Retrieve["Exact-file retrieval"]
+    Retrieve --> Generate["Grounded Gemini"]
+    Generate --> SSE["Native SSE + citations"]
     class Upload client;
-    class Chunk,Embed,Retrieve,Gemini,SSE,Cite service;
+    class Parse,Embed,Retrieve,Generate,SSE service;
     class Qdrant storage;
     classDef client fill:#2b3046,stroke:#89b4fa,stroke-width:1px,color:#cdd6f4;
     classDef service fill:#2c3642,stroke:#94e2d5,stroke-width:1px,color:#cdd6f4;
@@ -177,96 +149,126 @@ flowchart LR
     classDef denied fill:#39303d,stroke:#f38ba8,stroke-width:1px,color:#cdd6f4;
 ```
 
-#### Verified maturity
+#### Verified Maturity
 
-| Capability                 | Delivered behavior                                            |
-| -------------------------- | ------------------------------------------------------------- |
-| Upload endpoint            | Historical Phase 1 upload; later superseded by `POST /files`. |
-| Extraction/chunking        | Docling extraction, OCR and provenance-aware chunks.          |
-| Embedding                  | BGE-M3 tokenizer and embeddings.                              |
-| Qdrant storage             | Dense vectors and metadata payloads.                          |
-| File-scoped retrieval      | Exact `file_id` filter.                                       |
-| Gemini generation          | Grounded provider orchestration.                              |
-| Grounding/citation core    | Trusted context and provenance mapping.                       |
-| Public `/ask` native SSE   | Incremental answer delivery; route later superseded.          |
-| Browser-facing CORS config | Explicit browser origin handling.                             |
+| Capability   | Delivered Behavior                                                       |
+| ------------ | ------------------------------------------------------------------------ |
+| Extraction   | Docling structure/OCR, contextual text and raw display provenance.       |
+| Embeddings   | Shared BGE-M3 tokenizer/embedding space; dense 1024-dimensional vectors. |
+| Vector Store | Qdrant cosine and file-associated payloads.                              |
+| Retrieval    | Exact `file_id` filtering before grounded generation.                    |
+| Generation   | Gemini provider abstraction, native SSE and trusted citations.           |
 
-#### Completion boundary
+#### Completion Boundary
 
-Phase 1 backend remains:
-
-- single-file;
-- unauthenticated;
-- without PostgreSQL canonical application state;
-- without folders or owner authorization;
-- without multi-file/folder/tree/drive retrieval.
-
-Do not reopen a verified backend contract merely because a later phase consumes it.
+- Historical Phase 1 was single-user, unauthenticated and single-file only.
+- Legacy upload/query routes were superseded by canonical authenticated Phase 2 contracts.
 
 #### Evidence
 
-- [PLAN_01 CONTEXT](../prompts/PHASE_01/PLAN_01/PHASE_01_PLAN_01_CONTEXT.md)
-- [PLAN_01 MANUAL](../prompts/PHASE_01/PLAN_01/PHASE_01_PLAN_01_MANUAL.md)
-- [PLAN_02 CONTEXT](../prompts/PHASE_01/PLAN_02/PHASE_01_PLAN_02_CONTEXT.md)
-- [PLAN_02 MANUAL](../prompts/PHASE_01/PLAN_02/PHASE_01_PLAN_02_MANUAL.md)
-- [PLAN_03 CONTEXT](../prompts/PHASE_01/PLAN_03/PHASE_01_PLAN_03_CONTEXT.md)
-- [PLAN_03 MANUAL](../prompts/PHASE_01/PLAN_03/PHASE_01_PLAN_03_MANUAL.md)
-- [PLAN_04 CONTEXT](../prompts/PHASE_01/PLAN_04/PHASE_01_PLAN_04_CONTEXT.md)
-- [PLAN_04 MANUAL](../prompts/PHASE_01/PLAN_04/PHASE_01_PLAN_04_MANUAL.md)
-- [PLAN_05 CONTEXT](../prompts/PHASE_01/PLAN_05/PHASE_01_PLAN_05_CONTEXT.md)
-- [PLAN_05 MANUAL](../prompts/PHASE_01/PLAN_05/PHASE_01_PLAN_05_MANUAL.md)
+| PLAN      | Records                                                                                                                               |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `PLAN_01` | [CONTEXT](../prompts/PHASE_01/PLAN_01/PHASE_01_PLAN_01_CONTEXT.md) · [MANUAL](../prompts/PHASE_01/PLAN_01/PHASE_01_PLAN_01_MANUAL.md) |
+| `PLAN_02` | [CONTEXT](../prompts/PHASE_01/PLAN_02/PHASE_01_PLAN_02_CONTEXT.md) · [MANUAL](../prompts/PHASE_01/PLAN_02/PHASE_01_PLAN_02_MANUAL.md) |
+| `PLAN_03` | [CONTEXT](../prompts/PHASE_01/PLAN_03/PHASE_01_PLAN_03_CONTEXT.md) · [MANUAL](../prompts/PHASE_01/PLAN_03/PHASE_01_PLAN_03_MANUAL.md) |
+| `PLAN_04` | [CONTEXT](../prompts/PHASE_01/PLAN_04/PHASE_01_PLAN_04_CONTEXT.md) · [MANUAL](../prompts/PHASE_01/PLAN_04/PHASE_01_PLAN_04_MANUAL.md) |
+
+### PHASE_02 — Authenticated Personal Drive
+
+**Objective:** Establish canonical identity, owned file/folder hierarchy, file lifecycle and owner/ready-gated File Ask.
+
+#### Verified Baseline
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'background': '#1e1e2e', 'primaryColor': '#45475a', 'primaryTextColor': '#cdd6f4', 'primaryBorderColor': '#89b4fa', 'lineColor': '#a6adc8', 'secondaryColor': '#313244', 'tertiaryColor': '#181825', 'fontFamily': 'Inter, sans-serif'}}}%%
+flowchart TD
+    User["Authenticated user"] --> PG[("PostgreSQL canonical state")]
+    PG --> Folder["Owned folder/file records"]
+    Folder --> Ready["Owner + ready gate"]
+    Ready --> Filter["Exact file_id Qdrant filter"]
+    Filter --> Q[("Qdrant derived index")]
+    Q --> SSE["Grounded file Ask / SSE"]
+    class User client;
+    class Folder,Ready,Filter,SSE service;
+    class PG,Q storage;
+    classDef client fill:#2b3046,stroke:#89b4fa,stroke-width:1px,color:#cdd6f4;
+    classDef service fill:#2c3642,stroke:#94e2d5,stroke-width:1px,color:#cdd6f4;
+    classDef storage fill:#332e46,stroke:#cba6f7,stroke-width:1px,color:#cdd6f4;
+    classDef verified fill:#2e363c,stroke:#a6e3a1,stroke-width:1px,color:#cdd6f4;
+    classDef planned fill:#30323f,stroke:#b4befe,stroke-width:1px,color:#cdd6f4;
+    classDef caution fill:#38362e,stroke:#f9e2af,stroke-width:1px,color:#cdd6f4;
+    classDef denied fill:#39303d,stroke:#f38ba8,stroke-width:1px,color:#cdd6f4;
+```
+
+#### Verified Maturity
+
+| PLAN      | Delivered Behavior                                                                                            |
+| --------- | ------------------------------------------------------------------------------------------------------------- |
+| `PLAN_01` | Users/verifications/sessions, Argon2id, JWT, OTP, rotating single-use refresh and logout.                     |
+| `PLAN_02` | Canonical folders/files, direct-child scope, transient upload, deletion/retry and ready-gated file retrieval. |
+| `PLAN_03` | Historical Next.js browser auth, later retired.                                                               |
+| `PLAN_04` | Consolidated folder/file APIs, Vite SPA, File Ask UI, root Compose and final Phase acceptance.                |
+
+- **Recorded final acceptance:** 424 client tests, 329 packaged backend tests, 222 production-browser checks; 17 PLAN_04 and 15 PHASE_02 criteria reconciled.
+- **Provider qualification:** Final Phase 2 RAG browser/integration used deterministic generation; no new live Gemini call.
+- **Preservation qualification:** Docker cache record comparison 111 → 73 (42 originals missing) literally FAILED; cause unknown and exception explicitly accepted. No failure was relabeled as a pass. Final approved PostgreSQL/Qdrant restoration/cleanup passed.
+
+#### Completion Boundary
+
+- `VERIFIED`: authentication, Drive canonical ownership/lifecycle, file Ask and 18-operation API baseline.
+- Not part of Phase 2: Folder Ask, Projects, multi-file citations, entire-drive retrieval or configured depth controls.
+- Do not silently claim original-file persistence, file/folder movement or folder deletion exists.
+
+#### Evidence
+
+| PLAN      | Records                                                                                                                               |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `PLAN_01` | [CONTEXT](../prompts/PHASE_02/PLAN_01/PHASE_02_PLAN_01_CONTEXT.md) · [MANUAL](../prompts/PHASE_02/PLAN_01/PHASE_02_PLAN_01_MANUAL.md) |
+| `PLAN_02` | [CONTEXT](../prompts/PHASE_02/PLAN_02/PHASE_02_PLAN_02_CONTEXT.md) · [MANUAL](../prompts/PHASE_02/PLAN_02/PHASE_02_PLAN_02_MANUAL.md) |
+| `PLAN_03` | [CONTEXT](../prompts/PHASE_02/PLAN_03/PHASE_02_PLAN_03_CONTEXT.md) · [MANUAL](../prompts/PHASE_02/PLAN_03/PHASE_02_PLAN_03_MANUAL.md) |
+| `PLAN_04` | [CONTEXT](../prompts/PHASE_02/PLAN_04/PHASE_02_PLAN_04_CONTEXT.md) · [MANUAL](../prompts/PHASE_02/PLAN_04/PHASE_02_PLAN_04_MANUAL.md) |
 
 ---
 
 ## 4. ARCHITECTURE & DATA FLOW
 
-### Backend stack
+### Stack
 
-- Python + FastAPI.
-- Pydantic for validation/DTOs/config schemas.
-- `python-dotenv` for `.env` loading.
-- PostgreSQL begins in Phase 2 as canonical application state.
-- Qdrant remains self-hosted in Docker as the derived retrieval index.
-- Docker Compose lives at repository-root `compose.yml` (`name: atlas`, build context `./server`); Dockerfile, `.dockerignore` and private `.env` remain under `server/`.
-- Docling for extraction/chunking.
-- BAAI/bge-m3 / FlagEmbedding for dense embeddings.
-- Gemini Flash through official `google-genai`, behind Atlas `LLMProvider`.
-- No LangChain by default.
-- Redis only when caching becomes concretely relevant and explicitly approved.
+| Layer           | Verified Selection                                                  |
+| --------------- | ------------------------------------------------------------------- |
+| Backend         | Python, FastAPI, Pydantic, SQLAlchemy/Alembic                       |
+| Configuration   | `python-dotenv`, existing validated constants/schemas               |
+| Canonical State | PostgreSQL owners, sessions, folders and files                      |
+| Derived Index   | Self-hosted Qdrant, dense cosine vectors                            |
+| Processing      | Docling, HybridChunker, RapidOCR and BGE-M3 via FlagEmbedding       |
+| Generation      | Gemini Flash behind Atlas `LLMProvider`, official `google-genai`    |
+| Deployment      | Root `compose.yml`, `atlas` project, server Docker image            |
+| Deferred        | Redis, workers/queues, managed RAG and new orchestration frameworks |
 
-### Backend authority boundaries
+### Backend Authority Boundaries
 
-- PostgreSQL is canonical application state for Phase 2 users, verifications, sessions, folders, and files.
-- Qdrant remains a retrieval index, not canonical application state.
-- Derive the current user from validated server-side authentication; never trust client-supplied `user_id`/`owner_id` to establish ownership.
-- Authorize folder/file ownership in PostgreSQL before accessing file-scoped retrieval data.
-- After authorization, preserve exact `file_id` filtering in Qdrant before generation.
-- Never globally retrieve from Qdrant and post-filter security scope in Python.
-- Never rely on an LLM to ignore unauthorized/out-of-scope context.
-- Citation metadata comes from trusted Atlas retrieval/provenance data.
-- Existing verified public RAG contracts remain authoritative unless a PLAN explicitly changes them.
-- Persistent original-file storage is not part of Phase 2; uploaded bytes are transient input to ingestion/indexing only.
-- PLAN_04 approves a metadata-only file read API; it must reuse PostgreSQL ownership enforcement and must not access Qdrant, generation, or original upload bytes.
+- `routers/` handles authenticated HTTP contracts and thin request dispatch; `pipeline/` owns application orchestration.
+- `models/postgres/` and PostgreSQL own canonical identity, ownership, folder relationships, state and readiness.
+- Qdrant stores derived chunks only; Qdrant metadata is **not** authorization authority.
+- `core/` and `db/` own prepared runtime resources, configuration, storage interaction and lifecycle.
+- `errors/` owns structured sanitized errors; no provider/raw source/secrets in response bodies.
+- The [RAG SKILL](../.agents/skills/rag/SKILL.md) owns technical retrieval/generation/citation contracts.
+- `main.py` is wiring only, never a place for domain logic.
 
-Legend: PostgreSQL establishes identity/ownership; Qdrant remains the derived RAG index.
+### Verified File Ask Flow
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'background': '#1e1e2e', 'primaryColor': '#45475a', 'primaryTextColor': '#cdd6f4', 'primaryBorderColor': '#89b4fa', 'lineColor': '#a6adc8', 'secondaryColor': '#313244', 'tertiaryColor': '#181825', 'fontFamily': 'Inter, sans-serif'}}}%%
 flowchart TD
-    Client["Browser client"] --> FastAPI["FastAPI"]
-    FastAPI --> Routers["routers/<br/>public HTTP boundaries"]
-    Routers --> Auth["Auth / request dependencies"]
-    Routers --> Domain["Atlas domain / pipeline orchestration"]
-    Auth --> Postgres["PostgreSQL<br/>canonical users/sessions"]
-    Domain --> Postgres
-    Domain --> Runtime["core/runtime.py<br/>prepared resources"]
-    Runtime --> Qdrant["Qdrant<br/>derived file chunks"]
-    Runtime --> Providers["Embedding / Gemini providers"]
-    Domain --> Schemas["schemas/<br/>validated DTOs"]
-    Routers --> Errors["structured ApiError handling"]
-    class Client client;
-    class FastAPI,Routers,Auth,Domain,Runtime,Providers,Schemas,Errors service;
-    class Postgres,Qdrant storage;
+    Browser["Authenticated File Ask"] --> API["FastAPI /files/:id/ask"]
+    API --> PG[("PostgreSQL owner + ready gate")]
+    PG --> Query["Exact-file Qdrant filter"]
+    Query --> Q[("Qdrant chunks")]
+    Q --> Gen["Grounded generation"]
+    Gen --> SSE["Native SSE + trusted file citations"]
+    class Browser client;
+    class API,Query,Gen,SSE service;
+    class PG,Q storage;
     classDef client fill:#2b3046,stroke:#89b4fa,stroke-width:1px,color:#cdd6f4;
     classDef service fill:#2c3642,stroke:#94e2d5,stroke-width:1px,color:#cdd6f4;
     classDef storage fill:#332e46,stroke:#cba6f7,stroke-width:1px,color:#cdd6f4;
@@ -276,40 +278,25 @@ flowchart TD
     classDef denied fill:#39303d,stroke:#f38ba8,stroke-width:1px,color:#cdd6f4;
 ```
 
-For owner-authorized RAG:
-
-```text
-access token
--> authenticated user
--> PostgreSQL file ownership + ready state
--> exact Qdrant file_id scope
--> verified Phase 1 generation/streaming/citation path
-```
-
-`main.py` remains wiring only.
-
-Detailed RAG sub-stage mechanics live in the [RAG skill](../.agents/skills/rag/SKILL.md).
-
-### Owner-authorized retrieval
-
-- Require verified Bearer identity and PostgreSQL file ownership/`ready` state before retrieval.
-- Never use Qdrant payloads as an authorization authority.
+### PHASE_03 Planned Scope Flow
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'background': '#1e1e2e', 'primaryColor': '#45475a', 'primaryTextColor': '#cdd6f4', 'primaryBorderColor': '#89b4fa', 'lineColor': '#a6adc8', 'secondaryColor': '#313244', 'tertiaryColor': '#181825', 'fontFamily': 'Inter, sans-serif'}}}%%
-flowchart LR
-    Jwt["Bearer JWT"] --> User["Current-user resolution"]
-    User --> DB[("PostgreSQL owner + file state")]
-    DB --> Gate{"Owner + ready?"}
-    Gate -- "No" --> Deny["Structured HTTP denial"]
-    Gate -- "Yes" --> Scope["Exact file_id filter"]
-    Scope --> Qdrant[("Qdrant")]
-    Qdrant --> Answer["Grounded response / SSE"]
-    class Jwt client;
-    class User,Scope,Answer service;
-    class Gate caution;
-    class DB,Qdrant storage;
-    class Deny denied;
+flowchart TD
+    Folder["Folder Ask /folders/:id/ask"] --> Owner["PostgreSQL: folder owner"]
+    Owner --> Direct["Direct owned ready files"]
+    Direct --> Set["Trusted file UUID set"]
+    Project["Later: Project Ask"] --> ProjectScope["Live member + descendant expansion"]
+    ProjectScope --> Set
+    Set --> Filter["Qdrant permitted-ID filter BEFORE ranking"]
+    Filter --> Validate["Validate payload membership"]
+    Validate --> Cite["Unified eight-field citations / request-local indexes"]
+    File["Verified File Ask / exact-file retrieval"] --> Cite
+    Cite --> Stream["Grounded native SSE"]
+    class Folder client;
+    class File verified;
+    class Owner,ProjectScope,Direct,Set,Filter,Validate,Cite,Stream planned;
+    class Project planned;
     classDef client fill:#2b3046,stroke:#89b4fa,stroke-width:1px,color:#cdd6f4;
     classDef service fill:#2c3642,stroke:#94e2d5,stroke-width:1px,color:#cdd6f4;
     classDef storage fill:#332e46,stroke:#cba6f7,stroke-width:1px,color:#cdd6f4;
@@ -318,75 +305,61 @@ flowchart LR
     classDef caution fill:#38362e,stroke:#f9e2af,stroke-width:1px,color:#cdd6f4;
     classDef denied fill:#39303d,stroke:#f38ba8,stroke-width:1px,color:#cdd6f4;
 ```
+
+- File Ask retains its exact-file filter, endpoint, fallback and SSE; its five-field DTO and file-local citation mapping are `SUPERSEDED` by the planned unified contract.
+- Folder Ask selects immediate files only; Projects later expand referenced folders recursively.
+- Empty eligible sets must bypass retrieval/provider work and use the approved scope-specific fallback.
+- No global vector retrieval followed by owner filtering; revalidate each Qdrant result's membership.
+- No long-lived PostgreSQL transaction spanning external retrieval/LLM streaming without approval.
 
 ---
 
 ## 5. REPOSITORY STRUCTURE & OWNERSHIP
 
+### Verified Server Structure
+
 ```text
 server/
 ├── AGENTS.md
-├── .env                         # local secrets/runtime config; ignored
-├── .env.example                 # safe reproducible template
-├── Dockerfile                   # backend runtime image
+├── .env                         # ignored private settings
+├── .env.example                 # safe placeholders
+├── Dockerfile
 ├── requirements.txt
 ├── app/
-│   ├── main.py                  # wiring only
-│   ├── routers/                 # public HTTP boundaries
-│   ├── errors/                  # structured error categories
-│   ├── core/
-│   │   ├── constants.py         # dotenv loading + validated constants construction
-│   │   ├── lifespan.py          # startup/shutdown ownership
-│   │   └── runtime.py           # access to startup-prepared resources
-│   ├── schemas/
-│   │   ├── constants.py
-│   │   ├── pipeline.py
-│   │   ├── documents.py
+│   ├── main.py                  # FastAPI wiring only
+│   ├── routers/                 # public API boundaries
+│   ├── errors/                  # sanitized typed HTTP errors
+│   ├── core/                    # config, lifespan, prepared runtime
+│   ├── schemas/                 # API and internal validated DTOs
+│   │   ├── folders/
+│   │   ├── files/
 │   │   ├── retrieval.py
-│   │   ├── generation.py
-│   │   └── system.py
+│   │   └── generation.py
 │   ├── models/
-│   │   ├── qdrant/
-│   │   │   └── chunk.py
-│   │   └── postgres/            # Phase 2 canonical application entities
+│   │   ├── postgres/            # canonical entities
+│   │   └── qdrant/              # stored chunk payload mapping
 │   ├── pipeline/
-│   │   ├── chunking.py
-│   │   ├── embeddings/
-│   │   ├── storage.py
+│   │   ├── folders.py
+│   │   ├── files.py
 │   │   ├── retrieval.py
 │   │   └── generation/
-│   └── db/
+│   └── db/                      # PostgreSQL/Qdrant mechanics
+├── migrations/
 └── tests/
 ```
 
-Use the current repository implementation if exact names evolve; do not create parallel ownership boundaries merely because this tree shows the intended responsibility.
+### Ownership Boundaries
 
-- HTTP handlers live in `routers/`, not `api/`.
-- Group endpoint handlers by resource prefix in its owning router module. `routers/files.py` owns all five `/files` operations (upload, GET, PATCH, DELETE, Ask) and exports one router for `main.py`.
-- File operations preserve their authentication/validation boundaries via explicit `add_api_route` registration: upload uses `UploadRoute`, metadata GET/PATCH/DELETE use `FileRoute`, and Ask retains its existing native-SSE `APIRoute` dependency behavior. Do not apply a shared wrapper that changes Ask validation or authenticates twice.
-- Folder orchestration lives in `pipeline/folders.py`; shared request validation lives in `routers/validation.py` as `ValidationRoute`.
-- Folder DTOs live in `schemas/folders/`, file DTOs in `schemas/files/`; `FolderListingResponse` retains the `folder`, `folders`, `files` JSON shape. Validation failures use `Invalid request input` with the existing `UNPROCESSABLE_ENTITY` code and HTTP 422.
-- Do not restore active backend `drive` module/schema names. Historical migration identity `0002_drive`, historical evidence and explicit retired-route absence checks remain unchanged.
-- `main.py`:
-  - creates the FastAPI app;
-  - includes routers;
-  - registers exception handlers;
-  - sets lifespan;
-  - contains no implementation logic.
-- Startup/shutdown implementation belongs in `core/`, imported into `main.py`.
-- Runtime access to startup-prepared resources belongs in `core/runtime.py` or the current equivalent.
-- `models/` contains storage-mapped entities only, split by datastore.
-- One stored class per file; complex PostgreSQL entities may use a folder such as `models/postgres/user/`.
-- `schemas/` contains validation, public API shapes, and pipeline DTOs.
-- Group schemas by cohesive concern.
-- Prefer one class per file unless classes are tightly coupled with no independent use.
-- Pipeline/domain orchestration belongs in `pipeline/`, not routers.
-- DB/client mechanics remain behind established Atlas boundaries.
-- Do not duplicate verified provider/client initialization in request paths.
-- Reuse startup-prepared runtime resources.
-- PostgreSQL models represent persisted entities only; keep database mechanics behind the established `db/` boundary rather than issuing ad hoc SQL from routers.
-- Phase 2 canonical PostgreSQL entity names are `users`, `verifications`, `sessions`, `folders`, and `files`; exact ORM/schema details belong in the current PLAN.
-- Keep authentication/session mechanics and ownership checks in dedicated backend boundaries rather than duplicating them across routers.
+- `routers/folders.py` owns `/folders` resources; `routers/files.py` owns `/files`, including the verified native File Ask SSE.
+- `pipeline/folders.py` owns current folder listing and folder metadata operations; PLAN_01 adds focused direct-file Ask scope resolution without altering listing behavior.
+- `pipeline/retrieval.py` and `db/qdrant.py` own vector request mechanics; use RAG SKILL before editing them.
+- `schemas/folders/`, `schemas/files/`, `schemas/generation.py` own validated DTOs and consistent errors.
+- PostgreSQL `models/` contain storage entities, not app orchestration; SQL/database mechanics remain in the established `db/` boundaries.
+- Startup-prepared embedding/provider/Qdrant resources are reused, never reconstructed per request.
+- `main.py` only includes routers, exception handlers and lifespan.
+- Preserve existing `ValidationRoute` semantics; file router has separate upload, metadata and Ask authentication/validation behavior.
+- Do not revive removed `GET /drive`, `POST /files/{file_id}/query`, or Next.js-specific backend routes.
+- PLAN_01 does not create Project schema or recursive folder resolver; PLAN_02/03 will own them later.
 
 ---
 
@@ -418,12 +391,12 @@ Within internal imports, group by top-level subpackage:
 
 Use one blank line between groups and no blank line within a group.
 
-### Comments and docstrings
+### Comments & Docstrings
 
 - Do not scatter inline comments explaining individual code lines.
 - Use function/method docstrings to describe behavior, parameters, returns, lifecycle, or non-obvious contracts.
 
-### Vertical spacing
+### Vertical Spacing
 
 For new/edited code:
 
@@ -456,7 +429,7 @@ def load(path: str) -> list[str]:
 
 New files mirror the latest established file in the same folder unless this documented convention intentionally supersedes it.
 
-### Documentation and ownership
+### Documentation & Ownership
 
 - Inherit root PHASE / PLAN / AMENDMENT terminology and the status labels in Section 2.
 - Codex maintains CONTEXT for execution/evidence and MANUAL for reproduced commands.
@@ -467,7 +440,7 @@ New files mirror the latest established file in the same folder unless this docu
 
 ## 7. TECHNICAL CONTRACTS & RUNTIME BEHAVIOR
 
-### Configuration, errors and lifecycle
+### Configuration, Errors & Lifecycle
 
 Atlas configuration uses:
 
@@ -523,9 +496,9 @@ The pattern was adapted from the human-provided TypeScript/Hono reference; prese
 - Do not silently add background tasks/threads/queues for convenience.
 - Lifecycle changes are material architecture when they alter service/resource ownership; stop and report before broadening scope.
 
-### Authentication and canonical state
+### Authentication & Canonical State
 
-#### Locked credential primitives
+#### Locked Credential Primitives
 
 - Password hashing and verification use Argon2id server-side.
 - Access tokens are short-lived HS256 JWTs validated by FastAPI.
@@ -535,7 +508,7 @@ The pattern was adapted from the human-provided TypeScript/Hono reference; prese
 
 These are cross-Amendment Phase 2 rules. Exact DTOs, ORM/migration tooling and layout, token TTL values, and endpoint error contracts belong in the applicable PLAN.
 
-#### Users and credentials
+#### Users & Credentials
 
 - `users.password` stores the password hash, never plaintext.
 - Password hashing/verification is server-side.
@@ -553,7 +526,7 @@ These are cross-Amendment Phase 2 rules. Exact DTOs, ORM/migration tooling and l
 - An encountered expired verification is invalid and is deleted during that request.
 - No cron/background TTL mechanism is required.
 
-#### Sessions and refresh tokens
+#### Sessions & Refresh Tokens
 
 - Canonical table name: `sessions`.
 - Persist only a hash of each refresh token, never the raw token.
@@ -586,13 +559,12 @@ flowchart LR
     classDef denied fill:#39303d,stroke:#f38ba8,stroke-width:1px,color:#cdd6f4;
 ```
 
-#### Folders and files
+#### Folders & Files
 
-- **PLAN_04 Amendment 02 supersession (`IMPLEMENTED & VERIFIED`):** `GET /folders` returns logical-root `FolderListingResponse`; `GET /folders/{folder_id}` returns the owned selected folder and direct children. Both reject every query parameter using `FolderQuery` and shared `ValidationRoute` validation.
+- **PLAN_04 Amendment 02 supersession (`VERIFIED`):** `GET /folders` returns logical-root `FolderListingResponse`; `GET /folders/{folder_id}` returns the owned selected folder and direct children. Both reject every query parameter using `FolderQuery` and shared `ValidationRoute` validation.
 - `GET /files/{file_id}` uses `FileRoute` authentication before UUID parsing, one unlocked SQL SELECT by file ID AND owner, and existing ten-field `FileResponse` for all three statuses. No commit, write, readiness guard, Qdrant or provider access.
 - `GET /drive` and `POST /files/{file_id}/query` are completely unregistered (ordinary framework 404), including OpenAPI. No alias or fallback is allowed; the shared `ValidationRoute` class remains for existing validation callers.
 - The 18 application operations comprise system 2, auth 7, folders 4 and files 5; documentation facilities are excluded. Internal retrieval and public owner/ready-gated Ask/SSE remain intact. Historical PLAN_02 contracts retain their original verification evidence.
-
 - Folders and files are canonical PostgreSQL records owned by one canonical user.
 - Folders are owner-scoped and recursively nestable through a parent-folder relationship.
 - A child folder's parent and a file's optional folder must belong to the same owner; cross-owner placement is invalid.
@@ -602,16 +574,16 @@ flowchart LR
 - Duplicate sibling folder names and duplicate sibling file names are allowed, and files/folders may share the same display name. UUIDs establish identity; names do not.
 - Original file bytes are not persistently stored in Phase 2.
 - File name/description metadata changes do not imply content replacement or Qdrant reindexing.
-- **PLAN_04 metadata read (`IMPLEMENTED & VERIFIED`):** `GET /files/{file_id}` returns the existing canonical File DTO for the authenticated owner. Missing and foreign IDs produce the same privacy-safe `404 FILE_NOT_FOUND`. File metadata reads are permitted for `processing`, `ready`, and `deleting`; internal retrieval and public `/ask` require `ready`. Do not add a schema migration, Qdrant call, download, preview, or RAG operation for this endpoint.
-- Do not claim this public API is verified until backend tests and separately authorized integrated acceptance actually run.
+- **PLAN_04 metadata read (`VERIFIED`):** `GET /files/{file_id}` returns the existing canonical File DTO for the authenticated owner. Missing and foreign IDs produce the same privacy-safe `404 FILE_NOT_FOUND`. File metadata reads are permitted for `processing`, `ready`, and `deleting`; internal retrieval and public `/ask` require `ready`. Do not add a schema migration, Qdrant call, download, preview, or RAG operation for this endpoint.
+- This public file metadata contract is historically `VERIFIED`; any change requires renewed targeted verification.
 - Canonical file lifecycle states are `processing`, `ready`, and `deleting`.
 - Canonical upload creates the file UUID/`processing` row before ingestion, uses that exact UUID for Qdrant `file_id`, and transitions to `ready` only after confirmed indexing success.
 - Known ingestion failure cleans any exact-file Qdrant writes and removes the temporary PostgreSQL file row; Phase 2 does not retain a durable `failed` file state.
-- Only an owner-authorized `ready` file may enter retrieval or generation.
-- Permanent deletion transitions the canonical file to `deleting`, removes all derived Qdrant points for the exact `file_id`, then removes the PostgreSQL row. A `deleting` file is non-queryable and the operation is retryable.
-- A file must be owner-authorized from PostgreSQL before any Qdrant retrieval/generation access.
+- Only an owner-authorized `ready` file at the request-start authorization read may enter a new Ask scope.
+- Permanent deletion transitions the canonical file to `deleting`, removes all derived Qdrant points for the exact `file_id`, then removes the PostgreSQL row. A `deleting` file is excluded from new Ask scopes and the operation is retryable; already-authorized requests may continue under the PLAN_01 snapshot policy.
+- A file must be owner-authorized from PostgreSQL at request start before any Qdrant retrieval/generation access; later deletion does not mandate cancellation or revalidation.
 
-### RAG integration boundary
+### RAG Integration Boundary
 
 Detailed RAG contracts remain authoritative in:
 
@@ -637,7 +609,7 @@ Read that skill before modifying:
 - GroundedStream;
 - public RAG SSE semantics.
 
-#### Locked high-level RAG selections
+#### Locked High-Level RAG Selections
 
 These high-level selections remain resolved:
 
@@ -651,7 +623,7 @@ These high-level selections remain resolved:
 - `merge_peers=True`.
 - BAAI/bge-m3 through FlagEmbedding `BGEM3FlagModel`.
 - Dense-only MVP; hybrid remains deferred.
-- Size/latency is explicitly not a constraint for the project.
+- The historical single-file baseline tolerated model size/latency; PHASE_03 multi-file scopes require explicit measured resource and latency budgets.
 - Qdrant cosine dense retrieval baseline.
 - Gemini Flash through official `google-genai`, behind `LLMProvider`.
 
@@ -684,7 +656,30 @@ Flag additions before implementing them.
 
 If any high-level summary here conflicts with the RAG skill, stop and report the discrepancy; do not silently choose one.
 
-### Canonical file lifecycle
+### PHASE_03 Planned Scope & Folder Ask API
+
+**Status: `PENDING` — no Folder/Project RAG implementation is claimed.**
+
+- `POST /folders/{folder_id}/ask` is the approved new Folder Ask endpoint. The selected real folder UUID must belong to the authenticated user; missing/foreign folders must share the non-disclosing 404 behavior.
+- Resolve **only** direct `files.folder_id = folder_id`, owner-matching, `status = ready` canonical files. Exclude nested descendants, root, siblings, other users and non-ready files.
+- Pass a **server-resolved** authorized UUID set and canonical request-time source metadata to a reusable internal retrieval operation; never accept arbitrary client-supplied allowed-file lists as authorization. Recommend an immutable request scope; the exact interface belongs to the focused AMENDMENT.
+- Embed the validated question using existing BGE-M3; apply Qdrant permitted-ID filtering **before ranking**. Validate all returned file IDs and stored payloads against authorized membership.
+- Zero eligible files bypass embedding, Qdrant and Gemini; zero retrieved chunks bypass Gemini. Both use successful fallback with empty citations and `done`. Preserve structured pre-stream HTTP errors and native SSE error/cleanup lifecycle.
+- Use unique request-local numeric source references for **all** Ask scopes; map `[[cite:N]]` to canonical `(file_id, chunk_index)` and trusted metadata. Model text must not author provenance.
+- **Unified Citation DTO (`LOCKED`):** exactly `index`, `file_id`, `file_name`, `chunk_index`, `page`, `heading`, `section`, `excerpt`. Use request-local `index`, canonical PostgreSQL UUID/name snapshot and validated chunk provenance. Preserve nullable metadata and trusted source excerpt as defined in the RAG skill.
+- The five-field File Ask citation DTO and file-local index are historically `VERIFIED` but `SUPERSEDED` for PLAN_01. Coordinate parser/prompt, serialization and client migration; preserve marker grammar and native SSE lifecycle.
+- **Fallbacks (`LOCKED`):** File Ask retains `I don't have enough information in this file to answer that.` Folder Ask uses `I don't have enough information in this folder to answer that.` Never convert an authorization, dependency, parser or resource error into fallback.
+- File Ask keeps `top_k=5` and range `1–20`; Folder Ask evaluates fixed global candidate limits k=5, 8, 12, with k=8 still `PROVISIONAL`. Never use file-count-proportional top-k or arbitrary unmeasured thresholds.
+- Bound eligible files, retrieved chunks, context, latency and response size using approved limits; never silently truncate the eligible UUID set. A ceiling of 100 eligible files and ~12,000 assembled prompt tokens are `PROVISIONAL` evaluation candidates, not production limits.
+- Benchmark scope resolution/filtering at approximately 10/50/100/250 eligible files and compare k=5/8/12 on the same labeled corpus. Record quality, latency and context evidence; approve final limits before shipping. BGE-M3 token counts are not exact Gemini token counts.
+- Oversized scope is an explicit pre-stream structured error, not fallback; HTTP `409` and `FOLDER_SCOPE_LIMIT_EXCEEDED` remain proposed pending confirmation of the established error envelope. Future file-subset selection is deferred.
+- **Deletion Consistency (`LOCKED`):** preserve `ready → deleting → Qdrant cleanup → canonical delete`. Authorize once at request start; already-authorized Ask may continue after deletion begins.
+- New File Ask rejects `deleting`/deleted sources; new Folder Ask excludes them, continuing with other eligible files or returning the exact fallback when empty. No mandatory pre-generation revalidation, continuous polling or long-held PostgreSQL locks.
+- Qdrant cleanup racing retrieval may reduce/remove matches; normal empty-result fallback applies, but actual dependency failures stay errors.
+- PLAN_01 expects no PostgreSQL migration; do not add one without review/approval.
+- A future Project resolver will provide the _same_ internal authorized retrieval operation with live recursive membership. Project entities, schema and APIs belong to later PLANS.
+
+### Canonical File Lifecycle
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'background': '#1e1e2e', 'primaryColor': '#45475a', 'primaryTextColor': '#cdd6f4', 'primaryBorderColor': '#89b4fa', 'lineColor': '#a6adc8', 'secondaryColor': '#313244', 'tertiaryColor': '#181825', 'fontFamily': 'Inter, sans-serif'}}}%%
@@ -753,10 +748,10 @@ Security boundaries:
 - client route state never establishes ownership;
 - do not leak out-of-scope retrieval context.
 
-### Non-delegable trust decisions
+### Non-Delegable Trust Decisions
 
 - Treat uploaded bytes, browser IDs and model output as untrusted.
-- Validate authorization server-side before retrieval and generation.
+- Validate authorization server-side at request start, before retrieval and generation; use only the captured authorized scope thereafter.
 - Preserve redaction and no-secret/no-content logging rules even in test output.
 - Authentication uses the validated server dependency, never a browser-provided owner claim.
 
@@ -764,48 +759,41 @@ Security boundaries:
 
 ## 9. SCOPE & ARCHITECTURE GOVERNANCE
 
-### Always do
+### Always Do
 
-- Read root `AGENTS.md` before this file.
-- Read the RAG skill before RAG-pipeline changes.
-- Reuse established provider/client/runtime/error/config patterns.
-- Keep routers thin.
-- Keep `main.py` wiring-only.
-- Keep dependency failures explicit.
-- Preserve server-side retrieval scope.
-- Preserve public API contracts unless the current PLAN explicitly changes them.
+- Read root AGENTS, server AGENTS and the RAG skill for pipeline changes.
+- Keep canonical ownership/readiness in PostgreSQL before all retrieval/generation.
+- Preserve established configuration, error, runtime, provider, Qdrant and transaction boundaries.
+- Retain File Ask endpoint, request validation, exact-file filter, fallback and SSE lifecycle; implement only the explicitly approved unified citation/index migration.
+- Run task-proportional tests and record actual failures, not inferred results.
 
-### Ask first
+### Requires Approval
 
-- new backend dependency;
-- new service boundary;
-- new queue/cache/storage architecture;
-- changes to the approved auth/session architecture;
-- DB schema/public API changes outside the specifically approved PLAN_04 Amendment 02 folder/file contract consolidation;
-- embedding/retrieval/generation policy changes;
-- provider/resource lifecycle redesign;
-- Docker/Compose topology changes.
+- New backend dependencies, service boundaries, caches/queues, environment and Docker topology.
+- PostgreSQL migrations or public API/DTO changes beyond the approved scope.
+- Changes to the `LOCKED` unified citation DTO, request-local mapping, exact fallback sentences or request-start deletion policy.
+- Final numeric scope, Folder `top_k`, latency/context limits and other material resource policies not yet approved.
+- Project membership schema, constraint and route specifics before PLAN_02 approval.
+- Changes to providers, embeddings, model/query settings, chunking, Qdrant schema/indexes or RAG policies.
+- Any auth/session ownership or lifecycle redesign.
 
-### Never do
+### Prohibited
 
-- introduce LangChain merely for convenience;
-- use Gemini File Search/managed RAG-as-a-service;
-- globally query Qdrant and post-filter security scope in Python;
-- treat model-authored citation metadata as trusted;
-- hide provider/Qdrant failures behind empty success;
-- create parallel provider/client initialization paths;
-- introduce multi-file/folder/tree/drive retrieval, persistent original-file storage, folder deletion/movement, or other excluded Phase 2 scope without explicit approval;
-- authorize from Qdrant alone or retrieve before PostgreSQL ownership authorization;
-- trust client-supplied `user_id`/`owner_id` as authorization;
-- add cron/background TTL cleanup for Phase 2 `verifications`/`sessions` without approval;
-- reset/delete persistent Qdrant state for ordinary tests.
+- Implement Folder/Project RAG before the corresponding approved AMENDMENT and verification stage.
+- Globally search Qdrant and filter unauthorized points afterward.
+- Let client/model-supplied IDs, metadata or instructions authorize access or citations.
+- Silently turn a Qdrant/embedding/LLM failure into insufficient-context success.
+- Create duplicate runtime clients/provider initialization paths per request.
+- Modify the verified File Ask backend behavior to simplify multi-file support without explicit supersession.
+- Add original-file persistence, folder movement/deletion, entire-drive/depth UI or managed RAG without a new decision.
+- Reset databases/collections or prune persistent/unrelated Docker resources during ordinary tests.
 
-### Decision vocabulary
+### Decision States
 
-- `LOCKED`: do not change without user approval.
-- `PROVISIONAL`: subject to explicit confirmation.
-- `OPEN`: unresolved material choice; do not delegate to Codex.
-- `SUPERSEDED`: replaced by an approved later decision.
+- `LOCKED`: approved; require user authorization to change.
+- `PROVISIONAL`: recommended but unconfirmed.
+- `OPEN`: blocks affected material implementation until approved.
+- `SUPERSEDED`: prior contract replaced; preserve evidence/history.
 
 ---
 
@@ -815,81 +803,74 @@ Security boundaries:
 - Inspect `git status` and diff before backend work; protect existing uncommitted changes.
 - Do not commit, push, create/switch branches, reset, rewrite history or discard work without explicit authorization.
 - Preserve PostgreSQL and Qdrant state; never reset databases, drop collections, delete volumes or broadly prune Docker as an incidental test step.
-- `phase-02/plan-04` is the last verified branch **reference**, not an instruction to switch.
+- `phase-02/plan-04` is the last inspected remote branch **reference**, not an instruction to switch.
 - Prefer `git diff --check` before completion; report all changed files.
 
 ---
 
 ## 11. VERIFICATION & ACCEPTANCE
 
-- Root `compose.yml` owns the server/PostgreSQL/Qdrant topology; relocation is `IMPLEMENTED & VERIFIED` after approved Amendment 06 fresh packaged and final browser/datastore acceptance. The explicitly accepted historical cache-loss exception remains in PLAN_04 CONTEXT; deterministic generation does not claim a fresh Gemini call.
-- Private `server/.env` stays in place; root Compose interpolation REQUIRES explicit `--env-file server/.env`.
-- Reuse existing Docker images/containers/volumes when the task does not require rebuilding.
-- Do not run `docker compose down -v` unless explicitly authorized.
-- Do not delete/reset the Qdrant volume or collection for routine verification.
-- Do not prune unrelated images/cache/volumes.
-- Docker rebuild is required when changes affect:
-  - Dockerfile;
-  - Compose;
-  - runtime dependencies;
-  - environment/configuration forwarding;
-  - model caching;
-  - startup lifecycle;
-  - another deployment-sensitive image input.
-- Client-only work does not justify a backend image rebuild.
-- If a prompt explicitly requires reuse-only verification, do not rebuild unless a deployment-sensitive blocker appears and the human approves the scope change.
-- Docker is authoritative for backend deployment-sensitive verification.
+Inherit root risk-based verification, Stage 01 STOP and independently authorized Stage 02 rules.
 
-Verification follows the root risk model.
+### Local Backend Checks
 
-Primary backend loop runs from `server/` inside the project venv:
+- Use the established project virtual environment from `server/` and current test commands:
 
 ```bash
-python -m pip install -r requirements.txt -r tests/requirements.txt
 python -m tests.run
 ```
 
-Docker/runtime checks when required, from repository root (separate Stage 02 approval required for Amendment 06):
+- Install requirements only when explicitly needed/authorized; avoid incidental dependency or model changes.
+- Focus on changed authorization, request/stream, retrieval and citation tests; rerun the relevant existing single-file suite.
+- Never claim local in-memory SQLite/Qdrant checks establish real PostgreSQL or persistent Qdrant behavior.
 
-```bash
-docker compose --env-file server/.env -f compose.yml up --no-build
-docker compose --env-file server/.env -f compose.yml ps
-```
+### PLAN_01 Verification Boundaries
 
-Rules:
+- **Scope:** two-owner, missing/foreign folder, root/sibling/descendant exclusion, readiness and empty-scope tests.
+- **Retrieval:** real Qdrant permitted-file filter before ranking; validate injected wrong-file/invalid payloads and bounded inputs.
+- **Citations:** one eight-field DTO for File and Folder Ask; duplicate per-file chunk indexes across sources, request-local references, exact trusted metadata, unknown/malformed markers and deliberate File Ask migration regressions.
+- **Streaming:** pre-stream auth/resource errors, provider bypass on empty evidence, exact File/Folder fallbacks, event order, disconnect cleanup, partial text/error handling and preserved File Ask lifecycle after citation migration.
+- **Quality:** deterministic evaluation comparing k=5, 8, 12, source coverage, context use, retrieval latency; no invented optimum.
+- **Concurrency:** new authorization excludes `deleting`/deleted files; already-authorized requests may continue. Test Qdrant cleanup races and new-scope exclusion; do not claim immediate in-flight revocation.
+- **Real acceptance:** separately authorized packaged API, real PostgreSQL/Qdrant, production SPA/browser checks and exact synthetic fixture preservation.
 
-- Do not claim tests passed unless they actually ran.
-- Prefer focused tests plus the established full suite for behavior/contract changes.
-- Real-provider smoke checks must use synthetic/non-sensitive content.
-- Do not spend Gemini quota in ordinary discovered unit tests.
-- Preserve persistent Qdrant data unless a task explicitly authorizes mutation/cleanup.
-- Use Docker only proportionally to the change.
-- Run `git diff --check` before completion.
-- Record exact blocked verification when an environment dependency prevents a required check.
+### Docker & Data Safety
+
+- Root `compose.yml` defines `atlas`; private interpolation requires `--env-file server/.env`.
+- Docker rebuilds are required for deployment-sensitive inputs under root policy, but any Docker execution requires fresh Stage 02 approval.
+- Reuse existing images/containers/volumes when appropriate; no incidental `down -v`, DB reset, collection deletion or image/cache pruning.
+- Record the prior Phase 2 Docker builder-cache exception exactly as accepted historical evidence, not a new pass.
+- Preserve unrelated Mongo/other resources and existing canonical data; scoped fixture cleanup only by exact IDs.
+
+### Evidence
+
+- Stage 01: record actual Python tests/static checks and diff review; STOP for human review.
+- Stage 02: record explicitly authorized HTTP/PostgreSQL/Qdrant/browser/provider results and actual resource restoration.
+- `git diff --check` before completion; blocked checks remain unverified, not silently accepted.
 
 ---
 
 ## 12. STANDARD ENGINEERING WORKFLOW
 
-### Before implementation
+### Before Implementation
 
-- Read root AGENTS, this file, the relevant PLAN and only the necessary source/tests.
-- For pipeline work also read the [RAG skill](../.agents/skills/rag/SKILL.md).
-- Establish current implementation and verification evidence; flag unresolved LOCKED/OPEN decisions.
-- Confirm database, API, auth, resource and verification impact before changing behavior.
+1. Read root AGENTS, this file and the approved PLAN/AMENDMENT; read the RAG skill for retrieval, grounding or citations.
+2. Inspect current branch/status/diff, targeted server source/tests, latest relevant CONTEXT and MANUAL.
+3. Confirm API/error/DTO, scope, provider, schema and resource-lifecycle impacts.
+4. Escalate `OPEN`/`LOCKED` conflicts rather than silently letting Codex decide them.
 
-### During implementation
+### During Implementation
 
-- Keep one AMENDMENT focused; preserve module responsibilities and adjacent conventions.
-- Make the smallest approved change; do not widen APIs or datastore schemas silently.
-- Preserve unrelated changes and avoid destructive environment operations.
+- Implement one cohesive AMENDMENT; keep HTTP routers thin and ownership/trust logic in backend services.
+- Preserve prepared runtime, clean session/stream closure, canonical deletion compensation and verified File Ask behavior except the approved citation/index migration.
+- Keep multi-file filter authorization separate from Qdrant storage/query plumbing; no speculative Project data model in PLAN_01.
+- No unapproved migration, Docker action, destructive cleanup, branch operation, commit or push.
 
-### Verification and completion
+### Verification & Completion
 
-- Run relevant unit/regression, Docker, PostgreSQL/Qdrant, HTTP and security checks according to task scope.
-- Run `git diff --check`; document commands and exact outcomes.
-- Codex updates CONTEXT and MANUAL only for genuinely executed work.
-- Report incomplete acceptance as `IMPLEMENTED, UNVERIFIED`, never as verified.
+- Stage 01: local deterministic regressions, static/package checks and `git diff --check`; update CONTEXT/MANUAL; STOP for review.
+- Stage 02: fresh approval before packaged/real DB/Qdrant/HTTP/browser/provider checks; inventory, uniquely own and clean test fixtures.
+- Report exact executed commands, failures, remaining unverified gates and status (`PENDING`, `BUILDING`, `IMPLEMENTED`, `VERIFIED`).
 
 ---
 
@@ -897,7 +878,7 @@ Rules:
 
 These MCPs are configured for Codex CLI but must be checked for availability in the active execution. Root [MCP policy](../AGENTS.md) governs consent, safety, minimal use and evidence recording.
 
-| MCP               | Server relevance                                                             | Use only when                                                                             |
+| MCP               | Server Relevance                                                             | Use Only When                                                                             |
 | ----------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | `context7`        | Version-specific FastAPI, Pydantic, SQLAlchemy, Docker or SDK documentation. | Current repo/dependency docs leave an implementation-critical API uncertainty.            |
 | `playwright`      | Cross-boundary browser acceptance.                                           | An approved server/client integration check requires actual browser behavior.             |

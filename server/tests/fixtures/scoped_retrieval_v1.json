@@ -1,0 +1,718 @@
+{
+  "version": "aster-v1",
+  "description": "Synthetic labels fixed before semantic evaluation; unsupported questions cannot prove no-answer behavior at retrieval alone.",
+  "files": [
+    {
+      "file_id": "a5700000-0000-4000-8000-000000000001",
+      "file_name": "launch.md",
+      "chunks": [
+        {
+          "chunk_index": 0,
+          "text": "The Aster launch is scheduled for 18 March 2027. The launch owner is Mira.",
+          "display_text": "The Aster launch is scheduled for 18 March 2027. The launch owner is Mira.",
+          "page": null,
+          "heading": "launch.md",
+          "section": null
+        },
+        {
+          "chunk_index": 1,
+          "text": "Aster rehearsals occur on 11 March 2027 in Harbor Lab.",
+          "display_text": "Aster rehearsals occur on 11 March 2027 in Harbor Lab.",
+          "page": null,
+          "heading": "launch.md",
+          "section": null
+        },
+        {
+          "chunk_index": 2,
+          "text": "Aster launch badges are violet.",
+          "display_text": "Aster launch badges are violet.",
+          "page": null,
+          "heading": "launch.md",
+          "section": null
+        }
+      ]
+    },
+    {
+      "file_id": "a5700000-0000-4000-8000-000000000002",
+      "file_name": "budget.md",
+      "chunks": [
+        {
+          "chunk_index": 0,
+          "text": "The Aster launch budget is 42000 credits. Finance owner is Owen.",
+          "display_text": "The Aster launch budget is 42000 credits. Finance owner is Owen.",
+          "page": null,
+          "heading": "budget.md",
+          "section": null
+        },
+        {
+          "chunk_index": 1,
+          "text": "Aster contingency reserve is 6000 credits.",
+          "display_text": "Aster contingency reserve is 6000 credits.",
+          "page": null,
+          "heading": "budget.md",
+          "section": null
+        },
+        {
+          "chunk_index": 2,
+          "text": "Budget reviews occur each Tuesday.",
+          "display_text": "Budget reviews occur each Tuesday.",
+          "page": null,
+          "heading": "budget.md",
+          "section": null
+        }
+      ]
+    },
+    {
+      "file_id": "a5700000-0000-4000-8000-000000000003",
+      "file_name": "support.md",
+      "chunks": [
+        {
+          "chunk_index": 0,
+          "text": "Aster support runs from 06:00 to 22:00 UTC. Escalations go to team Cedar.",
+          "display_text": "Aster support runs from 06:00 to 22:00 UTC. Escalations go to team Cedar.",
+          "page": null,
+          "heading": "support.md",
+          "section": null
+        },
+        {
+          "chunk_index": 1,
+          "text": "The first support response target is 30 minutes.",
+          "display_text": "The first support response target is 30 minutes.",
+          "page": null,
+          "heading": "support.md",
+          "section": null
+        },
+        {
+          "chunk_index": 2,
+          "text": "Support case archives are retained for 90 days.",
+          "display_text": "Support case archives are retained for 90 days.",
+          "page": null,
+          "heading": "support.md",
+          "section": null
+        }
+      ]
+    },
+    {
+      "file_id": "a5700000-0000-4000-8000-000000000004",
+      "file_name": "storage.md",
+      "chunks": [
+        {
+          "chunk_index": 0,
+          "text": "Aster backup retention is 35 days. Backups run at 02:00 UTC.",
+          "display_text": "Aster backup retention is 35 days. Backups run at 02:00 UTC.",
+          "page": null,
+          "heading": "storage.md",
+          "section": null
+        },
+        {
+          "chunk_index": 1,
+          "text": "Restore drills run monthly in Harbor Lab.",
+          "display_text": "Restore drills run monthly in Harbor Lab.",
+          "page": null,
+          "heading": "storage.md",
+          "section": null
+        },
+        {
+          "chunk_index": 2,
+          "text": "Backup archives use the region north-2.",
+          "display_text": "Backup archives use the region north-2.",
+          "page": null,
+          "heading": "storage.md",
+          "section": null
+        }
+      ]
+    },
+    {
+      "file_id": "a5700000-0000-4000-8000-000000000005",
+      "file_name": "security.md",
+      "chunks": [
+        {
+          "chunk_index": 0,
+          "text": "Aster access reviews occur every 14 days. Security owner is Sana.",
+          "display_text": "Aster access reviews occur every 14 days. Security owner is Sana.",
+          "page": null,
+          "heading": "security.md",
+          "section": null
+        },
+        {
+          "chunk_index": 1,
+          "text": "Aster operator credentials expire after 12 hours.",
+          "display_text": "Aster operator credentials expire after 12 hours.",
+          "page": null,
+          "heading": "security.md",
+          "section": null
+        },
+        {
+          "chunk_index": 2,
+          "text": "Security incident reports go to team Quartz.",
+          "display_text": "Security incident reports go to team Quartz.",
+          "page": null,
+          "heading": "security.md",
+          "section": null
+        }
+      ]
+    },
+    {
+      "file_id": "a5700000-0000-4000-8000-000000000006",
+      "file_name": "release.md",
+      "chunks": [
+        {
+          "chunk_index": 0,
+          "text": "Aster release freezes begin 48 hours before launch. Release owner is Leo.",
+          "display_text": "Aster release freezes begin 48 hours before launch. Release owner is Leo.",
+          "page": null,
+          "heading": "release.md",
+          "section": null
+        },
+        {
+          "chunk_index": 1,
+          "text": "The release rollback window is 20 minutes.",
+          "display_text": "The release rollback window is 20 minutes.",
+          "page": null,
+          "heading": "release.md",
+          "section": null
+        },
+        {
+          "chunk_index": 2,
+          "text": "Release artifacts use the tag aster-stable.",
+          "display_text": "Release artifacts use the tag aster-stable.",
+          "page": null,
+          "heading": "release.md",
+          "section": null
+        }
+      ]
+    },
+    {
+      "file_id": "a5700000-0000-4000-8000-000000000007",
+      "file_name": "training.md",
+      "chunks": [
+        {
+          "chunk_index": 0,
+          "text": "Aster operator training takes 6 hours. Training owner is Nia.",
+          "display_text": "Aster operator training takes 6 hours. Training owner is Nia.",
+          "page": null,
+          "heading": "training.md",
+          "section": null
+        },
+        {
+          "chunk_index": 1,
+          "text": "The training class size is 12 operators.",
+          "display_text": "The training class size is 12 operators.",
+          "page": null,
+          "heading": "training.md",
+          "section": null
+        },
+        {
+          "chunk_index": 2,
+          "text": "The operator handbook revision is R7.",
+          "display_text": "The operator handbook revision is R7.",
+          "page": null,
+          "heading": "training.md",
+          "section": null
+        }
+      ]
+    },
+    {
+      "file_id": "a5700000-0000-4000-8000-000000000008",
+      "file_name": "network.md",
+      "chunks": [
+        {
+          "chunk_index": 0,
+          "text": "Aster network failover target is 45 seconds. Network owner is Arun.",
+          "display_text": "Aster network failover target is 45 seconds. Network owner is Arun.",
+          "page": null,
+          "heading": "network.md",
+          "section": null
+        },
+        {
+          "chunk_index": 1,
+          "text": "Network maintenance occurs at 03:00 UTC on Sunday.",
+          "display_text": "Network maintenance occurs at 03:00 UTC on Sunday.",
+          "page": null,
+          "heading": "network.md",
+          "section": null
+        },
+        {
+          "chunk_index": 2,
+          "text": "The Aster gateway region is west-4.",
+          "display_text": "The Aster gateway region is west-4.",
+          "page": null,
+          "heading": "network.md",
+          "section": null
+        }
+      ]
+    },
+    {
+      "file_id": "a5700000-0000-4000-8000-000000000009",
+      "file_name": "research.md",
+      "chunks": [
+        {
+          "chunk_index": 0,
+          "text": "Aster pilot includes 75 volunteers. Research owner is Ivo.",
+          "display_text": "Aster pilot includes 75 volunteers. Research owner is Ivo.",
+          "page": null,
+          "heading": "research.md",
+          "section": null
+        },
+        {
+          "chunk_index": 1,
+          "text": "Pilot surveys run every 7 days.",
+          "display_text": "Pilot surveys run every 7 days.",
+          "page": null,
+          "heading": "research.md",
+          "section": null
+        },
+        {
+          "chunk_index": 2,
+          "text": "The research pilot lasts 8 weeks.",
+          "display_text": "The research pilot lasts 8 weeks.",
+          "page": null,
+          "heading": "research.md",
+          "section": null
+        }
+      ]
+    },
+    {
+      "file_id": "a5700000-0000-4000-8000-000000000010",
+      "file_name": "logistics.md",
+      "chunks": [
+        {
+          "chunk_index": 0,
+          "text": "Aster equipment delivery is due on 9 March 2027. Logistics owner is Tess.",
+          "display_text": "Aster equipment delivery is due on 9 March 2027. Logistics owner is Tess.",
+          "page": null,
+          "heading": "logistics.md",
+          "section": null
+        },
+        {
+          "chunk_index": 1,
+          "text": "Equipment pickup uses gate 4 at Harbor Lab.",
+          "display_text": "Equipment pickup uses gate 4 at Harbor Lab.",
+          "page": null,
+          "heading": "logistics.md",
+          "section": null
+        },
+        {
+          "chunk_index": 2,
+          "text": "The delivery batch contains 28 kits.",
+          "display_text": "The delivery batch contains 28 kits.",
+          "page": null,
+          "heading": "logistics.md",
+          "section": null
+        }
+      ]
+    },
+    {
+      "file_id": "a5700000-0000-4000-8000-000000000011",
+      "file_name": "excluded-legacy.md",
+      "chunks": [
+        {
+          "chunk_index": 0,
+          "text": "The retired Aster launch date was 2 February 2026 and its budget was 9000 credits.",
+          "display_text": "The retired Aster launch date was 2 February 2026 and its budget was 9000 credits.",
+          "page": null,
+          "heading": "excluded-legacy.md",
+          "section": null
+        },
+        {
+          "chunk_index": 1,
+          "text": "The retired support window was 09:00 to 17:00 UTC.",
+          "display_text": "The retired support window was 09:00 to 17:00 UTC.",
+          "page": null,
+          "heading": "excluded-legacy.md",
+          "section": null
+        },
+        {
+          "chunk_index": 2,
+          "text": "Legacy backup retention was 7 days.",
+          "display_text": "Legacy backup retention was 7 days.",
+          "page": null,
+          "heading": "excluded-legacy.md",
+          "section": null
+        }
+      ]
+    },
+    {
+      "file_id": "a5700000-0000-4000-8000-000000000012",
+      "file_name": "excluded-other-owner.md",
+      "chunks": [
+        {
+          "chunk_index": 0,
+          "text": "The unrelated Birch launch date is 1 May 2027 and its budget is 85000 credits.",
+          "display_text": "The unrelated Birch launch date is 1 May 2027 and its budget is 85000 credits.",
+          "page": null,
+          "heading": "excluded-other-owner.md",
+          "section": null
+        },
+        {
+          "chunk_index": 1,
+          "text": "Birch support runs all day; backup retention is 365 days.",
+          "display_text": "Birch support runs all day; backup retention is 365 days.",
+          "page": null,
+          "heading": "excluded-other-owner.md",
+          "section": null
+        },
+        {
+          "chunk_index": 2,
+          "text": "Birch training takes 20 hours.",
+          "display_text": "Birch training takes 20 hours.",
+          "page": null,
+          "heading": "excluded-other-owner.md",
+          "section": null
+        }
+      ]
+    }
+  ],
+  "allowed_file_ids": [
+    "a5700000-0000-4000-8000-000000000001",
+    "a5700000-0000-4000-8000-000000000002",
+    "a5700000-0000-4000-8000-000000000003",
+    "a5700000-0000-4000-8000-000000000004",
+    "a5700000-0000-4000-8000-000000000005",
+    "a5700000-0000-4000-8000-000000000006",
+    "a5700000-0000-4000-8000-000000000007",
+    "a5700000-0000-4000-8000-000000000008",
+    "a5700000-0000-4000-8000-000000000009",
+    "a5700000-0000-4000-8000-000000000010"
+  ],
+  "questions": [
+    {
+      "id": "fact-1",
+      "kind": "single",
+      "question": "When is the Aster launch?",
+      "evidence": [
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000001",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "fact-2",
+      "kind": "single",
+      "question": "What is the Aster launch budget?",
+      "evidence": [
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000002",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "fact-3",
+      "kind": "single",
+      "question": "What are the Aster support hours?",
+      "evidence": [
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000003",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "fact-4",
+      "kind": "single",
+      "question": "How many days are Aster backups retained?",
+      "evidence": [
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000004",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "fact-5",
+      "kind": "single",
+      "question": "How often are Aster access reviews?",
+      "evidence": [
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000005",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "fact-6",
+      "kind": "single",
+      "question": "How long before launch does the Aster release freeze begin?",
+      "evidence": [
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000006",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "fact-7",
+      "kind": "single",
+      "question": "How long is Aster operator training?",
+      "evidence": [
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000007",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "fact-8",
+      "kind": "single",
+      "question": "What is the Aster network failover target?",
+      "evidence": [
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000008",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "fact-9",
+      "kind": "single",
+      "question": "How many volunteers are in the Aster pilot?",
+      "evidence": [
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000009",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "fact-10",
+      "kind": "single",
+      "question": "When is Aster equipment delivery due?",
+      "evidence": [
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000010",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "paraphrase-1",
+      "kind": "paraphrase",
+      "question": "On which calendar date will Aster go live?",
+      "evidence": [
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000001",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "paraphrase-2",
+      "kind": "paraphrase",
+      "question": "How many credits are allocated to launching Aster?",
+      "evidence": [
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000002",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "paraphrase-3",
+      "kind": "paraphrase",
+      "question": "During which UTC hours can Aster users get help?",
+      "evidence": [
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000003",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "paraphrase-4",
+      "kind": "paraphrase",
+      "question": "After how many days do Aster backup copies expire?",
+      "evidence": [
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000004",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "paraphrase-5",
+      "kind": "paraphrase",
+      "question": "What is the interval between Aster permission audits?",
+      "evidence": [
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000005",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "paraphrase-6",
+      "kind": "paraphrase",
+      "question": "How many hours ahead of Aster launch are releases frozen?",
+      "evidence": [
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000006",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "paraphrase-7",
+      "kind": "paraphrase",
+      "question": "How many hours must an Aster operator spend in training?",
+      "evidence": [
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000007",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "paraphrase-8",
+      "kind": "paraphrase",
+      "question": "How quickly should Aster networking switch over after failure?",
+      "evidence": [
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000008",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "paraphrase-9",
+      "kind": "paraphrase",
+      "question": "What is the number of people participating in the Aster trial?",
+      "evidence": [
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000009",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "paraphrase-10",
+      "kind": "paraphrase",
+      "question": "By which date must the Aster equipment arrive?",
+      "evidence": [
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000010",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "cross-1",
+      "kind": "cross",
+      "question": "When will Aster launch, and what is the launch budget?",
+      "evidence": [
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000001",
+          "chunk_index": 0
+        },
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000002",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "cross-2",
+      "kind": "cross",
+      "question": "What are Aster support hours and backup retention?",
+      "evidence": [
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000003",
+          "chunk_index": 0
+        },
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000004",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "cross-3",
+      "kind": "cross",
+      "question": "How often are Aster access reviews, and how long is the release freeze?",
+      "evidence": [
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000005",
+          "chunk_index": 0
+        },
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000006",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "cross-4",
+      "kind": "cross",
+      "question": "How long is Aster training, and what is the network failover target?",
+      "evidence": [
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000007",
+          "chunk_index": 0
+        },
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000008",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "cross-5",
+      "kind": "cross",
+      "question": "How many volunteers join the Aster pilot, and when is equipment delivery due?",
+      "evidence": [
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000009",
+          "chunk_index": 0
+        },
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000010",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "cross-6",
+      "kind": "cross",
+      "question": "Who owns Aster launch and security, and how many hours does operator training take?",
+      "evidence": [
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000001",
+          "chunk_index": 0
+        },
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000005",
+          "chunk_index": 0
+        },
+        {
+          "file_id": "a5700000-0000-4000-8000-000000000007",
+          "chunk_index": 0
+        }
+      ]
+    },
+    {
+      "id": "unsupported-1",
+      "kind": "unsupported",
+      "question": "What is the Aster catering menu?",
+      "evidence": []
+    },
+    {
+      "id": "unsupported-2",
+      "kind": "unsupported",
+      "question": "What is the Aster carbon-emissions target?",
+      "evidence": []
+    },
+    {
+      "id": "unsupported-3",
+      "kind": "unsupported",
+      "question": "What is the Aster mobile app download count?",
+      "evidence": []
+    },
+    {
+      "id": "unsupported-4",
+      "kind": "unsupported",
+      "question": "What is the Birch launch budget?",
+      "evidence": []
+    }
+  ]
+}

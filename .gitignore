@@ -1,8 +1,11 @@
 # ENVIRONMENT
 .env
-server/.env
 venv/
 .venv/
+server/.env
+
+# DOCUMENTATION
+/prompts/PRESETS/
 
 # SYSTEM
 .idea/
@@ -24,7 +27,7 @@ server/tests/fixtures/unsupported.zip
 server/tests/fixtures/valid-multipage.pdf
 server/tests/fixtures/blank-middle-page.pdf
 
-# CLIENT BUILDS / LOCAL VERIFICATION
+# LOCAL VERIFICATION
 client/out/
 client/.next/
 .playwright-mcp/
